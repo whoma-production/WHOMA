@@ -1,0 +1,165 @@
+[
+  {
+    "session_id": "2026-02-25-1306-foundation-scaffold-docs-os",
+    "timestamp": "2026-02-25T13:06:00+01:00",
+    "summary": "Bootstrapped WHOMA MVP foundation (Next.js/Tailwind/Prisma/Zod/tests), built branded UI scaffolds for core homeowner/agent flows, and added in-repo docs operating system (DEVLOG/TASKS/ARCHITECTURE + startup rule).",
+    "files_changed": [
+      "package.json",
+      "prisma/schema.prisma",
+      "src/app/page.tsx",
+      "src/app/(app)/agent/marketplace/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/proposal/page.tsx",
+      "src/app/(app)/homeowner/instructions/new/page.tsx",
+      "src/app/(app)/homeowner/instructions/[instructionId]/compare/page.tsx",
+      "src/components/proposal-compare-table.tsx",
+      "src/lib/validation/proposal.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/ARCHITECTURE.md",
+      "AGENTS.md"
+    ],
+    "decisions": [
+      "Keep MVP domain entities lean (User/Profile/Property/Instruction/Proposal/Thread/Message only)",
+      "Encode structured comparable proposal schema early via Zod",
+      "Use UI-first scaffolds before persistence/auth wiring",
+      "Adopt append-only dev log + machine-readable changelog for agent handoffs"
+    ],
+    "next_steps": [
+      "Implement auth + RBAC route protection",
+      "Persist instruction creation with Prisma and server-side validation",
+      "Persist proposal submission and shortlist/award workflow with gated chat unlock"
+    ]
+  },
+  {
+    "session_id": "2026-02-25-1314-runtime-verification-landing-fix",
+    "timestamp": "2026-02-25T13:14:08+01:00",
+    "summary": "Installed dependencies, fixed a landing-page JSX parse error and Next.js config warning, then started the dev server and verified key routes render locally.",
+    "files_changed": [
+      "next.config.ts",
+      "src/app/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Leave dev server running for immediate local preview",
+      "Fix runtime preview blockers immediately rather than deferring"
+    ],
+    "next_steps": [
+      "Implement auth + RBAC route protection",
+      "Wire Prisma-backed instruction/proposal writes with server-side validation"
+    ]
+  },
+  {
+    "session_id": "2026-02-25-1330-auth-rbac-route-protection",
+    "timestamp": "2026-02-25T13:30:04+01:00",
+    "summary": "Implemented lean signed-cookie dev auth with middleware route protection and server-enforced RBAC + Zod validation on instruction/proposal write endpoints.",
+    "files_changed": [
+      "src/lib/auth/session.ts",
+      "src/middleware.ts",
+      "src/app/api/auth/session/route.ts",
+      "src/app/api/instructions/route.ts",
+      "src/app/api/proposals/route.ts",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/lib/auth/session.test.ts",
+      "docs/TASKS.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use signed-cookie dev auth as a PR-sized bridge before NextAuth/Clerk integration",
+      "Enforce page access in middleware and write authorization in route handlers"
+    ],
+    "next_steps": [
+      "Persist instructions in Prisma behind POST /api/instructions",
+      "Persist proposals in Prisma behind POST /api/proposals",
+      "Replace dev auth with production auth provider integration when persistence is in place"
+    ]
+  },
+  {
+    "session_id": "2026-02-25-1335-homepage-copy-trust-motion-refresh",
+    "timestamp": "2026-02-25T13:35:33+01:00",
+    "summary": "Refreshed the homepage with benefit-led UK property copy, trust messaging, compare/split sections, logo subtitle, and subtle CSS-only motion (plus small lint cleanup in input primitives).",
+    "files_changed": [
+      "src/app/page.tsx",
+      "src/components/brand/logo.tsx",
+      "src/app/globals.css",
+      "src/components/ui/button.tsx",
+      "src/components/ui/input.tsx",
+      "src/components/ui/textarea.tsx",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use CSS-only motion instead of Framer Motion for lean MVP scope",
+      "Keep tender mechanics visible but make hero headline outcome-first"
+    ],
+    "next_steps": [
+      "Proceed with Prisma-backed instruction/proposal persistence",
+      "Consider early-access capture flow when ready"
+    ]
+  },
+  {
+    "session_id": "2026-02-25-1357-trust-pages-sitemap-location-browse",
+    "timestamp": "2026-02-25T13:57:00+01:00",
+    "summary": "Added trust/support pages, an HTML sitemap, and public location-browse pages for LIVE Instructions (plus a shared mock location dataset and homepage footer links).",
+    "files_changed": [
+      "src/lib/mock/live-instructions.ts",
+      "src/app/(app)/agent/marketplace/page.tsx",
+      "src/components/layout/public-footer.tsx",
+      "src/app/page.tsx",
+      "src/app/[slug]/page.tsx",
+      "src/app/locations/page.tsx",
+      "src/app/locations/[postcodeDistrict]/page.tsx",
+      "docs/TASKS.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use a single root dynamic route for legal/support pages and the HTML sitemap to keep the PR lean",
+      "Reuse LIVE Instruction card/data shape for location browse pages so Whoma stays an instruction marketplace, not a property portal",
+      "Ship placeholder legal/support copy with visible legal-review TODO notices instead of over-claiming completeness"
+    ],
+    "next_steps": [
+      "Implement cookie consent mechanism and connect it to the cookies page",
+      "Replace mock location data with Prisma-backed LIVE Instructions after persistence work"
+    ]
+  },
+  {
+    "session_id": "2026-02-25-1411-dev-preview-access-nextauth",
+    "timestamp": "2026-02-25T14:11:00+01:00",
+    "summary": "Added a dev-only NextAuth preview provider and local preview access buttons so protected homeowner/agent areas can be explored without Google OAuth credentials in local development.",
+    "files_changed": [
+      "src/auth.ts",
+      "src/components/auth/google-auth-button.tsx",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Keep NextAuth as the single auth system by adding a dev-only Credentials provider instead of reviving custom signed-cookie auth",
+      "Show local preview access only in development and only when Google OAuth credentials are missing"
+    ],
+    "next_steps": [
+      "Use preview buttons to inspect protected homeowner and agent flows locally",
+      "Configure Google OAuth env vars to validate real Google sign-in end-to-end"
+    ]
+  },
+  {
+    "session_id": "2026-03-19-1619-local-launch-github-repo-setup",
+    "timestamp": "2026-03-19T16:19:00+00:00",
+    "summary": "Relaunched the local site preview on port 3012, opened it in-browser, re-authenticated GitHub CLI, created a private GitHub repository for the project, and prepared the repo for first push.",
+    "files_changed": [
+      ".gitignore",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Create the GitHub repository as private by default while the product evolves",
+      "Use localhost port 3012 for local preview continuity"
+    ],
+    "next_steps": [
+      "Push initial commit to origin/main",
+      "Proceed with T002: Prisma-backed homeowner instruction creation"
+    ]
+  }
+]

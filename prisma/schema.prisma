@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  HOMEOWNER
+  AGENT
+  ADMIN
+}
+
+enum PreferredContactMethod {
+  EMAIL
+  PHONE
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+}
+
+enum PropertyType {
+  FLAT
+  TERRACED
+  SEMI_DETACHED
+  DETACHED
+  BUNGALOW
+  OTHER
+}
+
+enum TargetTimeline {
+  ASAP
+  FOUR_TO_EIGHT_WEEKS
+  FLEXIBLE
+}
+
+enum InstructionStatus {
+  DRAFT
+  LIVE
+  CLOSED
+  SHORTLIST
+  AWARDED
+}
+
+enum FeeModel {
+  FIXED
+  PERCENT
+  HYBRID
+  SUCCESS_BANDS
+}
+
+enum CurrencyCode {
+  GBP
+}
+
+enum ServiceInclusion {
+  PROFESSIONAL_PHOTOGRAPHY
+  FLOORPLAN
+  PORTAL_LISTINGS
+  HOSTED_VIEWINGS
+  ACCOMPANIED_VIEWINGS
+  SALES_PROGRESSION_SUPPORT
+  EPC_ASSISTANCE
+}
+
+enum ProposalStatus {
+  SUBMITTED
+  SHORTLISTED
+  REJECTED
+  ACCEPTED
+}
+
+enum ThreadStatus {
+  LOCKED
+  OPEN
+}
+
+model User {
+  id               String           @id @default(cuid())
+  role             UserRole?
+  name             String?
+  email            String           @unique
+  emailVerified    DateTime?
+  image            String?
+  createdAt        DateTime         @default(now())
+  homeownerProfile HomeownerProfile?
+  agentProfile     AgentProfile?
+  properties       Property[]
+  agentProposals   Proposal[]       @relation("AgentProposals")
+  messages         Message[]
+  homeownerThreads MessageThread[]  @relation("ThreadHomeowner")
+  agentThreads     MessageThread[]  @relation("ThreadAgent")
+  accounts         Account[]
+  sessions         Session[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionToken])
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model HomeownerProfile {
+  userId                 String                 @id
+  phone                  String?
+  preferredContactMethod PreferredContactMethod @default(EMAIL)
+  createdAt              DateTime               @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AgentProfile {
+  userId              String             @id
+  agencyName          String
+  serviceAreas        String[]
+  specialties         String[]
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  ratingAggregate     Float?
+  responseTimeMinutes Int?
+  createdAt           DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Property {
+  id               String       @id @default(cuid())
+  ownerId          String
+  addressLine1     String
+  city             String
+  postcode         String
+  propertyType     PropertyType
+  bedrooms         Int
+  bathrooms        Int?
+  shortDescription String
+  photos           String[]
+  createdAt        DateTime     @default(now())
+
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  instructions Instruction[]
+
+  @@index([ownerId])
+  @@index([postcode])
+}
+
+model Instruction {
+  id               String            @id @default(cuid())
+  propertyId       String
+  sellerGoals      String
+  targetTimeline   TargetTimeline
+  bidWindowStartAt DateTime
+  bidWindowEndAt   DateTime
+  status           InstructionStatus @default(DRAFT)
+  createdAt        DateTime          @default(now())
+
+  property  Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  proposals Proposal[]
+  threads   MessageThread[]
+
+  @@index([status, bidWindowEndAt])
+  @@index([propertyId])
+}
+
+model Proposal {
+  id                String             @id @default(cuid())
+  instructionId     String
+  agentId           String
+  feeModel          FeeModel
+  feeValue          Decimal            @db.Decimal(10, 2)
+  currency          CurrencyCode       @default(GBP)
+  inclusions        ServiceInclusion[]
+  marketingPlan     String
+  timelineDays      Int
+  cancellationTerms String
+  status            ProposalStatus     @default(SUBMITTED)
+  createdAt         DateTime           @default(now())
+
+  instruction Instruction @relation(fields: [instructionId], references: [id], onDelete: Cascade)
+  agent       User        @relation("AgentProposals", fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([instructionId, agentId])
+  @@index([instructionId, status])
+  @@index([agentId])
+}
+
+model MessageThread {
+  id            String       @id @default(cuid())
+  instructionId String
+  homeownerId   String
+  agentId       String
+  status        ThreadStatus @default(LOCKED)
+  createdAt     DateTime     @default(now())
+
+  instruction Instruction @relation(fields: [instructionId], references: [id], onDelete: Cascade)
+  homeowner   User        @relation("ThreadHomeowner", fields: [homeownerId], references: [id], onDelete: Cascade)
+  agent       User        @relation("ThreadAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  messages    Message[]
+
+  @@unique([instructionId, homeownerId, agentId])
+  @@index([status])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  threadId  String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}

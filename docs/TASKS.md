@@ -1,0 +1,48 @@
+# Whoma Tasks
+
+## Now (this sprint)
+- [x] T001 — Auth + RBAC route protection (HOMEOWNER / AGENT / ADMIN)
+  **Acceptance:** Unauthenticated users are redirected from protected app routes; authenticated users can only access routes/actions allowed by role; demo signed-cookie session auth is enforced server-side for `POST /api/instructions` and `POST /api/proposals`.
+
+- [ ] T002 — Homeowner create instruction flow (Property + Instruction) with Prisma persistence
+  **Acceptance:** Homeowner can create a property and instruction, choose a 24-48h bid window, and saved instruction appears as `LIVE` or `DRAFT` with server-side Zod validation and Prisma write.
+
+- [ ] T003 — Agent proposal submission (structured schema enforced)
+  **Acceptance:** Agent can open a LIVE instruction, submit one structured proposal (fee model/value, inclusions, timeline, marketing plan, cancellation terms); duplicate proposal for same instruction/agent is blocked server-side.
+
+- [ ] T004 — Homeowner proposal compare + shortlist/award workflow
+  **Acceptance:** Homeowner can view standardized proposal comparison, shortlist/reject proposals, award exactly one proposal, and statuses update consistently (`SUBMITTED` -> `SHORTLISTED`/`REJECTED` -> one `ACCEPTED`).
+
+- [ ] T005 — Gated messaging threads (shortlist/award unlock rule)
+  **Acceptance:** Thread exists in `LOCKED` state before unlock; becomes `OPEN` when rule triggers; only homeowner and the relevant agent can read/write messages; unauthorized access is denied.
+
+## Next
+- [ ] T010 — Real proposal builder form (React Hook Form + Zod) with inline validation + preview sync
+  **Acceptance:** Form validates client-side and server-side with matching schema errors; preview updates as inputs change; submit success/error states are visible.
+
+- [ ] T011 — Agent profile + manual verification workflow (MVP trust badges)
+  **Acceptance:** Agent can edit agency/profile/service areas; admin can set verification status; verification badge is displayed on marketplace proposals and comparison views.
+
+- [ ] T012 — Loading/empty/error states polish across key flows
+  **Acceptance:** All primary MVP screens have non-empty empty states, skeletons for loading, and user-visible error messages with recovery actions.
+
+- [x] T013 — Trust pages + HTML sitemap + browse LIVE Instructions by location (public)
+  **Acceptance:** Public routes exist for `/privacy`, `/cookies`, `/terms`, `/complaints`, `/contact`, `/sitemap`, `/locations`, and `/locations/[postcodeDistrict]`; footer links expose trust/support pages; sitemap lists key pages and location routes; location pages list LIVE Instructions (not property listings).
+
+- [ ] T014 — Cookie consent mechanism + preferences control (MVP)
+  **Acceptance:** Non-essential cookies remain off until consent; user can review/change preferences; cookies page links to live consent controls and accurately reflects behavior.
+
+## Later
+- [ ] T100 — Event tracking (privacy-conscious counts only; no analytics dashboard)
+  **Acceptance:** Core events are emitted without storing PII payloads; feature can be disabled via env flag; no dashboard UI added in MVP.
+
+- [ ] T101 — File upload integration for property photos and supporting docs (S3-compatible)
+  **Acceptance:** Homeowner can upload optional photos via signed upload flow; URLs persist to `Property.photos`; upload auth/authorization enforced.
+
+- [ ] T102 — Background status transitions for bid window expiry
+  **Acceptance:** Instructions move from `LIVE` to `CLOSED` when bid window ends (job or request-time reconciliation), with deterministic behavior and tests.
+
+## Parking Lot (ideas not committed)
+- Basic CSV export of awarded instructions for ops/admin
+- Invite-only beta onboarding / waitlist gate
+- Agent response-time aggregates (future, not in MVP domain)
