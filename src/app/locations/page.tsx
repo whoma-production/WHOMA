@@ -25,7 +25,7 @@ export default function LocationsIndexPage(): JSX.Element {
     <div className="min-h-screen bg-surface-1">
       <header className="border-b border-line bg-surface-0">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle="Where Home Owners Meet Agents" />
+          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
           <div className="flex items-center gap-2">
             <Link href="/sitemap" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
               Sitemap
@@ -42,7 +42,7 @@ export default function LocationsIndexPage(): JSX.Element {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Locations</p>
           <h1>Browse LIVE Instructions by location</h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            Whoma lists active seller instructions by postcode district and city so agents can find relevant
+            Whoma lists active seller instructions by postcode district and city so real estate agents can find relevant
             opportunities quickly. This is not a property-for-sale portal.
           </p>
         </section>
@@ -74,7 +74,7 @@ export default function LocationsIndexPage(): JSX.Element {
               <p className="text-sm text-text-muted">Preview of active instruction cards shown in the agent marketplace.</p>
             </div>
             <Link href="/agent/marketplace" className={cn(buttonVariants({ variant: "secondary" }))}>
-              Open agent marketplace
+              Open real estate agent marketplace
             </Link>
           </div>
 

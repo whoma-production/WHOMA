@@ -18,18 +18,29 @@ const navByRole: Record<ShellRole, NavItem[]> = {
   HOMEOWNER: [
     { label: "Create Instruction", href: "/homeowner/instructions/new" },
     { label: "My Instructions", href: "/homeowner/instructions" },
+    { label: "Agent Directory", href: "/agents" },
     { label: "Messages", href: "/messages" }
   ],
   AGENT: [
+    { label: "Onboarding", href: "/agent/onboarding" },
+    { label: "CV Builder", href: "/agent/profile/edit" },
+    { label: "Public Directory", href: "/agents" },
     { label: "Marketplace", href: "/agent/marketplace" },
     { label: "My Proposals", href: "/agent/proposals" },
     { label: "Messages", href: "/messages" }
   ],
   ADMIN: [
+    { label: "Agent Directory", href: "/agents" },
     { label: "Marketplace", href: "/agent/marketplace" },
     { label: "Verification", href: "/admin/agents" },
     { label: "Messages", href: "/messages" }
   ]
+};
+
+const roleLabel: Record<ShellRole, string> = {
+  HOMEOWNER: "HOMEOWNER",
+  AGENT: "REAL ESTATE AGENT",
+  ADMIN: "ADMIN"
 };
 
 export async function AppShell({ role, title, children }: { role: ShellRole; title: string; children: ReactNode }): Promise<JSX.Element> {
@@ -41,8 +52,8 @@ export async function AppShell({ role, title, children }: { role: ShellRole; tit
       <header className="border-b border-line bg-surface-0">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
-            <Logo subtitle="Where Home Owners Meet Agents" />
-            <Badge variant="accent">{role}</Badge>
+            <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
+            <Badge variant="accent">{roleLabel[role]}</Badge>
           </div>
           <nav aria-label="Primary" className="hidden items-center gap-2 md:flex">
             {navItems.map((item) => (

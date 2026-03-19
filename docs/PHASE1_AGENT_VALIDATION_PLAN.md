@@ -22,10 +22,10 @@ Real estate agents will use WHOMA to build professional credibility and a person
 - Advanced analytics dashboarding
 
 ## Delivery Milestones
-- **2026-03-22**: Data model + architecture map finalized for onboarding/CV/profile/directory
-- **2026-03-25**: Guided onboarding flow + server validation + verification queue integration
-- **2026-03-27**: CV builder + publish flow + public profile page
-- **2026-03-29**: Public directory + end-to-end QA + pilot seed data
+- **2026-03-22**: Data model + architecture map finalized for onboarding/CV/profile/directory ✅
+- **2026-03-25**: Guided onboarding flow + server validation + verification queue integration ✅
+- **2026-03-27**: CV builder + publish flow + public profile page ✅
+- **2026-03-29**: Public directory + end-to-end QA + pilot seed data ✅
 - **2026-03-30 (Monday)**: Start onboarding pilot real estate agents
 
 ## Weekly Demo Expectations

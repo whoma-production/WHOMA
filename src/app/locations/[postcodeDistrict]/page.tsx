@@ -50,7 +50,7 @@ export default async function LocationPage({ params }: PageProps): Promise<JSX.E
     <div className="min-h-screen bg-surface-1">
       <header className="border-b border-line bg-surface-0">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle="Where Home Owners Meet Agents" />
+          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
           <Link href="/locations" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
             All locations
           </Link>
@@ -64,7 +64,7 @@ export default async function LocationPage({ params }: PageProps): Promise<JSX.E
             LIVE Instructions in {city} · {normalizedDistrict}
           </h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            Structured seller instructions currently open for agent proposals in this postcode district.
+            Structured seller instructions currently open for real estate agent proposals in this postcode district.
             Proposal submission remains gated behind sign-in.
           </p>
         </section>
@@ -88,7 +88,7 @@ export default async function LocationPage({ params }: PageProps): Promise<JSX.E
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl">Instruction feed</h2>
             <Link href="/sign-up?role=AGENT" className={cn(buttonVariants({ variant: "primary" }))}>
-              Join as an agent
+              Join as a real estate agent
             </Link>
           </div>
           <div className="grid gap-4 lg:grid-cols-2">

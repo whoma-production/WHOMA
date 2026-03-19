@@ -25,7 +25,7 @@ const howItWorksSteps = [
   },
   {
     title: "Receive structured offers",
-    description: "Agents send standardised proposals so you can compare fees, scope and timelines like-for-like.",
+    description: "Real estate agents send standardised proposals so you can compare fees, scope and timelines like-for-like.",
     icon: FileCheck2
   },
   {
@@ -81,9 +81,9 @@ const roleSplit = {
     "Award only when you are ready, with no obligation to accept a proposal."
   ],
   agents: [
-    "Compete on service and pricing with a structured proposal, not a rushed pitch call.",
-    "See clear seller goals and timelines before deciding whether to submit.",
-    "Chat opens after shortlist/award, keeping leads focused and qualified."
+    "Build a personal professional identity beyond just your agency logo.",
+    "Show your expertise through a structured profile and directory visibility.",
+    "Compete on service and pricing with structured proposals to qualified sellers."
   ]
 } as const;
 
@@ -92,8 +92,11 @@ export default function LandingPage(): JSX.Element {
     <div className="min-h-screen bg-surface-1">
       <header className="border-b border-line bg-surface-0">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle="Where Home Owners Meet Agents" />
+          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
           <div className="flex items-center gap-2">
+            <Link href="/agents" className={cn(buttonVariants({ variant: "tertiary", size: "sm" }))}>
+              Agent directory
+            </Link>
             <Link href="/sign-in" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
               Sign in
             </Link>
@@ -112,11 +115,11 @@ export default function LandingPage(): JSX.Element {
                 UK home-selling marketplace
               </p>
               <h1 className="animate-enter-up animate-delay-1 max-w-2xl text-4xl sm:text-5xl">
-                Sell your home with confidence: compare agent offers side-by-side.
+                Sell your home with confidence: compare real estate agent offers side-by-side.
               </h1>
               <p className="animate-enter-up animate-delay-2 max-w-2xl text-base text-text-muted sm:text-lg">
                 Post your property brief once. Receive structured proposals in 24-48 hours. Compare fees,
-                inclusions and timelines, then award the agent you trust.
+                inclusions and timelines, then award the real estate agent you trust.
               </p>
               <div className="animate-enter-up animate-delay-2 flex flex-wrap gap-3">
                 <Link href="/sign-up?role=HOMEOWNER" className={cn(buttonVariants({ variant: "primary", size: "lg" }))}>
@@ -124,7 +127,7 @@ export default function LandingPage(): JSX.Element {
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link href="/sign-up?role=AGENT" className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}>
-                  Join as an agent
+                  Join as a real estate agent
                 </Link>
               </div>
               <ul className="animate-enter-up animate-delay-3 grid gap-2 text-sm text-text-muted sm:grid-cols-3" aria-label="Trust highlights">
@@ -142,7 +145,7 @@ export default function LandingPage(): JSX.Element {
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">How Whoma works</p>
                   <h2 className="text-xl">Instruction → Bid Window → Proposals → Shortlist → Award</h2>
                   <p className="text-sm text-text-muted">
-                    Keep control of the process while agents compete on a clear, comparable proposal format.
+                    Keep control of the process while real estate agents compete on a clear, comparable proposal format.
                   </p>
                 </div>
                 <ol className="space-y-3 text-sm">
@@ -165,7 +168,7 @@ export default function LandingPage(): JSX.Element {
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">How it works</p>
-              <h2 className="mt-2">A calmer way to choose the right agent and the right deal</h2>
+              <h2 className="mt-2">A calmer way to choose the right real estate agent and the right deal</h2>
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -192,7 +195,7 @@ export default function LandingPage(): JSX.Element {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">What you compare</p>
               <h2>Compare like-for-like before you commit</h2>
               <p className="text-sm text-text-muted sm:text-base">
-                Whoma standardises the important parts of an agent proposal so you can make a decision quickly
+                Whoma standardises the important parts of a real estate agent proposal so you can make a decision quickly
                 without digging through mismatched pitches.
               </p>
             </div>
@@ -242,7 +245,7 @@ export default function LandingPage(): JSX.Element {
 
             <Card className="interactive-lift space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <h3>For Agents</h3>
+                <h3>For Real Estate Agents</h3>
                 <span className="rounded-full bg-surface-1 px-3 py-1 text-xs font-semibold text-text-strong">
                   Qualified opportunities
                 </span>
@@ -273,7 +276,7 @@ export default function LandingPage(): JSX.Element {
                 Create a homeowner brief
               </Link>
               <Link href="/sign-up?role=AGENT" className={cn(buttonVariants({ variant: "secondary" }))}>
-                Join as an agent
+                  Join as a real estate agent
               </Link>
             </div>
           </div>

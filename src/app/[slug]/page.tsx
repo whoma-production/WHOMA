@@ -34,7 +34,7 @@ const legalContent: Record<LegalSlug, LegalPageContent> = {
         heading: "What data we collect",
         paragraphs: [
           "We may collect account details, profile information, property and instruction details, proposal content, and messages required to operate the marketplace.",
-          "We aim to collect only the information needed to match homeowners and agents, support proposal comparison, and maintain a secure audit trail."
+          "We aim to collect only the information needed to match homeowners and real estate agents, support proposal comparison, and maintain a secure audit trail."
         ]
       },
       {
@@ -89,8 +89,8 @@ const legalContent: Record<LegalSlug, LegalPageContent> = {
       {
         heading: "Platform role",
         paragraphs: [
-          "Whoma provides a marketplace workflow for homeowners and estate agents to exchange structured proposals during a bid window.",
-          "Whoma is not acting as an estate agent, broker, valuation provider, or legal adviser unless explicitly stated in a future service agreement."
+          "Whoma provides a marketplace workflow for homeowners and real estate agents to exchange structured proposals during a bid window.",
+          "Whoma is not acting as a real estate agent, broker, valuation provider, or legal adviser unless explicitly stated in a future service agreement."
         ]
       },
       {
@@ -214,7 +214,7 @@ export default async function StaticPage({ params }: PageProps): Promise<JSX.Ele
     <div className="min-h-screen bg-surface-1">
       <header className="border-b border-line bg-surface-0">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle="Where Home Owners Meet Agents" />
+          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
           <Link href="/" className="text-sm font-medium text-text-muted transition-colors hover:text-brand-ink">
             Back to home
           </Link>
@@ -245,12 +245,13 @@ export default async function StaticPage({ params }: PageProps): Promise<JSX.Ele
               <Card className="space-y-3 bg-surface-1">
                 <h2 className="text-lg">Public pages</h2>
                 <ul className="space-y-2 text-sm text-text-muted">
-                  {[
-                    { href: "/", label: "Home" },
-                    { href: "/sign-in", label: "Sign in" },
-                    { href: "/sign-up", label: "Sign up" },
-                    { href: "/locations", label: "Browse Instructions by location" }
-                  ].map((page) => (
+                    {[
+                      { href: "/", label: "Home" },
+                      { href: "/sign-in", label: "Sign in" },
+                      { href: "/sign-up", label: "Sign up" },
+                      { href: "/agents", label: "Real estate agent directory" },
+                      { href: "/locations", label: "Browse Instructions by location" }
+                    ].map((page) => (
                     <li key={page.href}>
                       <Link href={page.href} className="transition-colors hover:text-brand-ink">
                         {page.label}

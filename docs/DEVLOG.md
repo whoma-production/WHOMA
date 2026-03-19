@@ -502,3 +502,101 @@
 1. Implement A001 (agent onboarding foundation + server-side profile bootstrap write).
 2. Expand `AgentProfile` schema for structured CV fields and public profile publishing flags.
 3. Build `/agents/[slug]` and `/agents` with publish eligibility filters.
+
+---
+
+## Session: 2026-03-19 / 17:04 (GMT) — Phase 1 implementation: onboarding, CV builder, public profiles, directory
+**Author:** Codex  
+**Context:** User requested full Phase 1 implementation with step-by-step delivery and stronger scalable foundations, plus language/copy refinement.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+- Implement all scoped Phase 1 real estate agent identity features end-to-end and align platform copy to the new positioning.
+
+### Changes Made
+- Extended Prisma `AgentProfile` model for Phase 1 identity workflows:
+  - Added fields for `jobTitle`, `workEmail`, `phone`, `bio`, `yearsExperience`, `achievements`, `languages`, `profileSlug`, `profileStatus`, `profileCompleteness`, `onboardingCompletedAt`, `publishedAt`, `updatedAt`.
+  - Added `AgentProfileStatus` enum (`DRAFT`, `PUBLISHED`) and indexes for profile/verification queries.
+- Added shared validation module `src/lib/validation/agent-profile.ts`:
+  - onboarding schema
+  - CV draft schema
+  - publish schema with stricter checks
+  - CSV list parsing helper for server actions
+- Added scalable domain service layer `src/server/agent-profile/service.ts`:
+  - onboarding completion
+  - draft save
+  - publish with completeness guardrail (70% threshold)
+  - public profile/directory queries
+  - admin verification updates
+  - onboarding funnel counters
+- Implemented real estate agent onboarding UI flow:
+  - new `/agent/onboarding` page with guided professional information capture
+  - server-side validation and persistence
+  - verification status set to `PENDING` on onboarding completion
+- Implemented CV builder flow:
+  - new `/agent/profile/edit` page with draft + publish actions
+  - profile readiness display and public profile preview link
+  - new `/agent/profile` redirect route
+- Implemented public directory surfaces:
+  - new `/agents` directory with `area`, `specialty`, and `verified` filters
+  - new `/agents/[slug]` public profile page with SEO metadata and trust/coverage sections
+- Replaced admin verification placeholder with live queue:
+  - `/admin/agents` now reads real profiles, supports verification updates, and shows funnel counters (`started`, `completed`, `published`, `verified`)
+- Updated auth/routing foundations:
+  - `defaultRouteForRole("AGENT")` now routes to `/agent/onboarding`
+  - preview credentials provider now upserts preview users in Prisma for reliable local flow testing
+  - RBAC action set expanded for onboarding/edit/publish/directory actions
+- Refined platform copy across key surfaces to explicitly use “Real Estate Agent” terminology and added public directory visibility in navigation/footer/header.
+- Fixed pre-existing Vitest alias configuration so `@/` imports resolve in tests.
+
+### Files / Modules Touched (high signal only)
+- `prisma/schema.prisma` — expanded `AgentProfile` + new `AgentProfileStatus`
+- `src/lib/validation/agent-profile.ts` — new Phase 1 validation boundary
+- `src/server/agent-profile/service.ts` — new domain service layer for profile/onboarding workflows
+- `src/app/(app)/agent/onboarding/page.tsx` — guided onboarding flow
+- `src/app/(app)/agent/profile/edit/page.tsx` — CV builder + draft/publish actions
+- `src/app/agents/page.tsx` — public directory
+- `src/app/agents/[slug]/page.tsx` — public profile page
+- `src/app/(app)/admin/agents/page.tsx` — live verification queue + counters
+- `src/components/layout/app-shell.tsx` — role nav updates and role labeling
+- `src/auth.ts` — preview provider persistence updates
+- `src/lib/auth/session.ts` — AGENT default route updated
+- `src/lib/auth/rbac.ts` — new agent-profile action permissions
+- `src/components/layout/public-footer.tsx`, `src/app/page.tsx`, auth/location/static pages — copy/language updates
+- `vitest.config.ts` — alias resolution fix
+- `docs/TASKS.md` — Phase 1 tasks/milestones marked complete
+- `docs/ARCHITECTURE.md`, `docs/PLATFORM_MAP.md`, `docs/PHASE1_AGENT_VALIDATION_PLAN.md` — architecture map and delivery docs updated
+- `docs/DEVLOG.md`, `docs/CHANGELOG.json` — session records appended
+
+### Decisions (and why)
+- **Decision:** Introduce a dedicated profile domain service layer now.
+  - **Why:** Keeps onboarding/CV/publish/directory logic centralized, reusable, and easier to scale.
+- **Decision:** Gate profile publishing with server-enforced completeness threshold.
+  - **Why:** Ensures minimum profile quality for public directory trust.
+- **Decision:** Route agents to onboarding as their default post-role destination.
+  - **Why:** Aligns product flow to Phase 1 validation objective.
+
+### Data / Schema Notes
+- DB migrations: schema updated, but no migration file generated in this session.
+- New/changed Zod schemas:
+  - `agentOnboardingSchema`
+  - `agentProfileDraftSchema`
+  - `agentProfilePublishSchema`
+- RBAC changes:
+  - Added `agent:profile:onboard`, `agent:profile:edit`, `agent:profile:publish`, `agent:directory:view`
+
+### How to Run / Test
+- `npm run prisma:generate` — passed
+- `npm run lint` — passed
+- `npm run test` — passed (13/13)
+- `npm run typecheck` — still fails due pre-existing project-wide baseline typing issues outside this session’s scope (`JSX` namespace typing, typed-routes strictness, historical NextAuth adapter typing)
+
+### Known Issues / Risks
+- Prisma schema has changed but DB migration is still pending (`prisma migrate dev` needed against target database).
+- Production onboarding still depends on valid Google OAuth env configuration.
+- Full project `typecheck` baseline remains unresolved and should be addressed in a dedicated hardening pass.
+
+### Next Steps
+1. Generate/apply Prisma migration for the new `AgentProfile` fields and enums.
+2. Run end-to-end manual QA of onboarding -> CV -> publish -> directory -> admin verification with real auth sessions.
+3. Start controlled onboarding pilot operations toward Monday 2026-03-30 launch.

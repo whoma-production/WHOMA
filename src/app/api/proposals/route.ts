@@ -20,7 +20,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (session.user.role !== "AGENT") {
-    return jsonError(403, "Only agents can submit proposals.");
+    return jsonError(403, "Only real estate agents can submit proposals.");
   }
 
   assertCan(session.user.role, "proposal:submit");

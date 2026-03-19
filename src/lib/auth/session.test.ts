@@ -31,7 +31,7 @@ describe("page route policy", () => {
 
   it("provides a default route for each role", () => {
     expect(defaultRouteForRole("HOMEOWNER")).toBe("/homeowner/instructions");
-    expect(defaultRouteForRole("AGENT")).toBe("/agent/marketplace");
+    expect(defaultRouteForRole("AGENT")).toBe("/agent/onboarding");
     expect(defaultRouteForRole("ADMIN")).toBe("/admin/agents");
   });
 });

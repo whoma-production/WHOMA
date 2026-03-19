@@ -57,7 +57,7 @@ export function GoogleAuthButton({
     }
 
     const previewEmail = role === "HOMEOWNER" ? "homeowner.preview@whoma.local" : "agent.preview@whoma.local";
-    const previewRedirectTo = role === "HOMEOWNER" ? "/homeowner/instructions" : "/agent/marketplace";
+    const previewRedirectTo = role === "HOMEOWNER" ? "/homeowner/instructions" : "/agent/onboarding";
 
     setPendingAction(role === "HOMEOWNER" ? "homeowner" : "agent");
 
@@ -124,7 +124,7 @@ export function GoogleAuthButton({
               disabled={isPending}
               aria-busy={pendingAction === "agent"}
             >
-              {pendingAction === "agent" ? "Entering..." : "Preview as Agent"}
+              {pendingAction === "agent" ? "Entering..." : "Preview as Real Estate Agent"}
             </Button>
           </div>
         </div>

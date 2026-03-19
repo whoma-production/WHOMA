@@ -6,6 +6,7 @@ const footerSections = [
   {
     title: "Whoma",
     links: [
+      { href: "/agents", label: "Agent Directory" },
       { href: "/locations", label: "Browse Instructions" },
       { href: "/sitemap", label: "Sitemap" }
     ]
@@ -32,9 +33,9 @@ export function PublicFooter(): JSX.Element {
     <footer className="border-t border-line bg-surface-0">
       <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-8">
         <div className="space-y-3">
-          <Logo subtitle="Where Home Owners Meet Agents" />
+          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
           <p className="max-w-sm text-sm text-text-muted">
-            Whoma is a tender marketplace for home sellers to compare structured estate agent proposals.
+            WHOMA is a tender marketplace where homeowners compare structured real estate agent proposals and agent profiles.
           </p>
           <p className="text-xs text-text-muted">UK MVP legal and policy pages are placeholders pending legal review before launch.</p>
         </div>

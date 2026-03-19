@@ -185,5 +185,42 @@
       "Expand AgentProfile schema for structured CV fields and publish controls",
       "Ship public profile and directory routes for pilot onboarding"
     ]
+  },
+  {
+    "session_id": "2026-03-19-1704-phase1-agent-features-implementation",
+    "timestamp": "2026-03-19T17:04:13+00:00",
+    "summary": "Implemented Phase 1 real estate agent identity features end-to-end: onboarding flow, CV builder, publishable public profiles, public agent directory, live admin verification queue with funnel counters, and platform-wide copy updates aligned to real estate agent positioning.",
+    "files_changed": [
+      "prisma/schema.prisma",
+      "src/lib/validation/agent-profile.ts",
+      "src/server/agent-profile/service.ts",
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/app/(app)/agent/profile/edit/page.tsx",
+      "src/app/(app)/agent/profile/page.tsx",
+      "src/app/agents/page.tsx",
+      "src/app/agents/[slug]/page.tsx",
+      "src/app/(app)/admin/agents/page.tsx",
+      "src/components/layout/app-shell.tsx",
+      "src/auth.ts",
+      "src/lib/auth/session.ts",
+      "src/lib/auth/rbac.ts",
+      "src/app/page.tsx",
+      "docs/TASKS.md",
+      "docs/ARCHITECTURE.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/PHASE1_AGENT_VALIDATION_PLAN.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Centralize profile/onboarding logic in a dedicated service layer for future scaling",
+      "Require server-side completeness threshold before public profile publishing",
+      "Route AGENT users to onboarding by default to enforce Phase 1 activation flow"
+    ],
+    "next_steps": [
+      "Generate and apply Prisma migrations for new AgentProfile fields and enum",
+      "Run full end-to-end QA from onboarding to public directory and admin verification",
+      "Start controlled onboarding pilot operations for the Monday 2026-03-30 target"
+    ]
   }
 ]

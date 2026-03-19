@@ -7,19 +7,36 @@ export type AppAction =
   | "proposal:submit"
   | "proposal:review"
   | "proposal:award"
+  | "agent:profile:onboard"
+  | "agent:profile:edit"
+  | "agent:profile:publish"
+  | "agent:directory:view"
   | "thread:view"
   | "thread:message"
   | "admin:verify-agent";
 
 const permissionMatrix: Record<AppRole, readonly AppAction[]> = {
-  HOMEOWNER: ["instruction:create", "proposal:review", "proposal:award", "thread:view", "thread:message"],
-  AGENT: ["instruction:view:marketplace", "proposal:submit", "thread:view", "thread:message"],
+  HOMEOWNER: ["instruction:create", "proposal:review", "proposal:award", "agent:directory:view", "thread:view", "thread:message"],
+  AGENT: [
+    "instruction:view:marketplace",
+    "proposal:submit",
+    "agent:profile:onboard",
+    "agent:profile:edit",
+    "agent:profile:publish",
+    "agent:directory:view",
+    "thread:view",
+    "thread:message"
+  ],
   ADMIN: [
     "instruction:create",
     "instruction:view:marketplace",
     "proposal:submit",
     "proposal:review",
     "proposal:award",
+    "agent:profile:onboard",
+    "agent:profile:edit",
+    "agent:profile:publish",
+    "agent:directory:view",
     "thread:view",
     "thread:message",
     "admin:verify-agent"

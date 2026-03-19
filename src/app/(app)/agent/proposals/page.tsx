@@ -7,7 +7,7 @@ export default function AgentProposalsPage(): JSX.Element {
       <Card>
         <h2 className="text-lg font-semibold text-text-strong">Proposal pipeline</h2>
         <p className="mt-2 text-sm text-text-muted">
-          Placeholder page for submitted/shortlisted/accepted proposals. Next chunk will back this with Prisma queries and status transitions.
+          Submitted/shortlisted/accepted real estate agent proposals will appear here once marketplace persistence is completed in Phase 2.
         </p>
       </Card>
     </AppShell>

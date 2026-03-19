@@ -37,7 +37,7 @@ const previewProviders =
             email: { label: "Email", type: "email" },
             role: { label: "Role", type: "text" }
           },
-          authorize(rawCredentials) {
+          async authorize(rawCredentials) {
             const parsed = previewCredentialsSchema.safeParse(rawCredentials);
 
             if (!parsed.success) {
@@ -46,12 +46,26 @@ const previewProviders =
 
             const { email, role } = parsed.data;
             const isHomeowner = role === "HOMEOWNER";
+            const displayName = isHomeowner ? "Preview Homeowner" : "Preview Real Estate Agent";
+
+            const user = await prisma.user.upsert({
+              where: { email },
+              create: {
+                email,
+                name: displayName,
+                role
+              },
+              update: {
+                name: displayName,
+                role
+              }
+            });
 
             return {
-              id: isHomeowner ? "preview-homeowner" : "preview-agent",
-              email,
-              name: isHomeowner ? "Preview Homeowner" : "Preview Agent",
-              role
+              id: user.id,
+              email: user.email,
+              name: user.name ?? displayName,
+              role: user.role
             };
           }
         })

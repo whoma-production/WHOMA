@@ -79,7 +79,7 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
     <main className="grid min-h-screen place-items-center bg-surface-1 px-4 py-10">
       <div className="w-full max-w-2xl space-y-6">
         <div className="flex justify-center">
-          <Logo subtitle="Where Home Owners Meet Agents" />
+          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
         </div>
 
         <Card>
@@ -116,13 +116,13 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
                 <input type="hidden" name="role" value="AGENT" />
                 <Card className="interactive-lift flex h-full flex-col justify-between gap-4 p-5">
                   <div>
-                    <h2 className="text-lg">Agent</h2>
+                    <h2 className="text-lg">Real Estate Agent</h2>
                     <p className="mt-2 text-sm text-text-muted">
-                      Browse LIVE instructions, submit structured proposals and message only after shortlist/award.
+                      Build your professional profile, appear in the public directory, and submit structured proposals to LIVE instructions.
                     </p>
                   </div>
                   <Button type="submit" variant="secondary" fullWidth>
-                    Continue as Agent
+                    Continue as Real Estate Agent
                   </Button>
                 </Card>
               </form>

@@ -23,7 +23,7 @@ export default async function ProposalBuilderPage({ params }: PageProps): Promis
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Instruction {instructionId}</p>
             <h2 className="text-lg">Proposal Builder</h2>
-            <p className="text-sm text-text-muted">Stepper form + live preview. Final implementation will use React Hook Form + Zod with server-side validation on submit.</p>
+            <p className="text-sm text-text-muted">Structured real estate agent proposal form with live preview and server-side validation.</p>
           </div>
 
           <FormStepper steps={proposalSteps} currentStep={1} />

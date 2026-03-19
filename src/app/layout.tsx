@@ -12,9 +12,9 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "WHOMA | Structured agent tendering for home sellers",
+  title: "WHOMA | Real Estate Agent Profiles and Structured Home-Seller Tendering",
   description:
-    "Homeowners launch a time-boxed instruction and compare structured estate agent proposals side-by-side."
+    "Real estate agents build public professional profiles while homeowners compare structured agent proposals side-by-side."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {

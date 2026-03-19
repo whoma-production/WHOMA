@@ -25,7 +25,7 @@ export default async function AgentInstructionDetailPage({ params, searchParams 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Instruction {instructionId}</p>
               <h2 className="mt-1 text-lg">SW1A · 2-bed flat · Bid window active</h2>
-              <p className="text-sm text-text-muted">Single source of truth for the seller brief, countdown, proposals, and shortlist/award actions.</p>
+              <p className="text-sm text-text-muted">Single source of truth for seller brief, countdown, structured proposals, and shortlist/award actions.</p>
             </div>
             <div className="flex gap-2">
               <Badge variant="accent">18h remaining</Badge>
@@ -88,7 +88,7 @@ export default async function AgentInstructionDetailPage({ params, searchParams 
             <h3 className="text-base font-semibold text-text-strong">Agent submission guidance</h3>
             <ul className="list-disc space-y-2 pl-5 text-sm text-text-muted">
               <li>Proposals are structured and comparable; freeform-only bids are not accepted.</li>
-              <li>Chat is gated and secondary. Submit Proposal is the primary workflow action.</li>
+              <li>Chat is gated and secondary. Submit Proposal is the primary real estate agent workflow action.</li>
               <li>Manual verification status is displayed to the homeowner as a trust badge.</li>
             </ul>
           </Card>

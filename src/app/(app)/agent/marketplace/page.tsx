@@ -13,7 +13,7 @@ export default function AgentMarketplacePage(): JSX.Element {
         <Card className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-text-strong">LIVE Instructions</h2>
-            <p className="text-sm text-text-muted">Filter by postcode district, property type, and bedrooms. Primary CTA is structured proposal submission.</p>
+            <p className="text-sm text-text-muted">Filter by postcode district, property type, and bedrooms. Primary CTA is structured real estate agent proposal submission.</p>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="space-y-1">

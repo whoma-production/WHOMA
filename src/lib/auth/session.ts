@@ -35,7 +35,7 @@ export function defaultRouteForRole(role: UserRole): string {
     case "HOMEOWNER":
       return "/homeowner/instructions";
     case "AGENT":
-      return "/agent/marketplace";
+      return "/agent/onboarding";
     case "ADMIN":
       return "/admin/agents";
   }

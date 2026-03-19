@@ -6,10 +6,10 @@ Homeowner creates Instruction (sell brief) -> bid window -> agents submit struct
 
 ## Current Build Priority (Phase 1)
 Real estate agent identity validation first:
-- Agent onboarding
-- Agent CV/profile creation
-- Public agent profile pages
-- Public agent directory visibility
+- Agent onboarding ✅
+- Agent CV/profile creation ✅
+- Public agent profile pages ✅
+- Public agent directory visibility ✅
 
 Reference map: `docs/PLATFORM_MAP.md`
 Delivery plan: `docs/PHASE1_AGENT_VALIDATION_PLAN.md`
@@ -47,23 +47,36 @@ Delivery plan: `docs/PHASE1_AGENT_VALIDATION_PLAN.md`
 6. `MessageThread` unlocks (`LOCKED` -> `OPEN`) when shortlist/award rule triggers.
 7. Homeowner/agent exchange `Message` entries in unlocked thread.
 
+## Data Flow (Phase 1 Real Estate Agent Identity)
+1. User signs in with Google and selects `AGENT`.
+2. Agent completes onboarding (`agency`, `job title`, `work email`, `phone`, `service areas`, `specialties`, `bio`).
+3. Server validates and persists onboarding details to `AgentProfile`, sets verification to `PENDING`.
+4. Agent refines profile in CV builder (`achievements`, `languages`, profile completeness).
+5. Agent publishes profile when completeness threshold is met.
+6. Public directory (`/agents`) lists published profiles; public profile page (`/agents/[slug]`) shows structured identity details.
+7. Admin verification queue updates `verificationStatus` and tracks onboarding funnel counters.
+
 ## Key Routes / Surfaces (current scaffold)
 - `/` — public landing (explainer + role CTAs)
 - `/sign-in`, `/sign-up` — auth entry
 - `/onboarding/role` — post-auth role assignment
+- `/agent/onboarding` — guided real estate agent onboarding flow
+- `/agent/profile/edit` — agent CV builder with draft/publish actions
+- `/agents` — public real estate agent directory
+- `/agents/[slug]` — public real estate agent profile page
 - `/homeowner/instructions/new` — create instruction UI scaffold
 - `/homeowner/instructions/[instructionId]/compare` — compare/shortlist/award UI scaffold
 - `/agent/marketplace` — LIVE instructions list UI scaffold
 - `/agent/marketplace/[instructionId]` — instruction detail (agent/homeowner mode preview)
 - `/agent/marketplace/[instructionId]/proposal` — structured proposal builder UI scaffold
 - `/messages` — gated messaging UI concept
-- `/agents`, `/agents/[slug]` — planned public real estate agent directory/profile pages (Phase 1 priority)
+- `/admin/agents` — live verification queue + onboarding readiness counters
 
 ## Tech Stack
 - Frontend: Next.js App Router, React, TypeScript, TailwindCSS
 - Forms/validation: React Hook Form (to wire), Zod (scaffolded)
 - Data fetching: TanStack Query (provider wired)
-- Backend: Next Route Handlers / Server Actions (to wire)
+- Backend: Next Route Handlers + Server Actions + service layer (`src/server/agent-profile/service.ts`)
 - DB: Postgres + Prisma
 - Auth: NextAuth (Google OAuth + dev preview credentials provider)
 - Tests: Vitest + Playwright

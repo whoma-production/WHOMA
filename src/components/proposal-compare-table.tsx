@@ -57,7 +57,7 @@ export function ProposalCompareTable({ proposals }: { proposals: ComparablePropo
                   <p className="font-semibold text-text-strong">{proposal.agentName}</p>
                   <Badge variant={verificationVariant(proposal.verificationStatus)}>
                     {proposal.verificationStatus === "VERIFIED"
-                      ? "Verified agent"
+                      ? "Verified real estate agent"
                       : proposal.verificationStatus === "PENDING"
                         ? "Verification pending"
                         : "Unverified"}
