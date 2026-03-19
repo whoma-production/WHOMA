@@ -222,5 +222,23 @@
       "Run full end-to-end QA from onboarding to public directory and admin verification",
       "Start controlled onboarding pilot operations for the Monday 2026-03-30 target"
     ]
+  },
+  {
+    "session_id": "2026-03-19-1706-preview-auth-fallback-fix",
+    "timestamp": "2026-03-19T17:07:07+00:00",
+    "summary": "Fixed a dev preview auth regression by adding a DATABASE_URL-aware fallback: preview sign-in now uses Prisma upsert when DB is configured and falls back to stateless preview identities when DB is absent.",
+    "files_changed": [
+      "src/auth.ts",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use dual-mode preview auth to support both DB-backed and DB-less local development",
+      "Preserve persistent preview user upserts only when DATABASE_URL exists"
+    ],
+    "next_steps": [
+      "Configure DATABASE_URL and run migrations to test full persistence paths",
+      "Perform DB-backed end-to-end QA for onboarding/profile publish/admin verification"
+    ]
   }
 ]

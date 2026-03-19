@@ -48,6 +48,15 @@ const previewProviders =
             const isHomeowner = role === "HOMEOWNER";
             const displayName = isHomeowner ? "Preview Homeowner" : "Preview Real Estate Agent";
 
+            if (!process.env.DATABASE_URL) {
+              return {
+                id: isHomeowner ? "preview-homeowner" : "preview-agent",
+                email,
+                name: displayName,
+                role
+              };
+            }
+
             const user = await prisma.user.upsert({
               where: { email },
               create: {

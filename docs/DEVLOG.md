@@ -600,3 +600,45 @@
 1. Generate/apply Prisma migration for the new `AgentProfile` fields and enums.
 2. Run end-to-end manual QA of onboarding -> CV -> publish -> directory -> admin verification with real auth sessions.
 3. Start controlled onboarding pilot operations toward Monday 2026-03-30 launch.
+
+---
+
+## Session: 2026-03-19 / 17:06 (GMT) — Dev preview auth regression fix (no DATABASE_URL fallback)
+**Author:** Codex  
+**Context:** Live dev logs surfaced a regression: preview credential sign-in failed when `DATABASE_URL` was absent locally because preview auth now attempted Prisma writes.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+- Restore local preview sign-in reliability while preserving DB-backed preview user upserts when a database is configured.
+
+### Changes Made
+- Updated `src/auth.ts` preview credentials provider:
+  - If `DATABASE_URL` is not set, fallback to stateless preview user object (no Prisma call).
+  - If `DATABASE_URL` exists, keep Prisma `upsert` behavior for persistent preview users.
+- Re-ran lint and tests after the fix.
+
+### Files / Modules Touched (high signal only)
+- `src/auth.ts` — preview auth now supports both DB-backed and DB-less local development
+- `docs/DEVLOG.md` — appended session entry
+- `docs/CHANGELOG.json` — appended structured session record
+
+### Decisions (and why)
+- **Decision:** Make preview auth dual-mode (DB-backed when available, stateless fallback when not).
+  - **Why:** Keeps local onboarding exploration unblocked without forcing DB setup while still supporting persistent preview identities in DB-ready environments.
+
+### Data / Schema Notes
+- DB migrations: none
+- New/changed Zod schemas: none
+- RBAC changes: none
+
+### How to Run / Test
+- `npm run lint` — passed
+- `npm run test` — passed (13/13)
+- Runtime validation: dev server logs no longer show `DATABASE_URL` Prisma init failure after patch compile
+
+### Known Issues / Risks
+- Full Prisma-backed onboarding/profile flows still require `DATABASE_URL` and applied migrations for real persistence.
+
+### Next Steps
+1. Configure `DATABASE_URL` and run Prisma migration for Phase 1 schema before pilot onboarding.
+2. Execute end-to-end QA with real DB-backed sessions and verification updates.
