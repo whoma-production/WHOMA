@@ -2,7 +2,7 @@
 
 ## Startup Rule (required for any coding session)
 Before coding:
-1. Read `docs/DEVLOG.md`, `docs/TASKS.md`, and `docs/ARCHITECTURE.md`.
+1. Read `docs/DEVLOG.md`, `docs/TASKS.md`, `docs/ARCHITECTURE.md`, and `docs/PLATFORM_MAP.md`.
 2. Summarise the current project state in 10 lines max.
 3. Propose the next PR-sized change (scope, files, acceptance criteria).
 
@@ -16,4 +16,5 @@ Before coding:
 ## End-of-Session Rule (required)
 - Append a new entry to `docs/DEVLOG.md` (never rewrite prior entries).
 - Update `docs/TASKS.md` statuses and acceptance criteria if scope changed.
+- Update `docs/PLATFORM_MAP.md` with architecture and feature-map deltas.
 - Append a session object to `docs/CHANGELOG.json`.

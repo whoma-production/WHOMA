@@ -439,3 +439,66 @@
 ### Next Steps
 1. Push the initial commit to `origin/main`.
 2. Start `T002` (Prisma-backed homeowner instruction creation flow).
+
+---
+
+## Session: 2026-03-19 / 16:36 (GMT) — Phase 1 pivot to real estate agent identity validation
+**Author:** Codex  
+**Context:** Product direction clarified: Phase 1 priority is validating real estate agent adoption around personal credibility and identity branding before homeowner-flow expansion.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+- Re-prioritize delivery plan and codify a living architecture/feature map process for every future update.
+
+### Changes Made
+- Added `docs/PLATFORM_MAP.md` as a persistent architecture/feature relationship map covering:
+  - onboarding -> CV builder -> public profile -> directory dependencies
+  - frontend/backend split and data model anchors
+  - mandatory update protocol per implementation session
+- Added `docs/PHASE1_AGENT_VALIDATION_PLAN.md` with:
+  - validation hypothesis
+  - in-scope/out-of-scope boundaries
+  - dated milestones through onboarding launch on Monday 2026-03-30
+  - weekly demo expectations
+- Updated `docs/TASKS.md` to make Phase 1 real estate agent identity validation the active priority (A001-A006), with explicit milestone dates and deferred Phase 2 marketplace items.
+- Updated `docs/ARCHITECTURE.md` to reflect current build priority and link both map/plan docs.
+- Updated `AGENTS.md` startup/end-of-session rules so all coding sessions read and maintain `docs/PLATFORM_MAP.md`.
+
+### Files / Modules Touched (high signal only)
+- `AGENTS.md` — governance rules now include `docs/PLATFORM_MAP.md`
+- `docs/TASKS.md` — new Phase 1 priority track and milestone plan
+- `docs/ARCHITECTURE.md` — current build priority + plan/map references
+- `docs/PLATFORM_MAP.md` — new cross-feature architecture map
+- `docs/PHASE1_AGENT_VALIDATION_PLAN.md` — new execution plan for March 30 onboarding target
+- `docs/DEVLOG.md` — appended session entry
+- `docs/CHANGELOG.json` — appended structured session record
+
+### Decisions (and why)
+- **Decision:** Prioritize agent-side identity features ahead of homeowner workflow completion.
+  - **Why:** This directly tests the core adoption hypothesis with fastest path to real-world signal.
+- **Decision:** Introduce mandatory architecture-map updates each session.
+  - **Why:** Reduces architecture drift and keeps feature relationships explicit as scope grows.
+- **Decision:** Use dated milestones ending on 2026-03-30 for onboarding launch readiness.
+  - **Why:** Aligns build execution with weekly demo cadence and operational planning.
+
+### Data / Schema Notes
+- DB migrations: none in this planning/session doc update
+- New/changed Zod schemas: none
+- RBAC changes: none
+
+### How to Run / Test
+- `npm run dev -- --hostname 127.0.0.1 --port 3012`
+- Review docs:
+  - `docs/PLATFORM_MAP.md`
+  - `docs/PHASE1_AGENT_VALIDATION_PLAN.md`
+  - `docs/TASKS.md`
+  - `docs/ARCHITECTURE.md`
+
+### Known Issues / Risks
+- Timeline is feasible only if Phase 1 remains tightly scoped to onboarding/CV/public profile/directory and avoids Phase 2 marketplace expansion during this window.
+- "Genuine registration" may require stronger verification (beyond Google sign-in + manual review) in a later increment if abuse appears.
+
+### Next Steps
+1. Implement A001 (agent onboarding foundation + server-side profile bootstrap write).
+2. Expand `AgentProfile` schema for structured CV fields and public profile publishing flags.
+3. Build `/agents/[slug]` and `/agents` with publish eligibility filters.

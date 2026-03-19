@@ -1,6 +1,35 @@
 # Whoma Tasks
 
-## Now (this sprint)
+## Phase 1 (Priority Now): Real Estate Agent Identity Validation
+Goal: onboard first 100 real estate agents and validate personal-brand credibility behavior before expanding homeowner-first workflows.
+Target date for onboarding start: Monday, **2026-03-30**.
+
+- [ ] A001 — Agent onboarding foundation (auth -> role -> profile bootstrap)
+  **Acceptance:** A signed-in user selecting `AGENT` is routed through guided onboarding; baseline `AgentProfile` record is created; required fields are validated server-side; unauthorized writes are denied.
+
+- [ ] A002 — Genuine registration controls (real people + traceable identity)
+  **Acceptance:** Production onboarding requires Google sign-in, captures real estate agent identity fields (full name, work email, phone, agency), sets `verificationStatus=PENDING` on submission, and exposes entries in admin verification queue.
+
+- [ ] A003 — Agent CV builder (structured professional profile)
+  **Acceptance:** Real estate agents can create/edit structured CV sections (headline, bio, years experience, specialties, service areas, achievements, contact preference), save draft/published state, and see profile completeness status.
+
+- [ ] A004 — Public real estate agent profile pages
+  **Acceptance:** Published agent CVs render at `/agents/[slug]` with clean public layout, verification badge state, and SEO metadata; unpublished profiles are not publicly indexable.
+
+- [ ] A005 — Public agent directory visibility
+  **Acceptance:** `/agents` lists published profiles with filterable/sortable fields (location, specialty, verification status) and links through to each public profile page.
+
+- [ ] A006 — Weekly demo + onboarding-readiness instrumentation
+  **Acceptance:** We can demo onboarding -> CV -> public profile -> directory in one flow; basic progress counters exist for onboarding funnel states (started/completed/published/verified).
+
+## Phase 1 Milestones (working plan)
+- [ ] M1 (by 2026-03-22): finalize schema + architecture map for onboarding/CV/profile/directory
+- [ ] M2 (by 2026-03-25): ship onboarding flow + server-side validation + admin verification queue wiring
+- [ ] M3 (by 2026-03-27): ship CV builder + publish controls + public profile pages
+- [ ] M4 (by 2026-03-29): ship directory + QA + seed first pilot agents
+- [ ] M5 (2026-03-30): begin real estate agent onboarding pilot
+
+## Phase 2: Marketplace Core (previous sprint priorities, deferred)
 - [x] T001 — Auth + RBAC route protection (HOMEOWNER / AGENT / ADMIN)
   **Acceptance:** Unauthenticated users are redirected from protected app routes; authenticated users can only access routes/actions allowed by role; demo signed-cookie session auth is enforced server-side for `POST /api/instructions` and `POST /api/proposals`.
 
@@ -16,7 +45,6 @@
 - [ ] T005 — Gated messaging threads (shortlist/award unlock rule)
   **Acceptance:** Thread exists in `LOCKED` state before unlock; becomes `OPEN` when rule triggers; only homeowner and the relevant agent can read/write messages; unauthorized access is denied.
 
-## Next
 - [ ] T010 — Real proposal builder form (React Hook Form + Zod) with inline validation + preview sync
   **Acceptance:** Form validates client-side and server-side with matching schema errors; preview updates as inputs change; submit success/error states are visible.
 

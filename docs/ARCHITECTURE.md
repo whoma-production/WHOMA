@@ -4,9 +4,19 @@
 Two-sided tender marketplace:
 Homeowner creates Instruction (sell brief) -> bid window -> agents submit structured proposals -> homeowner compares/shortlists/awards -> gated chat.
 
+## Current Build Priority (Phase 1)
+Real estate agent identity validation first:
+- Agent onboarding
+- Agent CV/profile creation
+- Public agent profile pages
+- Public agent directory visibility
+
+Reference map: `docs/PLATFORM_MAP.md`
+Delivery plan: `docs/PHASE1_AGENT_VALIDATION_PLAN.md`
+
 ## Roles (RBAC)
 - `HOMEOWNER`: create/manage own properties + instructions; view/compare proposals on own instructions; shortlist/reject/award; message shortlisted/awarded agents.
-- `AGENT`: browse LIVE instructions; submit proposals; view own proposal statuses; message if shortlisted/awarded.
+- `AGENT` (real estate agent): browse LIVE instructions; submit proposals; view own proposal statuses; message if shortlisted/awarded.
 - `ADMIN` (optional/minimal): verify agents; moderate.
 
 ## Domain (MVP entities)
@@ -39,13 +49,15 @@ Homeowner creates Instruction (sell brief) -> bid window -> agents submit struct
 
 ## Key Routes / Surfaces (current scaffold)
 - `/` — public landing (explainer + role CTAs)
-- `/sign-in`, `/sign-up` — auth UI shells (real auth not wired yet)
+- `/sign-in`, `/sign-up` — auth entry
+- `/onboarding/role` — post-auth role assignment
 - `/homeowner/instructions/new` — create instruction UI scaffold
 - `/homeowner/instructions/[instructionId]/compare` — compare/shortlist/award UI scaffold
 - `/agent/marketplace` — LIVE instructions list UI scaffold
 - `/agent/marketplace/[instructionId]` — instruction detail (agent/homeowner mode preview)
 - `/agent/marketplace/[instructionId]/proposal` — structured proposal builder UI scaffold
 - `/messages` — gated messaging UI concept
+- `/agents`, `/agents/[slug]` — planned public real estate agent directory/profile pages (Phase 1 priority)
 
 ## Tech Stack
 - Frontend: Next.js App Router, React, TypeScript, TailwindCSS
@@ -53,7 +65,7 @@ Homeowner creates Instruction (sell brief) -> bid window -> agents submit struct
 - Data fetching: TanStack Query (provider wired)
 - Backend: Next Route Handlers / Server Actions (to wire)
 - DB: Postgres + Prisma
-- Auth: NextAuth or Clerk (TBD in T001)
+- Auth: NextAuth (Google OAuth + dev preview credentials provider)
 - Tests: Vitest + Playwright
 
 ## Running Locally
