@@ -30,7 +30,7 @@ export function GoogleAuthButton({
   providerConfigured
 }: GoogleAuthButtonProps): JSX.Element {
   const searchParams = useSearchParams();
-  const [pendingAction, setPendingAction] = useState<"google" | "homeowner" | "agent" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"google" | "homeowner" | "agent" | "admin" | null>(null);
 
   const nextParam = searchParams.get("next");
   const oauthError = searchParams.get("error");
@@ -51,15 +51,21 @@ export function GoogleAuthButton({
     });
   }
 
-  function handlePreviewClick(role: "HOMEOWNER" | "AGENT"): void {
+  function handlePreviewClick(role: "HOMEOWNER" | "AGENT" | "ADMIN"): void {
     if (isPending) {
       return;
     }
 
-    const previewEmail = role === "HOMEOWNER" ? "homeowner.preview@whoma.local" : "agent.preview@whoma.local";
-    const previewRedirectTo = role === "HOMEOWNER" ? "/homeowner/instructions" : "/agent/onboarding";
+    const previewEmail =
+      role === "HOMEOWNER"
+        ? "homeowner.preview@whoma.local"
+        : role === "AGENT"
+          ? "agent.preview@whoma.local"
+          : "admin.preview@whoma.local";
+    const previewRedirectTo =
+      role === "HOMEOWNER" ? "/homeowner/instructions" : role === "AGENT" ? "/agent/onboarding" : "/admin/agents";
 
-    setPendingAction(role === "HOMEOWNER" ? "homeowner" : "agent");
+    setPendingAction(role === "HOMEOWNER" ? "homeowner" : role === "AGENT" ? "agent" : "admin");
 
     startTransition(() => {
       void signIn("preview", {
@@ -105,7 +111,7 @@ export function GoogleAuthButton({
           <p className="mb-3 text-xs text-text-muted">
             Use a temporary local role session to explore the platform without Google credentials.
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-3">
             <Button
               type="button"
               variant="secondary"
@@ -125,6 +131,16 @@ export function GoogleAuthButton({
               aria-busy={pendingAction === "agent"}
             >
               {pendingAction === "agent" ? "Entering..." : "Preview as Real Estate Agent"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              onClick={() => handlePreviewClick("ADMIN")}
+              disabled={isPending}
+              aria-busy={pendingAction === "admin"}
+            >
+              {pendingAction === "admin" ? "Entering..." : "Preview as Admin"}
             </Button>
           </div>
         </div>

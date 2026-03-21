@@ -42,7 +42,12 @@ async function updateVerificationStatusAction(formData: FormData): Promise<void>
     redirect("/admin/agents?error=invalid_payload");
   }
 
-  await setAgentVerificationStatus(parsed.data.agentUserId, parsed.data.status);
+  try {
+    await setAgentVerificationStatus(parsed.data.agentUserId, parsed.data.status);
+  } catch {
+    redirect("/admin/agents?error=verification_requirements");
+  }
+
   redirect("/admin/agents?success=verification_updated");
 }
 
@@ -94,7 +99,9 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
 
           {error ? (
             <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Verification update failed. Please try again.
+              {error === "verification_requirements"
+                ? "Verification requires a published profile meeting completeness requirements."
+                : "Verification update failed. Please try again."}
             </p>
           ) : null}
 

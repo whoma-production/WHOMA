@@ -74,7 +74,12 @@ function mapAgentProfile(profile: AgentProfileWithUser): AgentProfileWithUser {
 }
 
 export async function completeAgentOnboarding(userId: string, input: AgentOnboardingInput): Promise<AgentProfileWithUser> {
-  const slug = await buildUniqueSlug(`${input.fullName}-${input.agencyName}`, userId);
+  const existingProfile = await prisma.agentProfile.findUnique({
+    where: { userId },
+    select: { profileSlug: true }
+  });
+
+  const slug = existingProfile?.profileSlug ?? (await buildUniqueSlug(`${input.fullName}-${input.agencyName}`, userId));
   const completeness = calculateAgentProfileCompleteness({
     agencyName: input.agencyName,
     jobTitle: input.jobTitle,
@@ -123,7 +128,6 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
       serviceAreas: input.serviceAreas,
       specialties: input.specialties,
       profileSlug: slug,
-      profileStatus: AgentProfileStatus.DRAFT,
       profileCompleteness: completeness,
       verificationStatus: "PENDING",
       onboardingCompletedAt: new Date()
@@ -191,16 +195,50 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
 }
 
 export async function publishAgentProfile(userId: string, input: AgentProfilePublishInput): Promise<AgentProfileWithUser> {
-  const saved = await saveAgentProfileDraft(userId, input);
+  const existing = await prisma.agentProfile.findUnique({
+    where: { userId },
+    select: { profileSlug: true, user: { select: { name: true } } }
+  });
+  const slug = existing?.profileSlug ?? (await buildUniqueSlug(`${existing?.user.name ?? "agent"}-${input.agencyName}`, userId));
+  const completeness = calculateAgentProfileCompleteness(input);
 
-  if (saved.profileCompleteness < MIN_PUBLISH_COMPLETENESS) {
+  if (completeness < MIN_PUBLISH_COMPLETENESS) {
     throw new Error(`Profile completeness must be at least ${MIN_PUBLISH_COMPLETENESS}% before publishing.`);
   }
 
-  const profile = await prisma.agentProfile.update({
+  const profile = await prisma.agentProfile.upsert({
     where: { userId },
-    data: {
+    create: {
+      userId,
+      agencyName: input.agencyName,
+      jobTitle: input.jobTitle,
+      workEmail: input.workEmail,
+      phone: input.phone,
+      yearsExperience: input.yearsExperience,
+      bio: input.bio,
+      serviceAreas: input.serviceAreas,
+      specialties: input.specialties,
+      achievements: input.achievements,
+      languages: input.languages,
+      profileSlug: slug,
       profileStatus: AgentProfileStatus.PUBLISHED,
+      profileCompleteness: completeness,
+      publishedAt: new Date()
+    },
+    update: {
+      agencyName: input.agencyName,
+      jobTitle: input.jobTitle,
+      workEmail: input.workEmail,
+      phone: input.phone,
+      yearsExperience: input.yearsExperience,
+      bio: input.bio,
+      serviceAreas: input.serviceAreas,
+      specialties: input.specialties,
+      achievements: input.achievements,
+      languages: input.languages,
+      profileSlug: slug,
+      profileStatus: AgentProfileStatus.PUBLISHED,
+      profileCompleteness: completeness,
       publishedAt: new Date()
     },
     include: {
@@ -248,26 +286,40 @@ export async function listPublicAgentProfiles(filters: {
   verifiedOnly?: boolean;
   limit?: number;
 }): Promise<AgentProfileWithUser[]> {
+  const normalizedSpecialty = filters.specialty?.trim().toLowerCase();
   const profiles = await prisma.agentProfile.findMany({
     where: {
       profileStatus: AgentProfileStatus.PUBLISHED,
       ...(filters.verifiedOnly ? { verificationStatus: "VERIFIED" } : {}),
-      ...(filters.serviceArea ? { serviceAreas: { has: filters.serviceArea.toUpperCase() } } : {}),
-      ...(filters.specialty ? { specialties: { has: filters.specialty } } : {})
+      ...(filters.serviceArea ? { serviceAreas: { has: filters.serviceArea.toUpperCase() } } : {})
     },
     include: {
       user: {
         select: { id: true, name: true, image: true }
       }
     },
-    orderBy: [{ verificationStatus: "desc" }, { publishedAt: "desc" }, { createdAt: "desc" }],
-    take: filters.limit ?? 100
+    orderBy: [{ verificationStatus: "desc" }, { publishedAt: "desc" }, { createdAt: "desc" }]
   });
 
-  return profiles.map(mapAgentProfile);
+  const filteredProfiles = normalizedSpecialty
+    ? profiles.filter((profile) => profile.specialties.some((specialty) => specialty.toLowerCase().includes(normalizedSpecialty)))
+    : profiles;
+
+  return filteredProfiles.slice(0, filters.limit ?? 100).map(mapAgentProfile);
 }
 
 export async function setAgentVerificationStatus(userId: string, status: VerificationStatus): Promise<void> {
+  if (status === "VERIFIED") {
+    const profile = await prisma.agentProfile.findUnique({
+      where: { userId },
+      select: { profileStatus: true, profileCompleteness: true }
+    });
+
+    if (!profile || profile.profileStatus !== AgentProfileStatus.PUBLISHED || profile.profileCompleteness < MIN_PUBLISH_COMPLETENESS) {
+      throw new Error("Only published profiles meeting completeness requirements can be verified.");
+    }
+  }
+
   await prisma.agentProfile.update({
     where: { userId },
     data: { verificationStatus: status }

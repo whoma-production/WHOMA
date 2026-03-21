@@ -14,8 +14,14 @@ const authSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? (pr
 
 const previewCredentialsSchema = z.object({
   email: z.string().email().max(320),
-  role: z.enum(["HOMEOWNER", "AGENT"])
+  role: z.enum(["HOMEOWNER", "AGENT", "ADMIN"])
 });
+
+const previewDisplayNames: Record<UserRole, string> = {
+  HOMEOWNER: "Preview Homeowner",
+  AGENT: "Preview Real Estate Agent",
+  ADMIN: "Preview Admin"
+};
 
 const googleProviders =
   googleClientId && googleClientSecret
@@ -45,12 +51,11 @@ const previewProviders =
             }
 
             const { email, role } = parsed.data;
-            const isHomeowner = role === "HOMEOWNER";
-            const displayName = isHomeowner ? "Preview Homeowner" : "Preview Real Estate Agent";
+            const displayName = previewDisplayNames[role];
 
             if (!process.env.DATABASE_URL) {
               return {
-                id: isHomeowner ? "preview-homeowner" : "preview-agent",
+                id: `preview-${role.toLowerCase()}`,
                 email,
                 name: displayName,
                 role

@@ -69,12 +69,19 @@ async function publishAgentProfileAction(formData: FormData): Promise<void> {
     redirect("/agent/profile/edit?error=publish_requirements");
   }
 
+  let profile: Awaited<ReturnType<typeof publishAgentProfile>> | null = null;
+
   try {
-    const profile = await publishAgentProfile(session.user.id, parsed.data);
-    redirect(`/agent/profile/edit?success=published&slug=${profile.profileSlug ?? ""}`);
+    profile = await publishAgentProfile(session.user.id, parsed.data);
   } catch {
     redirect("/agent/profile/edit?error=publish_blocked");
   }
+
+  if (!profile) {
+    redirect("/agent/profile/edit?error=publish_blocked");
+  }
+
+  redirect(`/agent/profile/edit?success=published&slug=${profile.profileSlug ?? ""}`);
 }
 
 export default async function AgentProfileEditPage({ searchParams }: PageProps): Promise<JSX.Element> {
