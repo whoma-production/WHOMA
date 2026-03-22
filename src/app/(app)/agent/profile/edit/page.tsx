@@ -10,7 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { assertCan } from "@/lib/auth/rbac";
 import { agentProfileDraftSchema, agentProfilePublishSchema, parseCsvList } from "@/lib/validation/agent-profile";
 import { cn } from "@/lib/utils";
-import { getAgentProfileByUserId, publishAgentProfile, saveAgentProfileDraft } from "@/server/agent-profile/service";
+import {
+  WorkEmailVerificationError,
+  getAgentProfileByUserId,
+  publishAgentProfile,
+  saveAgentProfileDraft
+} from "@/server/agent-profile/service";
 
 interface PageProps {
   searchParams?: Promise<{ error?: string; success?: string; slug?: string }>;
@@ -73,7 +78,11 @@ async function publishAgentProfileAction(formData: FormData): Promise<void> {
 
   try {
     profile = await publishAgentProfile(session.user.id, parsed.data);
-  } catch {
+  } catch (error) {
+    if (error instanceof WorkEmailVerificationError && error.code === "EMAIL_NOT_VERIFIED") {
+      redirect("/agent/profile/edit?error=publish_work_email_unverified");
+    }
+
     redirect("/agent/profile/edit?error=publish_blocked");
   }
 
@@ -96,6 +105,10 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
   }
 
   const profile = await getAgentProfileByUserId(session.user.id);
+  if (!profile?.onboardingCompletedAt) {
+    redirect("/agent/onboarding?error=complete_onboarding_first");
+  }
+
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const error = resolvedSearchParams?.error;
   const success = resolvedSearchParams?.success;
@@ -131,6 +144,12 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
             </p>
           ) : null}
 
+          {error === "publish_work_email_unverified" ? (
+            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
+              Verify your business work email on onboarding before publishing your profile.
+            </p>
+          ) : null}
+
           {success === "draft-saved" ? (
             <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
               Draft saved successfully.
@@ -139,7 +158,7 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
 
           {success === "published" ? (
             <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Profile published and visible in the public directory.
+              Profile published. It is publicly visible only while your verification status is VERIFIED.
             </p>
           ) : null}
 
@@ -220,7 +239,7 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
               <Link href="/agent/onboarding" className={cn(buttonVariants({ variant: "tertiary" }))}>
                 Back to onboarding
               </Link>
-              {slug ? (
+              {slug && profile?.verificationStatus === "VERIFIED" ? (
                 <Link href={`/agents/${slug}`} className={cn(buttonVariants({ variant: "tertiary" }))}>
                   View public profile
                 </Link>

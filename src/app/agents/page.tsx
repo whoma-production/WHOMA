@@ -9,19 +9,17 @@ import { cn } from "@/lib/utils";
 import { listPublicAgentProfiles } from "@/server/agent-profile/service";
 
 interface PageProps {
-  searchParams?: Promise<{ area?: string; specialty?: string; verified?: string }>;
+  searchParams?: Promise<{ area?: string; specialty?: string }>;
 }
 
 export default async function AgentDirectoryPage({ searchParams }: PageProps): Promise<JSX.Element> {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const serviceArea = resolvedSearchParams?.area?.trim() || undefined;
   const specialty = resolvedSearchParams?.specialty?.trim() || undefined;
-  const verifiedOnly = resolvedSearchParams?.verified === "true";
 
   const agents = await listPublicAgentProfiles({
     ...(serviceArea ? { serviceArea } : {}),
-    ...(specialty ? { specialty } : {}),
-    ...(verifiedOnly ? { verifiedOnly: true } : {})
+    ...(specialty ? { specialty } : {})
   });
 
   return (
@@ -49,7 +47,7 @@ export default async function AgentDirectoryPage({ searchParams }: PageProps): P
           </p>
         </div>
 
-        <form className="mt-6 grid gap-3 rounded-md border border-line bg-surface-0 p-4 md:grid-cols-4">
+        <form className="mt-6 grid gap-3 rounded-md border border-line bg-surface-0 p-4 md:grid-cols-3">
           <label className="space-y-1 md:col-span-1">
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Area</span>
             <Input name="area" defaultValue={serviceArea ?? ""} placeholder="SW1A" />
@@ -58,16 +56,14 @@ export default async function AgentDirectoryPage({ searchParams }: PageProps): P
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Specialty</span>
             <Input name="specialty" defaultValue={specialty ?? ""} placeholder="Luxury homes" />
           </label>
-          <label className="flex items-end gap-2 pb-2 text-sm text-text-muted">
-            <input type="checkbox" name="verified" value="true" defaultChecked={verifiedOnly} className="h-4 w-4 rounded border-line" />
-            Verified only
-          </label>
-          <div className="md:col-span-4">
+          <div className="md:col-span-3">
             <button type="submit" className="rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white">
               Apply filters
             </button>
           </div>
         </form>
+
+        <p className="mt-2 text-xs text-text-muted">Only admin-verified and published profiles are shown in this public directory.</p>
 
         {agents.length === 0 ? (
           <Card className="mt-6">

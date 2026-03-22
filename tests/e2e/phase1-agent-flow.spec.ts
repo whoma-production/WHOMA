@@ -56,7 +56,25 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   await expect(agentPage.getByRole("heading", { name: /real estate agent onboarding/i })).toBeVisible();
 
   await agentPage.getByLabel("Full name").fill(fullName);
-  await agentPage.getByLabel("Work email").fill(workEmail);
+  await agentPage.getByLabel("Work email for verification").fill(workEmail);
+
+  await Promise.all([
+    agentPage.waitForURL(/success=work_email_code_sent/),
+    agentPage.getByRole("button", { name: /send verification code/i }).click()
+  ]);
+
+  const codeSentUrl = new URL(agentPage.url());
+  const devCode = codeSentUrl.searchParams.get("devCode");
+  expect(devCode).toBeTruthy();
+
+  await agentPage.getByLabel("Verification code").fill(devCode ?? "");
+  await Promise.all([
+    agentPage.waitForURL(/success=work_email_verified/),
+    agentPage.getByRole("button", { name: /verify work email/i }).click()
+  ]);
+
+  await agentPage.getByLabel("Full name").fill(fullName);
+  await agentPage.getByRole("textbox", { name: "Work email", exact: true }).fill(workEmail);
   await agentPage.getByLabel("Phone").fill(phone);
   await agentPage.getByLabel("Agency").fill(agencyName);
   await agentPage.getByLabel("Job title").fill(jobTitle);
@@ -93,21 +111,17 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
     agentPage.waitForURL(/success=published/),
     agentPage.getByRole("button", { name: /publish profile/i }).click()
   ]);
-  await expect(agentPage.getByText(/profile published and visible in the public directory/i)).toBeVisible();
+  await expect(agentPage.getByText(/profile published\./i)).toBeVisible();
 
   const publishedUrl = new URL(agentPage.url());
   const slug = publishedUrl.searchParams.get("slug");
   expect(slug).toBeTruthy();
 
-  await Promise.all([
-    agentPage.waitForURL(/\/sign-in/),
-    agentPage.getByRole("button", { name: /^sign out$/i }).click()
-  ]);
-
   const publicPage = await agentPage.context().newPage();
-  await publicPage.goto(`/agents/${slug}`, { waitUntil: "domcontentloaded" });
-  await expect(publicPage.getByRole("heading", { name: new RegExp(fullName, "i") })).toBeVisible();
-  await expect(publicPage.getByText(/^PENDING$/)).toBeVisible();
+  const preVerificationResponse = await publicPage.goto(`/agents/${slug}`, {
+    waitUntil: "domcontentloaded"
+  });
+  expect(preVerificationResponse?.status()).toBe(404);
 
   const adminEmail = `qa-admin-${runId}@example.test`;
   const adminPage = await signInAsPreviewRole(page, "ADMIN", adminEmail);
@@ -116,17 +130,14 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   const agentRow = adminPage.locator("li", { hasText: fullName });
   await expect(agentRow).toBeVisible();
 
-  await Promise.all([
-    adminPage.waitForURL(/success=verification_updated/),
-    agentRow.getByRole("button", { name: /mark verified/i }).click()
-  ]);
+  await agentRow.getByRole("button", { name: /mark verified/i }).click();
   await expect(adminPage.getByText(/verification status updated/i)).toBeVisible();
 
   await adminPage.goto("/agents?verified=true", { waitUntil: "domcontentloaded" });
   await expect(adminPage.getByRole("heading", { name: /find verified real estate agents building personal credibility/i })).toBeVisible();
   await expect(adminPage.getByText(fullName)).toBeVisible();
 
-  await publicPage.reload();
+  await publicPage.goto(`/agents/${slug}`, { waitUntil: "domcontentloaded" });
   await expect(publicPage.getByRole("heading", { name: new RegExp(fullName, "i") })).toBeVisible();
   await expect(publicPage.getByText(/^VERIFIED$/)).toBeVisible();
 

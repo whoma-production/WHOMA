@@ -4,11 +4,14 @@ import { afterAll, describe, expect, test } from "vitest";
 
 import { prisma } from "@/lib/prisma";
 import {
+  confirmAgentWorkEmailVerificationCode,
   completeAgentOnboarding,
   getAgentOnboardingFunnelCounts,
   getPublicAgentProfileBySlug,
   listPublicAgentProfiles,
   publishAgentProfile,
+  requestAgentWorkEmailVerificationCode,
+  saveAgentProfileDraft,
   setAgentVerificationStatus
 } from "@/server/agent-profile/service";
 
@@ -41,6 +44,17 @@ describe("phase 1 DB-backed flow", () => {
       const agentUser = await createAgentUser(runId);
 
       const countsBefore = await getAgentOnboardingFunnelCounts();
+
+      const codeResult = await requestAgentWorkEmailVerificationCode(
+        agentUser.id,
+        agentUser.email
+      );
+      expect(codeResult.devCode).toBeTruthy();
+      await confirmAgentWorkEmailVerificationCode(
+        agentUser.id,
+        agentUser.email,
+        codeResult.devCode ?? ""
+      );
 
       const onboardingProfile = await completeAgentOnboarding(agentUser.id, {
         fullName: `Phase1 Agent ${runId}`,
@@ -82,7 +96,7 @@ describe("phase 1 DB-backed flow", () => {
       const publicBeforeVerification = await getPublicAgentProfileBySlug(
         slug ?? ""
       );
-      expect(publicBeforeVerification?.verificationStatus).toBe("PENDING");
+      expect(publicBeforeVerification).toBeNull();
 
       await setAgentVerificationStatus(agentUser.id, "VERIFIED");
 
@@ -91,9 +105,45 @@ describe("phase 1 DB-backed flow", () => {
       );
       expect(publicAfterVerification?.verificationStatus).toBe("VERIFIED");
 
-      const verifiedDirectory = await listPublicAgentProfiles({
-        verifiedOnly: true
+      await saveAgentProfileDraft(agentUser.id, {
+        agencyName: "WHOMA Estates",
+        jobTitle: "Senior Sales Negotiator",
+        workEmail: agentUser.email,
+        phone: "+44 20 7946 0958",
+        yearsExperience: 8,
+        bio: "Updated profile details for pilot QA to verify that post-verification edits require an additional admin trust review before public visibility returns.",
+        serviceAreas: ["SW1A", "SE1"],
+        specialties: ["Prime sales", "Family homes"],
+        achievements: ["Top negotiator 2025", "Client referral growth"],
+        languages: ["English"]
       });
+
+      const republishedProfile = await publishAgentProfile(agentUser.id, {
+        agencyName: "WHOMA Estates",
+        jobTitle: "Senior Sales Negotiator",
+        workEmail: agentUser.email,
+        phone: "+44 20 7946 0958",
+        yearsExperience: 8,
+        bio: "Updated profile details for pilot QA to verify that post-verification edits require an additional admin trust review before public visibility returns.",
+        serviceAreas: ["SW1A", "SE1"],
+        specialties: ["Prime sales", "Family homes"],
+        achievements: ["Top negotiator 2025", "Client referral growth"],
+        languages: ["English"]
+      });
+
+      expect(republishedProfile.verificationStatus).toBe("PENDING");
+      const publicAfterRepublish = await getPublicAgentProfileBySlug(
+        slug ?? ""
+      );
+      expect(publicAfterRepublish).toBeNull();
+
+      await setAgentVerificationStatus(agentUser.id, "VERIFIED");
+      const publicAfterReverification = await getPublicAgentProfileBySlug(
+        slug ?? ""
+      );
+      expect(publicAfterReverification?.verificationStatus).toBe("VERIFIED");
+
+      const verifiedDirectory = await listPublicAgentProfiles({});
       expect(
         verifiedDirectory.some((agent) => agent.userId === agentUser.id)
       ).toBe(true);

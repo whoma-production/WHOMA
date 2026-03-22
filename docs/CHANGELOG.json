@@ -240,5 +240,309 @@
       "Configure DATABASE_URL and run migrations to test full persistence paths",
       "Perform DB-backed end-to-end QA for onboarding/profile publish/admin verification"
     ]
+  },
+  {
+    "session_id": "2026-03-21-1728-dev-preview-admin-signin-support",
+    "timestamp": "2026-03-21T17:28:32+00:00",
+    "summary": "Extended dev-only preview auth to support ADMIN sign-in, preserved DB-aware fallback behavior when DATABASE_URL is missing, and added a Preview as Admin entrypoint that routes to /admin/agents.",
+    "files_changed": [
+      "src/auth.ts",
+      "src/components/auth/google-auth-button.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Keep preview auth development-only so production auth behavior stays unchanged",
+      "Preserve stateless preview fallback when DATABASE_URL is absent",
+      "Route the admin preview button directly to /admin/agents for QA"
+    ],
+    "next_steps": [
+      "Use the new admin preview path for QA on /admin/agents",
+      "Continue with the next PR-sized marketplace or persistence slice"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-1756-phase1-db-migration-qa-hardening",
+    "timestamp": "2026-03-21T17:56:00+00:00",
+    "summary": "Applied the Phase 1 Prisma migration to local Postgres, added DB-backed Phase 1 service/E2E tests, fixed publish redirect behavior, and hardened profile publish/verification reliability for pilot onboarding.",
+    "files_changed": [
+      "prisma/migrations/20260321173500_phase1_agent_profile_platform/migration.sql",
+      "prisma/migrations/migration_lock.toml",
+      "src/server/agent-profile/phase1-flow.test.ts",
+      "tests/e2e/phase1-agent-flow.spec.ts",
+      "playwright.config.ts",
+      "src/app/(app)/agent/profile/edit/page.tsx",
+      "src/server/agent-profile/service.ts",
+      "src/app/(app)/admin/agents/page.tsx",
+      "docs/TASKS.md",
+      "docs/ARCHITECTURE.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use checked-in migration SQL as the reliable local execution path when Prisma schema engine commands are unstable in sandbox",
+      "Require published/completeness prerequisites before allowing admin verification to keep trust badges meaningful",
+      "Keep both DB-backed service tests and E2E coverage for Phase 1 onboarding -> publish -> verification transitions"
+    ],
+    "next_steps": [
+      "Run pilot onboarding against the DB-backed flow ahead of Monday 2026-03-30",
+      "Begin Phase 2 persistence work (T002/T003) on top of the stabilized Phase 1 foundation"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-1806-marketplace-write-infra-baseline",
+    "timestamp": "2026-03-21T18:06:00+00:00",
+    "summary": "Implemented a marketplace write infrastructure baseline: Prisma-backed instruction/proposal persistence with service-layer domain guards, typed API error semantics, health endpoint DB readiness checks, and structured instruction must-have persistence.",
+    "files_changed": [
+      "prisma/schema.prisma",
+      "prisma/migrations/20260321184000_marketplace_write_infra/migration.sql",
+      "src/server/marketplace/service.ts",
+      "src/server/marketplace/service.test.ts",
+      "src/app/api/instructions/route.ts",
+      "src/app/api/proposals/route.ts",
+      "src/app/api/health/route.ts",
+      "src/server/agent-profile/phase1-flow.test.ts",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/ARCHITECTURE.md",
+      "docs/BACKEND_INFRA_BLUEPRINT.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Create a dedicated marketplace service layer before UI wiring so domain invariants stay centralized and reusable",
+      "Use typed service error codes mapped to HTTP status codes for deterministic operational handling",
+      "Persist Instruction.mustHaves as structured array data now to keep seller requirements queryable",
+      "Gate DB integration tests behind RUN_DB_TESTS=true to keep default test runs deterministic when Postgres is offline",
+      "Capture a dedicated backend scale blueprint so future coding agents can execute against explicit infrastructure contracts"
+    ],
+    "next_steps": [
+      "Wire homeowner and agent proposal forms to the persisted write APIs with user-visible success/error states",
+      "Replace mock marketplace listing data with Prisma-backed LIVE instruction queries",
+      "Add idempotency keys and rate limiting on write endpoints before broader external rollout"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-1810-homeowner-instruction-form-wiring",
+    "timestamp": "2026-03-21T18:10:33+00:00",
+    "summary": "Converted /homeowner/instructions/new from scaffold UI into a working client-side instruction form with controlled inputs, bid-window synchronization, structured must-have parsing, idempotent POST submission, and envelope-based success/error states.",
+    "files_changed": [
+      "src/app/(app)/homeowner/instructions/new/page.tsx",
+      "docs/TASKS.md",
+      "docs/ARCHITECTURE.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Keep the form logic self-contained in the page file to stay within the requested ownership scope",
+      "Synchronize bid window values client-side so the posted payload stays aligned with the server schema",
+      "Show API envelope errors directly in the page so homeowners get immediate feedback on submission issues"
+    ],
+    "next_steps": [
+      "Wire the homeowner proposal compare/shortlist view to persisted proposal data",
+      "Add client-side schema parity if another form-focused slice is needed"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-1813-phase1-release-pilot-demo-automation",
+    "timestamp": "2026-03-21T18:13:00+00:00",
+    "summary": "Packaged the Phase 1 DB-backed hardening release with idempotent pilot-agent seeding and a single weekly demo automation command covering seed + DB service test + E2E onboarding/publish/verification flow.",
+    "files_changed": [
+      "package.json",
+      "scripts/seed-phase1-pilot-agents.mjs",
+      "scripts/run-phase1-weekly-demo.mjs",
+      "docs/TASKS.md",
+      "docs/ARCHITECTURE.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use idempotent upserts for pilot seeding so weekly reruns do not duplicate records",
+      "Bundle seed + DB-backed service test + Playwright E2E into one weekly run command for reliable meeting prep",
+      "Seed mixed profile and verification states to demonstrate realistic funnel and admin verification behavior"
+    ],
+    "next_steps": [
+      "Adopt npm run demo:phase1:weekly as standard weekly pre-demo runbook",
+      "Proceed to next marketplace persistence/UI slices while preserving Phase 1 reliability baseline"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-1820-marketplace-live-read-queries",
+    "timestamp": "2026-03-21T18:20:00+00:00",
+    "summary": "Replaced mock marketplace and location browse reads with Prisma-backed LIVE instruction queries, added database proposal counts and postcode-district grouping, and preserved usable empty states when DATABASE_URL is missing.",
+    "files_changed": [
+      "src/server/marketplace/queries.ts",
+      "src/app/(app)/agent/marketplace/page.tsx",
+      "src/app/locations/page.tsx",
+      "src/app/locations/[postcodeDistrict]/page.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Centralize marketplace reads in a dedicated server module so the card shape stays consistent across surfaces",
+      "Render the pages dynamically so they always reflect live bid-window state",
+      "Return graceful empty states when the database is not configured instead of crashing"
+    ],
+    "next_steps": [
+      "Add focused tests for the new read helpers and empty-state handling",
+      "Route any remaining marketplace read surfaces through the same live query module"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-1809-agent-proposal-form-wiring",
+    "timestamp": "2026-03-21T18:09:45+00:00",
+    "summary": "Wired the agent proposal builder into a live client-side submit flow with inline validation, live preview sync, and structured POST /api/proposals submissions using idempotency headers.",
+    "files_changed": [
+      "src/app/(app)/agent/marketplace/[instructionId]/proposal/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/proposal/proposal-builder-client.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Keep the route wrapper server-rendered and move interactivity into a local client component",
+      "Reuse the shared proposal submission schema for browser-side validation",
+      "Leave draft/chat secondary actions unwired in this PR-sized slice"
+    ],
+    "next_steps": [
+      "Complete the rest of T010 only if the product wants RHF-based field registration",
+      "Proceed with homeowner compare/shortlist/award workflow after proposal submit wiring is stable"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-1818-integrated-marketplace-rollout",
+    "timestamp": "2026-03-21T18:18:00+00:00",
+    "summary": "Integrated rollout complete: homeowner and agent forms now submit to persisted APIs, marketplace/location reads use Prisma LIVE data, and write endpoints enforce idempotency + rate limiting for safer web rollout.",
+    "files_changed": [
+      "src/app/(app)/homeowner/instructions/new/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/proposal/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/proposal/proposal-builder-client.tsx",
+      "src/server/marketplace/queries.ts",
+      "src/server/marketplace/queries.test.ts",
+      "src/app/(app)/agent/marketplace/page.tsx",
+      "src/app/locations/page.tsx",
+      "src/app/locations/[postcodeDistrict]/page.tsx",
+      "src/server/http/idempotency.ts",
+      "src/server/http/idempotency.test.ts",
+      "src/server/http/rate-limit.ts",
+      "src/server/http/rate-limit.test.ts",
+      "src/app/api/instructions/route.ts",
+      "src/app/api/proposals/route.ts",
+      "prisma/schema.prisma",
+      "prisma/migrations/20260321190500_api_safety_idempotency/migration.sql",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/ARCHITECTURE.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use route handlers as API boundaries and centralize write/read domain logic in server modules",
+      "Require Idempotency-Key on write endpoints and persist replay metadata in the database",
+      "Apply actor-scoped in-memory rate limiting as immediate rollout protection without new infrastructure dependencies",
+      "Render marketplace/location empty states when DATABASE_URL is absent so pages remain stable in dev and partial infra environments"
+    ],
+    "next_steps": [
+      "Implement T004 compare/shortlist/award persistence on top of the new contracts",
+      "Add durable audit/event persistence for write outcomes and workflow transitions",
+      "Move rate limiting to a shared distributed backend before multi-instance production rollout"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-2308-stability-sprint-auth-hydration-smoke-gate",
+    "timestamp": "2026-03-21T23:08:00+00:00",
+    "summary": "Completed stabilization sprint to break endpoint-debug loops: enforced canonical dev host behavior, added hydration-ready form guardrails, created a repeatable marketplace smoke gate command, and documented deterministic migration recovery workflow.",
+    "files_changed": [
+      "src/middleware.ts",
+      "src/lib/client-ready.ts",
+      "src/app/(app)/homeowner/instructions/new/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/proposal/proposal-builder-client.tsx",
+      "src/app/api/auth/[...nextauth]/route.ts",
+      "src/components/layout/app-shell.tsx",
+      "scripts/smoke-marketplace-flow.mjs",
+      "tests/e2e/marketplace-hydration.spec.ts",
+      "playwright.config.ts",
+      "package.json",
+      "docs/DB_MIGRATION_RUNBOOK.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/ARCHITECTURE.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Redirect dev traffic to canonical AUTH_URL host in middleware to avoid localhost/127 cookie and callback mismatches",
+      "Expose data-form-ready hydration markers and disable form controls until interactive to reduce first-load flake",
+      "Add one deterministic smoke gate command for homeowner-create + agent-submit workflow validation",
+      "Document migration fallback and reconcile workflow in a dedicated runbook"
+    ],
+    "next_steps": [
+      "Implement T004 compare/shortlist/award persistence on top of stabilized auth and form interactivity",
+      "Consider wiring smoke gate into CI pre-merge checks",
+      "Move rate limits from in-memory to shared backing store before multi-instance production rollout"
+    ]
+  },
+  {
+    "session_id": "2026-03-21-2334-t004-compare-decision-persistence",
+    "timestamp": "2026-03-21T23:34:00+00:00",
+    "summary": "Completed T004 with persisted homeowner compare data and decision writes: shortlist/reject/award now run through a guarded decision API with idempotency, rate limiting, transactional transition rules, and award exclusivity.",
+    "files_changed": [
+      "src/app/(app)/homeowner/instructions/[instructionId]/compare/page.tsx",
+      "src/app/(app)/homeowner/instructions/[instructionId]/compare/compare-client.tsx",
+      "src/components/proposal-compare-table.tsx",
+      "src/app/api/proposals/[proposalId]/decision/route.ts",
+      "src/server/marketplace/service.ts",
+      "src/server/marketplace/service.test.ts",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Keep decision invariants in marketplace service layer and keep the route as a boundary adapter",
+      "Apply the same idempotency and actor-scoped rate-limit pattern used by other marketplace write endpoints",
+      "Use optimistic compare UI updates with rollback so UX stays responsive while server remains source of truth"
+    ],
+    "next_steps": [
+      "Implement T005 message-thread unlock rules driven by shortlist/award state transitions",
+      "Add homeowner compare decision e2e coverage for shortlist/reject/award interactions",
+      "Move in-memory rate limiting toward shared distributed infrastructure before multi-instance production traffic"
+    ]
+  },
+  {
+    "session_id": "2026-03-22-1102-phase1-trust-revalidation-doc-alignment",
+    "timestamp": "2026-03-22T11:02:00+00:00",
+    "summary": "Hardened Phase 1 trust continuity by requiring re-verification on material profile edits, gating CV builder access behind completed onboarding, simplifying verified-only public directory semantics, and reconciling architecture/task docs to current behavior.",
+    "files_changed": [
+      "src/server/agent-profile/service.ts",
+      "src/server/agent-profile/phase1-flow.test.ts",
+      "src/app/(app)/agent/profile/edit/page.tsx",
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/app/agents/page.tsx",
+      "tests/e2e/phase1-agent-flow.spec.ts",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/ARCHITECTURE.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Reset verificationStatus to PENDING when a previously verified profile is materially edited so trust badges stay accurate over time",
+      "Require completed onboarding before agents can access the CV builder to prevent guided-flow bypasses",
+      "Remove the redundant verified checkbox from public directory UI because exposure is intentionally fixed to VERIFIED + PUBLISHED agents"
+    ],
+    "next_steps": [
+      "Implement A010 production email delivery and verification abuse controls (resend cooldowns and attempt limits)",
+      "Add deterministic local server readiness checks before Phase 1 Playwright runs to reduce QA flake",
+      "Package and push this trust-hardening/docs-alignment slice as the next clean commit"
+    ]
   }
 ]
