@@ -1,14 +1,27 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
+import {
+  getPublicSiteConfig,
+  getSupportMailto
+} from "@/lib/public-site";
 
 const footerSections = [
   {
-    title: "Whoma",
+    title: "Product",
     links: [
-      { href: "/agents", label: "Agent Directory" },
-      { href: "/locations", label: "Browse Instructions" },
-      { href: "/sitemap", label: "Sitemap" }
+      { href: "/#how-it-works", label: "How it works" },
+      { href: "/#for-agents", label: "For agents" },
+      { href: "/#phase-sequencing", label: "Phase 1 sequencing" },
+      { href: "/agents", label: "Agent profiles" },
+      { href: "/sign-up?role=AGENT", label: "Build your profile" }
+    ]
+  },
+  {
+    title: "Company",
+    links: [
+      { href: "/contact", label: "Contact" },
+      { href: "/complaints", label: "Complaints" }
     ]
   },
   {
@@ -16,28 +29,33 @@ const footerSections = [
     links: [
       { href: "/privacy", label: "Privacy" },
       { href: "/cookies", label: "Cookies" },
-      { href: "/terms", label: "Terms" }
-    ]
-  },
-  {
-    title: "Support",
-    links: [
-      { href: "/complaints", label: "Complaints" },
-      { href: "/contact", label: "Contact" }
+      { href: "/terms", label: "Terms" },
+      { href: "/complaints", label: "Complaints" }
     ]
   }
 ] as const;
 
 export function PublicFooter(): JSX.Element {
+  const site = getPublicSiteConfig();
+
   return (
     <footer className="border-t border-line bg-surface-0">
       <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr] lg:px-8">
         <div className="space-y-3">
-          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
+          <Logo subtitle={site.logoSubtitle} />
           <p className="max-w-sm text-sm text-text-muted">
-            WHOMA is a tender marketplace where homeowners compare structured real estate agent proposals and agent profiles.
+            {site.brandName} is running a {site.betaStatusLabel.toLowerCase()} focused on verified estate agent
+            identity, publish-ready profiles, and trust-led pilot visibility.
           </p>
-          <p className="text-xs text-text-muted">UK MVP legal and policy pages are placeholders pending legal review before launch.</p>
+          <p className="text-sm text-text-muted">
+            Support:{" "}
+            <a
+              href={getSupportMailto(site.supportEmail)}
+              className="font-medium text-brand-ink underline"
+            >
+              {site.supportEmail}
+            </a>
+          </p>
         </div>
 
         {footerSections.map((section) => (

@@ -6,13 +6,14 @@ import { prisma } from "@/lib/prisma";
 import {
   confirmAgentWorkEmailVerificationCode,
   completeAgentOnboarding,
-  getAgentOnboardingFunnelCounts,
+  getAgentActivationMetrics,
   getPublicAgentProfileBySlug,
   listPublicAgentProfiles,
   publishAgentProfile,
   requestAgentWorkEmailVerificationCode,
   saveAgentProfileDraft,
-  setAgentVerificationStatus
+  setAgentVerificationStatus,
+  WorkEmailVerificationError
 } from "@/server/agent-profile/service";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
@@ -38,12 +39,57 @@ async function createAgentUser(
 
 describe("phase 1 DB-backed flow", () => {
   dbTest(
+    "work-email verification enforces resend cooldown and confirm-attempt lockout",
+    async () => {
+      const runId = `${Date.now()}-abuse`;
+      const agentUser = await createAgentUser(runId);
+      const workEmail = `phase1-agent-abuse-${runId}@whoma-estates.test`;
+
+      const firstCode = await requestAgentWorkEmailVerificationCode(
+        agentUser.id,
+        workEmail
+      );
+      expect(firstCode.devCode).toBeTruthy();
+
+      await expect(
+        requestAgentWorkEmailVerificationCode(agentUser.id, workEmail)
+      ).rejects.toMatchObject({
+        code: "RESEND_COOLDOWN"
+      } satisfies Partial<WorkEmailVerificationError>);
+
+      for (let attempt = 1; attempt < 5; attempt += 1) {
+        await expect(
+          confirmAgentWorkEmailVerificationCode(agentUser.id, workEmail, "999999")
+        ).rejects.toMatchObject({
+          code: "CODE_INVALID"
+        } satisfies Partial<WorkEmailVerificationError>);
+      }
+
+      await expect(
+        confirmAgentWorkEmailVerificationCode(agentUser.id, workEmail, "999999")
+      ).rejects.toMatchObject({
+        code: "ATTEMPTS_EXCEEDED"
+      } satisfies Partial<WorkEmailVerificationError>);
+
+      await expect(
+        confirmAgentWorkEmailVerificationCode(
+          agentUser.id,
+          workEmail,
+          firstCode.devCode ?? ""
+        )
+      ).rejects.toMatchObject({
+        code: "ATTEMPTS_EXCEEDED"
+      } satisfies Partial<WorkEmailVerificationError>);
+    }
+  );
+
+  dbTest(
     "onboarding -> publish -> verification transitions update public visibility",
     async () => {
       const runId = `${Date.now()}`;
       const agentUser = await createAgentUser(runId);
 
-      const countsBefore = await getAgentOnboardingFunnelCounts();
+      const countsBefore = await getAgentActivationMetrics();
 
       const codeResult = await requestAgentWorkEmailVerificationCode(
         agentUser.id,
@@ -148,15 +194,24 @@ describe("phase 1 DB-backed flow", () => {
         verifiedDirectory.some((agent) => agent.userId === agentUser.id)
       ).toBe(true);
 
-      const countsAfter = await getAgentOnboardingFunnelCounts();
+      const countsAfter = await getAgentActivationMetrics();
       expect(countsAfter.started).toBeGreaterThanOrEqual(
         countsBefore.started + 1
+      );
+      expect(countsAfter.workEmailVerified).toBeGreaterThanOrEqual(
+        countsBefore.workEmailVerified + 1
       );
       expect(countsAfter.completed).toBeGreaterThanOrEqual(
         countsBefore.completed + 1
       );
+      expect(countsAfter.publishReady).toBeGreaterThanOrEqual(
+        countsBefore.publishReady + 1
+      );
       expect(countsAfter.published).toBeGreaterThanOrEqual(
         countsBefore.published + 1
+      );
+      expect(countsAfter.pendingVerification).toBeGreaterThanOrEqual(
+        countsBefore.pendingVerification
       );
       expect(countsAfter.verified).toBeGreaterThanOrEqual(
         countsBefore.verified + 1

@@ -1,9 +1,10 @@
 import Link from "next/link";
+import type { Route } from "next";
 
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  href?: string;
+  href?: Route;
   className?: string;
   compact?: boolean;
   subtitle?: string;

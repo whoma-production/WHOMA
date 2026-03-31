@@ -1539,3 +1539,1051 @@
 1. Implement A010 (production verification delivery + resend/attempt throttles) to close the remaining genuine-registration gap.
 2. Add one deterministic script to boot/check local web server before Playwright phase-1 flow execution.
 3. Package these trust-hardening + docs-alignment updates as the next clean commit after final QA confirmation.
+
+---
+
+## Session: 2026-03-22 / 11:18 (GMT) — T005 thread unlock persistence + homeowner decision E2E hardening
+
+**Author:** Codex  
+**Context:** User asked to pick up where we left off and execute prioritized backend-forward next steps with subagents.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Implement T005 persistence guardrails so message threads move from `LOCKED` to `OPEN` on shortlist/award, and add durable homeowner compare-decision E2E coverage.
+
+### Changes Made
+
+- Ran parallel worker execution:
+  - Backend worker delivered thread lifecycle persistence in marketplace service.
+  - Frontend/E2E worker delivered homeowner decision spec + compare UI test hooks.
+- Added message-thread persistence rules in marketplace service:
+  - Proposal submission now ensures a `MessageThread` exists in `LOCKED` state for the homeowner-agent-instruction tuple.
+  - Homeowner decision actions now unlock (`LOCKED -> OPEN`) the relevant thread atomically on `SHORTLIST` and `AWARD`.
+- Added DB-backed persistence coverage:
+  - New `src/server/marketplace/service.persistence.test.ts` verifies shortlist unlock behavior and award reopen/keep-open behavior.
+- Added and hardened homeowner decision E2E:
+  - New `tests/e2e/homeowner-compare-decision.spec.ts` validates shortlist/award UI decisions, persisted status reconciliation, and messaging unlock CTA behavior.
+  - Hardened sign-in flow via preview callback API + CSRF warm-up retries.
+  - Added waits for decision-success messaging before reload assertions.
+  - Added role/session-owner assertions and compare-route response checks to reduce false positives.
+- Strengthened compare UI testability and unlock state visibility:
+  - Added stable `data-testid` hooks in compare table decision/status elements.
+  - Added instruction/messaging state test hooks and messaging CTA lock/open behavior in compare client.
+
+### Files / Modules Touched (high signal only)
+
+- `src/server/marketplace/service.ts`
+- `src/server/marketplace/service.persistence.test.ts`
+- `src/components/proposal-compare-table.tsx`
+- `src/app/(app)/homeowner/instructions/[instructionId]/compare/compare-client.tsx`
+- `tests/e2e/homeowner-compare-decision.spec.ts`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep T005 unlock semantics in the same transaction path as proposal decision persistence.
+  - **Why:** Prevents decision/thread state drift and keeps unlock semantics deterministic.
+- **Decision:** Treat host canonicalization (`localhost` vs `127.0.0.1`) as part of E2E correctness, not just environment setup.
+  - **Why:** Session cookies and middleware redirects are host-sensitive; misalignment causes false-negative tests.
+- **Decision:** Keep T005 task open despite persistence completion.
+  - **Why:** API-level message read/write authorization enforcement remains outstanding against acceptance criteria.
+
+### Data / Schema Notes
+
+- No schema migration required in this session.
+- Existing `MessageThread` schema (`LOCKED` / `OPEN`) is now actively enforced by marketplace write/decision persistence paths.
+
+### How to Run / Test
+
+- `npm run lint` — passed.
+- `npm run test -- src/server/marketplace/service.test.ts src/server/marketplace/service.persistence.test.ts` — passed (`service.persistence` DB tests skipped unless `RUN_DB_TESTS=true`).
+- `PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=http://localhost:3012 npx playwright test tests/e2e/homeowner-compare-decision.spec.ts --project=chromium` — passed.
+
+### Known Issues / Risks
+
+- Full repository `npm run typecheck` baseline remains unresolved and includes pre-existing non-T005 errors.
+- Message API-level authorization tests are still pending because `/messages` read/write API surfaces are not fully implemented yet.
+
+### Next Steps
+
+1. Complete remaining T005 acceptance: implement `/messages` read/write API authorization for homeowner+relevant-agent only and add corresponding tests.
+2. Execute the next infra hardening batch: shared-store (Redis/Upstash) rate limiting + idempotency retention strategy.
+3. Add durable workflow audit/outbox events for proposal decisions and thread unlock transitions.
+
+---
+
+## Session: 2026-03-22 / 11:26 (GMT) — T005 message-thread participant auth foundation
+
+**Author:** Codex  
+**Context:** Worker A ownership on `src/server/marketplace/service.ts` and related service tests only. User requested service-layer message thread read/write authorization with strict participant checks.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Add service-layer read/write functions for message threads that hide non-participant access, reject locked sends, and preserve the existing thread lifecycle behavior.
+
+### Changes Made
+
+- Added `getMessageThreadForParticipant(userId, threadId)` to load thread data only for the homeowner or assigned agent.
+- Added `createMessageForParticipant(userId, threadId, body)` to persist messages only for thread participants and only when the thread is `OPEN`.
+- Extended `MarketplaceServiceError` / `getMarketplaceHttpStatus` with message-thread specific operational codes:
+  - `MESSAGE_THREAD_NOT_FOUND`
+  - `MESSAGE_THREAD_LOCKED`
+- Added DB-backed persistence coverage in `src/server/marketplace/messages.persistence.test.ts` for:
+  - participant read access
+  - non-participant denial
+  - locked-thread send denial
+  - open-thread send success
+  - sender persistence
+- Updated `src/server/marketplace/service.test.ts` to cover the new HTTP status mappings.
+
+### Files / Modules Touched (high signal only)
+
+- `src/server/marketplace/service.ts`
+- `src/server/marketplace/service.test.ts`
+- `src/server/marketplace/messages.persistence.test.ts`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Return a not-found style error for non-participants.
+  - **Why:** Prevents thread existence leaks while still enforcing strict participant-only access.
+- **Decision:** Keep locked-thread sends as a typed operational error.
+  - **Why:** Lets the future API map the condition cleanly while preserving the unlocked chat rule.
+- **Decision:** Leave thread lifecycle creation/unlock logic untouched.
+  - **Why:** T005 already has persistence for LOCKED creation and OPEN unlocks; this change only adds access control around the read/write boundary.
+
+### Data / Schema Notes
+
+- No schema migration required.
+- `MessageThread` / `Message` persistence remains unchanged; only service-level authorization and test coverage were added.
+
+### How to Run / Test
+
+- `npm run test -- src/server/marketplace/service.test.ts` — passed
+- `RUN_DB_TESTS=true npm run test -- src/server/marketplace/service.test.ts src/server/marketplace/service.persistence.test.ts src/server/marketplace/messages.persistence.test.ts` — DB-backed tests could not connect to `localhost:5432` in this workspace
+
+### Known Issues / Risks
+
+- Local Postgres is unavailable in this environment, so the new DB-backed message-thread tests could not be fully executed here.
+- `/messages` route/API wiring still needs to consume these service helpers.
+
+### Next Steps
+
+1. Wire the `/messages` API surface to these participant-scoped service helpers.
+2. Keep T005 open until route-level authorization and UI integration are complete.
+3. Re-run the DB-backed persistence suite once `localhost:5432` is available.
+
+---
+
+## Session: 2026-03-22 / 11:34 (GMT) — T005 messages API authorization completion
+
+**Author:** Codex  
+**Context:** User asked to pick up where we left off and finish the remaining T005 gap by wiring API-level message read/write authorization on top of thread lock/unlock persistence.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Complete T005 acceptance at the API boundary so only the homeowner and relevant agent can read/write thread messages, and locked threads reject sends.
+
+### Changes Made
+
+- Added `GET /api/messages/[threadId]` for participant-scoped thread reads.
+- Added `POST /api/messages/[threadId]` for participant-scoped message sends with required idempotency key handling.
+- Applied route-level RBAC checks (`thread:view`, `thread:message`) plus actor-scoped rate limiting for reads/writes.
+- Reused service-layer typed operational errors for thread-not-found masking and locked-thread denial.
+- Added message-thread DB-backed persistence coverage file (`src/server/marketplace/messages.persistence.test.ts`) and aligned proposal input builders to mutable `ProposalSubmissionInput` typing in both marketplace DB test files.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/api/messages/[threadId]/route.ts`
+- `src/server/marketplace/service.ts`
+- `src/server/marketplace/service.test.ts`
+- `src/server/marketplace/messages.persistence.test.ts`
+- `src/server/marketplace/service.persistence.test.ts`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep participant authorization centralized in service helpers and keep route handlers as boundary adapters.
+  - **Why:** Preserves one source of truth for auth semantics across current and future API/UI surfaces.
+- **Decision:** Continue masking non-participant thread access as not-found.
+  - **Why:** Prevents thread existence leakage while still enforcing strict access control.
+- **Decision:** Require idempotency keys on message writes from day one.
+  - **Why:** Keeps write safety consistent with other marketplace write endpoints before web rollout.
+
+### Data / Schema Notes
+
+- No migration required.
+- Existing `MessageThread` (`LOCKED`/`OPEN`) and `Message` schemas were reused without structural changes.
+
+### How to Run / Test
+
+- `npm run test -- src/server/marketplace/service.test.ts src/server/marketplace/service.persistence.test.ts src/server/marketplace/messages.persistence.test.ts` — passed unit tests; DB tests skipped without `RUN_DB_TESTS=true`.
+- `npm run lint` — passed.
+- `npm run typecheck` — still fails due pre-existing baseline debt unrelated to this T005 API slice.
+
+### Known Issues / Risks
+
+- Full DB-backed verification of message persistence tests requires local Postgres availability and `RUN_DB_TESTS=true`.
+- `/messages` page UI is still scaffolded and not yet wired to call the new API route.
+
+### Next Steps
+
+1. Wire `/messages` UI to `GET/POST /api/messages/[threadId]` and add a dedicated thread list query surface.
+2. Upgrade rate limiting/idempotency backing from in-memory to shared infrastructure (Redis/Upstash) for multi-instance safety.
+3. Add durable decision/message audit outbox events for shortlist/award/message actions.
+
+---
+
+## Session: 2026-03-22 / 12:02 (GMT) — Messages UI live wiring + shared API safety backing
+
+**Author:** Codex  
+**Context:** User requested two next steps in sequence: wire `/messages` to live APIs, then move idempotency/rate limiting to shared Redis/Upstash for multi-instance readiness.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Complete the live messaging experience against persisted APIs and harden API safety storage so rate limits/idempotency can operate across multiple app instances.
+
+### Changes Made
+
+- Added thread list/read/send live messaging flow:
+  - New endpoint `GET /api/messages/threads` for participant-scoped thread discovery with optional `instructionId` filtering.
+  - Existing endpoint `GET/POST /api/messages/[threadId]` now powers thread reads and message sends in the UI.
+- Replaced mocked `/messages` screen with a live client:
+  - New `src/app/(app)/messages/messages-client.tsx` fetches thread list + selected thread, renders messages, and submits sends with idempotency key headers.
+  - `src/app/(app)/messages/page.tsx` now authenticates server-side, enforces role onboarding, and passes deep-link query context (`threadId`, `instructionId`).
+- Added compare-to-messages deep linking:
+  - Homeowner compare CTA now routes to `/messages?instructionId=...` for faster post-decision handoff.
+- Added service-layer thread summary read model:
+  - `listMessageThreadsForParticipant` in `src/server/marketplace/service.ts` with counterpart + latest-message summary mapping.
+- Upgraded API safety backing to shared infra (with fallback):
+  - Added `src/server/http/upstash.ts` REST helper.
+  - `src/server/http/rate-limit.ts` now prefers Upstash Redis counters/TTL with automatic in-memory fallback.
+  - `src/server/http/idempotency.ts` now prefers Upstash Redis idempotency records (pending/completed states) with Prisma fallback and new in-progress error semantics.
+- Added/updated tests:
+  - `src/server/http/rate-limit.test.ts` updated for async limiter.
+  - `src/server/http/idempotency.test.ts` extended for the new in-progress error mapping.
+  - Marketplace service + persistence tests kept passing/skipping as expected.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/(app)/messages/page.tsx`
+- `src/app/(app)/messages/messages-client.tsx`
+- `src/app/api/messages/threads/route.ts`
+- `src/app/api/messages/[threadId]/route.ts`
+- `src/app/(app)/homeowner/instructions/[instructionId]/compare/compare-client.tsx`
+- `src/server/marketplace/service.ts`
+- `src/server/http/upstash.ts`
+- `src/server/http/rate-limit.ts`
+- `src/server/http/idempotency.ts`
+- `src/server/http/rate-limit.test.ts`
+- `src/server/http/idempotency.test.ts`
+- `.env.example`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Add `GET /api/messages/threads` instead of overloading thread-detail reads.
+  - **Why:** `/messages` needs discoverability (list + counterpart metadata) independent of a specific thread id.
+- **Decision:** Use Upstash Redis via REST helper with fallback to existing stores.
+  - **Why:** Enables multi-instance correctness without breaking local/dev flows when Redis is not configured.
+- **Decision:** Keep idempotency pending-state semantics explicit.
+  - **Why:** Concurrent duplicate writes now return a deterministic in-progress operational error instead of racing silently.
+
+### Data / Schema Notes
+
+- No migration required.
+- Existing `IdempotencyKey` table remains as fallback persistence path when Upstash is unavailable.
+
+### How to Run / Test
+
+- `npm run test -- src/server/http/idempotency.test.ts src/server/http/rate-limit.test.ts src/server/marketplace/service.test.ts src/server/marketplace/service.persistence.test.ts src/server/marketplace/messages.persistence.test.ts` — passed (`service.persistence` + `messages.persistence` skipped without `RUN_DB_TESTS=true`).
+- `npm run lint` — passed.
+- `npm run typecheck` — still fails due pre-existing global baseline debt; new route-level exact-optional issue was addressed in this session.
+
+### Known Issues / Risks
+
+- DB-backed persistence tests still require local Postgres + `RUN_DB_TESTS=true` for full execution.
+- Full repo typecheck baseline remains noisy and unresolved outside this scope.
+
+### Next Steps
+
+1. Add unread markers/read-receipts policy and a small polling/revalidation strategy for near-real-time thread updates.
+2. Introduce durable outbox/audit events for message writes + shortlist/award unlock transitions.
+3. Decide when to make Upstash required in non-dev environments (currently optional with fallback).
+
+---
+
+## Session: 2026-03-22 / 12:35 (GMT) — Live web deployment on Railway + production auth/deploy hardening
+
+**Author:** Codex  
+**Context:** User requested same-session internet deployment (shareable URL) for the Phase 1 + marketplace build, with cost-effective hosting and immediate external usability.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Ship WHOMA to a real public URL today (no custom domain required), with managed Postgres, production boot reliability, and externally verified end-to-end flow.
+
+### Changes Made
+
+- Chose and executed Railway deployment baseline for immediate cost-effective SaaS staging:
+  - Created Railway project `whoma-phase1-web`.
+  - Provisioned services: `whoma-web` (app) + `Postgres` (managed DB).
+  - Generated public URL: `https://whoma-web-production.up.railway.app`.
+- Added deployment runtime config:
+  - New `railway.json` with healthcheck path (`/api/health`) and startup command (`npm run prisma:migrate:deploy && npm run start`).
+  - Added `prisma:migrate:deploy` script to `package.json`.
+- Added env-gated production preview auth fallback for shareable demo access:
+  - `ENABLE_PREVIEW_AUTH` now enables preview credentials provider outside dev when explicitly set.
+  - Sign-in UI now accepts `allowPreviewAccess` and renders preview buttons in this mode.
+- Fixed live auth flow blockers discovered during deployment verification:
+  - Wrapped auth button rendering in `Suspense` on `/sign-in` and `/sign-up` to satisfy Next.js CSR bailout rules.
+  - Updated sign-in flow to handle Auth.js callback responses and explicit client redirects for preview sign-in.
+  - Fixed middleware token parsing to use Auth.js v5 session cookie names (`__Secure-authjs.session-token` in production).
+- Fixed build/deploy blockers discovered in Railway:
+  - Resolved marketplace parser collision by renaming thread summary select constant in `src/server/marketplace/service.ts`.
+  - Prevented build-time DB access on `/locations/[postcodeDistrict]` by making `generateStaticParams` runtime-safe (`[]`).
+  - Set `next.config.ts -> typescript.ignoreBuildErrors=true` as a temporary deployment bypass for known baseline repo type debt.
+- Provisioned and validated production environment wiring:
+  - Set `DATABASE_URL` from Railway Postgres reference.
+  - Set `AUTH_URL`/`NEXT_PUBLIC_APP_URL` to Railway domain.
+  - Set auth secrets and required runtime vars.
+- Verified deployed behavior:
+  - `GET /` -> `200`.
+  - `GET /sign-in` -> `200`.
+  - `GET /api/health` -> `{"status":"ok", ... "checks":{"database":"up"}}`.
+  - Live smoke flow passed against deployed URL (`SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs`) with persisted instruction + proposal IDs.
+
+### Files / Modules Touched (high signal only)
+
+- `railway.json`
+- `package.json`
+- `.env.example`
+- `next.config.ts`
+- `src/auth.ts`
+- `src/components/auth/google-auth-button.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/middleware.ts`
+- `src/server/marketplace/service.ts`
+- `src/app/locations/[postcodeDistrict]/page.tsx`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Deploy on Railway now for fastest managed app+database path with a shareable URL in one session.
+  - **Why:** Lowest setup friction for this repo shape (Next.js + Prisma + Postgres) and fastest route to external validation.
+- **Decision:** Keep Google as production-first auth while allowing env-gated preview auth fallback.
+  - **Why:** Enables immediate stakeholder demo access before Google OAuth production credentials are ready.
+- **Decision:** Run migrations on startup in deployment config.
+  - **Why:** Keeps schema and runtime aligned across redeploys without manual migration runs.
+- **Decision:** Temporarily enable `typescript.ignoreBuildErrors` for deployment.
+  - **Why:** Repository has pre-existing global type debt; this unblocks live deployment while cleanup is tracked separately.
+
+### Data / Schema Notes
+
+- No new Prisma migration added in this session.
+- Deployment boot executed existing migrations successfully on Railway Postgres:
+  - `20260321173500_phase1_agent_profile_platform`
+  - `20260321184000_marketplace_write_infra`
+  - `20260321190500_api_safety_idempotency`
+  - `20260321194500_agent_work_email_verification`
+
+### How to Run / Test
+
+- Local production build gate: `npm run build` (passes with type-check bypass setting).
+- Deploy command used: `railway up --ci -p f022373e-a9ea-4a4f-a651-efe34201f09c -e production -s whoma-web`.
+- Live checks:
+  - `curl -sS -D - https://whoma-web-production.up.railway.app/api/health`
+  - `curl -sS -D - -o /tmp/whoma-home.html https://whoma-web-production.up.railway.app/`
+  - `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs`
+
+### Known Issues / Risks
+
+- `ENABLE_PREVIEW_AUTH=true` is intentionally permissive for staging/demo and must be turned off for strict production posture once Google OAuth is fully configured.
+- `next.config.ts` currently ignores TypeScript build errors to keep deployment unblocked; this should be reverted after baseline type debt remediation.
+- A010 (production work-email delivery + anti-abuse) remains open.
+
+### Next Steps
+
+1. Configure production Google OAuth credentials and disable preview fallback (`ENABLE_PREVIEW_AUTH=false`) for hardened public auth posture.
+2. Burn down repository-wide TypeScript baseline debt and remove `ignoreBuildErrors` from `next.config.ts`.
+3. Continue A010 implementation (email provider + resend/attempt controls + rate limiting) before pilot scaling.
+
+---
+
+## Session: 2026-03-22 / 12:56 (GMT) — A010 anti-abuse + strict build gate restoration + live redeploy
+
+**Author:** Codex  
+**Context:** User requested immediate next hardening moves after live deployment: (1) production Google OAuth creds + disable preview auth, (2) remove `typescript.ignoreBuildErrors`, (3) finish A010 verification delivery + anti-abuse controls.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Complete the production-hardening slice by implementing A010 controls in code, restoring strict production build checks, redeploying live, and validating operational status.
+
+### Changes Made
+
+- Implemented A010 anti-abuse controls in `src/server/agent-profile/service.ts`:
+  - Enforced resend cooldown before issuing a new work-email code.
+  - Enforced verification-attempt tracking + temporary lockout after max invalid attempts.
+  - Reset attempt/lock counters on successful verification and on fresh code issuance.
+  - Added operational error codes for cooldown, attempts exceeded, and delivery unavailable.
+- Added production verification email delivery adapter:
+  - New `src/server/agent-profile/work-email-delivery.ts` sends codes via Resend API.
+  - Service now invokes provider in production and maps provider failures to a typed operational error.
+- Hardened onboarding server actions:
+  - Added actor/IP-based server-side rate limiting for send/confirm verification actions.
+  - Added mapping + UX states for cooldown, lockout, delivery-unavailable, and rate-limited flows.
+- Added schema + migration support for anti-abuse fields:
+  - `prisma/schema.prisma` and migration `20260322130500_agent_work_email_anti_abuse`.
+- Restored strict production build posture:
+  - Added TS compatibility fixes (React 19 JSX namespace shim, vitest globals types, route typing fixes, NextAuth config strictness fixes).
+  - Removed `typescript.ignoreBuildErrors` from `next.config.ts`.
+  - Verified `npm run typecheck` and `npm run build` both pass.
+- Added DB-backed A010 coverage in `src/server/agent-profile/phase1-flow.test.ts`:
+  - Resend cooldown enforcement.
+  - Attempt-limit lockout enforcement.
+- Redeployed live Railway service and re-validated:
+  - `railway up --ci ... -s whoma-web` succeeded.
+  - `GET /api/health` returns `database=up`.
+  - Live smoke script passed and created persisted instruction/proposal IDs.
+
+### Files / Modules Touched (high signal only)
+
+- `src/server/agent-profile/service.ts`
+- `src/server/agent-profile/work-email-delivery.ts`
+- `src/app/(app)/agent/onboarding/page.tsx`
+- `src/server/agent-profile/phase1-flow.test.ts`
+- `prisma/schema.prisma`
+- `prisma/migrations/20260322130500_agent_work_email_anti_abuse/migration.sql`
+- `src/auth.ts`
+- `src/lib/auth/session.ts`
+- `src/app/onboarding/role/page.tsx`
+- `src/components/brand/logo.tsx`
+- `src/components/layout/app-shell.tsx`
+- `src/app/[slug]/page.tsx`
+- `src/types/jsx-global.d.ts`
+- `tsconfig.json`
+- `.env.example`
+- `next.config.ts`
+- `docs/TASKS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Enforce anti-abuse rules in the service layer (not only UI/actions).
+  - **Why:** Keeps verification protections authoritative at write boundaries regardless of client behavior.
+- **Decision:** Add route-level onboarding verification rate limits in server actions in addition to code-level cooldown/lockout.
+  - **Why:** Protects against endpoint spam and brute-force attempts at multiple layers.
+- **Decision:** Restore strict type/build gates now and remove `ignoreBuildErrors`.
+  - **Why:** Production hardening requires deterministic compile-time safety before pilot expansion.
+
+### Data / Schema Notes
+
+- Added anti-abuse columns to `AgentProfile`:
+  - `workEmailVerificationCodeSentAt`
+  - `workEmailVerificationAttemptCount`
+  - `workEmailVerificationLockedUntil`
+- Migration added: `prisma/migrations/20260322130500_agent_work_email_anti_abuse/migration.sql`
+
+### How to Run / Test
+
+- `npm run prisma:generate` — passes.
+- `npm run typecheck` — passes.
+- `npm run build` — passes (no `ignoreBuildErrors`).
+- `npm run test` — passes (DB-backed suites skipped without `RUN_DB_TESTS=true`).
+- `npm run test -- src/server/agent-profile/phase1-flow.test.ts` — file executes (DB-backed tests skipped unless enabled).
+- Production checks:
+  - `curl -sS https://whoma-web-production.up.railway.app/api/health`
+  - `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs`
+
+### Known Issues / Risks
+
+- Railway production env currently does **not** have:
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `RESEND_API_KEY`
+  - `RESEND_FROM_EMAIL`
+- `ENABLE_PREVIEW_AUTH` remains `true` in production until Google OAuth credentials are provided and verified.
+- Because Resend credentials are not yet set in production, A010 remains operationally incomplete despite code-level implementation.
+
+### Next Steps
+
+1. Set Railway production vars for Google OAuth and Resend (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`).
+2. Flip `ENABLE_PREVIEW_AUTH=false` and validate production sign-in with Google OAuth.
+3. Re-run production smoke + onboarding verification send/confirm flow to close A010 acceptance fully.
+
+
+---
+
+## Session: 2026-03-22 / 13:23 (GMT) — Personal-email preview auth flow + preview button UX fix
+
+**Author:** Codex  
+**Context:** User requested deprioritizing Google auth for now and fixing broken preview access buttons on live sign-in page.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Keep web access unblocked without Google OAuth by improving preview auth to support personal emails and fixing preview CTA usability issues in production.
+
+### Changes Made
+
+- Reworked preview auth UI in `src/components/auth/google-auth-button.tsx`:
+  - Replaced long overflowing role buttons with compact role selector (`Homeowner` / `Agent` / `Admin`) + single action button.
+  - Added optional personal email input for preview sign-in.
+  - Kept role-aware destination routing behavior (`/homeowner/*`, `/agent/*`, `/admin/*`).
+  - Added inline email validation feedback for preview mode.
+- Updated auth entry copy and wiring:
+  - `src/app/(auth)/sign-in/page.tsx` copy now explicitly supports temporary preview email access when Google is unavailable.
+  - `src/app/(auth)/sign-up/page.tsx` now passes `allowPreviewAccess` so fallback is available there too.
+- Updated smoke automation compatibility:
+  - `scripts/smoke-marketplace-flow.mjs` now supports both old and new preview UI selectors so deployment validation remains stable.
+- Deployed latest changes to Railway production and validated:
+  - New sign-in UI elements are present (`Continue with Preview Email`, role selector).
+  - Personal-email preview sign-in succeeds and redirects as expected.
+  - Live smoke flow passes after selector update.
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/auth/google-auth-button.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `scripts/smoke-marketplace-flow.mjs`
+- `docs/TASKS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep preview auth enabled temporarily and improve it for personal-email access.
+  - **Why:** Unblocks immediate product sharing/testing without waiting on Google OAuth setup.
+- **Decision:** Use short role labels + single submit CTA in preview block.
+  - **Why:** Prevents long-label overlap and improves mobile/desktop reliability.
+- **Decision:** Update smoke script to support both legacy and new preview UI labels.
+  - **Why:** Preserves regression coverage during auth UX transitions.
+
+### Data / Schema Notes
+
+- No schema changes in this session.
+- No migration changes in this session.
+
+### How to Run / Test
+
+- `npm run typecheck` — passes.
+- `npm run build` — passes.
+- `railway up --ci -p f022373e-a9ea-4a4f-a651-efe34201f09c -e production -s whoma-web` — deploy complete.
+- `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs` — passes.
+- Manual live check: preview personal email sign-in redirects to `/homeowner/instructions` when role is Homeowner.
+
+### Known Issues / Risks
+
+- This remains a temporary staging path; production-grade auth should move to Google-only once credentials are provisioned.
+- `ENABLE_PREVIEW_AUTH=true` keeps fallback access available and should be disabled when strict production posture is required.
+
+### Next Steps
+
+1. Keep using personal-email preview mode for immediate demos while Google credentials are pending.
+2. When ready, set Google OAuth credentials and disable preview fallback (`ENABLE_PREVIEW_AUTH=false`).
+3. Optionally add a dedicated E2E test for the new preview-email auth block to catch future UI regressions.
+
+
+---
+
+## Session: 2026-03-22 / 13:29 (GMT) — Public copy / positioning rewrite
+
+**Author:** Codex  
+**Context:** User requested a public-facing copy pass only, with outcome-first messaging and less internal marketplace jargon on the listed public pages.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Refresh public-facing copy on landing, auth, directory, location browse, and static policy pages without changing route behavior, layout architecture, or data wiring.
+
+### Changes Made
+
+- Rewrote landing page messaging to emphasize homeowner outcomes and agent value with softer, more user-friendly terminology.
+- Updated sign-in/sign-up copy to align with preview auth positioning and remove stale instructional phrasing.
+- Refined public agent directory copy and empty state guidance.
+- Reworked public location browse copy to favor "brief" / "response window" language and added stronger empty states.
+- Replaced placeholder/TODO-style language on the static privacy/cookies/terms/complaints/contact pages with polished draft copy.
+- Aligned public footer labels and supporting copy with the new positioning language.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/page.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/locations/page.tsx`
+- `src/app/locations/[postcodeDistrict]/page.tsx`
+- `src/app/[slug]/page.tsx`
+- `src/components/layout/public-footer.tsx`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep layout and routing untouched while rewriting only public copy.
+  - **Why:** The request was explicitly copy/positioning-only, and preserving UI structure avoids accidental regressions.
+- **Decision:** Use "brief" / "response window" / "responses" language in public copy.
+  - **Why:** It communicates the workflow outcome-first while reducing internal jargon on public surfaces.
+
+### Data / Schema Notes
+
+- No schema changes in this session.
+- No migrations in this session.
+
+### How to Run / Test
+
+- `npm run typecheck` — passes.
+
+### Known Issues / Risks
+
+- Some internal component and route names still use marketplace domain terminology under the hood; this session only changed user-facing copy in the requested files.
+
+### Next Steps
+
+1. If desired, apply the same wording cleanup to the remaining public-facing marketplace screens outside this file set.
+2. Consider a broader copy consistency pass for any remaining public labels that still mention internal workflow terms.
+
+
+---
+
+## Session: 2026-03-23 / 09:31 (GMT) — A012 AI resume intake (OCR + LLM hybrid) implementation
+
+**Author:** Codex  
+**Context:** User requested production-safe AI resume-to-prefill for agent onboarding with stable API contracts, rollout flags, heuristic-first cost control, and suggest-only behavior.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Ship A012 end-to-end for onboarding resume suggestions:
+  - `POST/GET/DELETE /api/agent/onboarding/resume-suggestions`
+  - OCR + LLM hybrid extraction pipeline with fallback
+  - typed contracts and rollout flags
+  - tests for parser/route behavior
+
+### Changes Made
+
+- Added flag-driven AI pipeline controls in `src/server/agent-profile/resume-flags.ts`.
+- Added AI extraction module in `src/server/agent-profile/resume-ai.ts`:
+  - prompt builder + parser (`resume_extract_v1`-style shape),
+  - OpenAI Responses API integration with timeout,
+  - optional OCR fallback provider integration,
+  - confidence thresholding + heuristic fallback merge.
+- Added onboarding resume suggestions API in `src/app/api/agent/onboarding/resume-suggestions/route.ts`:
+  - `POST` upload/extract with auth, idempotency, rate-limit headers, and cookie write,
+  - `GET` read cookie-backed suggestion,
+  - `DELETE` clear suggestion cookie.
+- Upgraded signed suggestion cookie contract to v2 in `src/server/agent-profile/resume-suggestions-cookie.ts` with backward-compatible decode support for v1 payloads.
+- Wired onboarding upload flow to new pipeline in `src/app/(app)/agent/onboarding/page.tsx` (mode-aware upload, warning/error mapping, no auto-save).
+- Extended `.env.example` with AI/OCR/rollout environment variables.
+- Added and fixed tests:
+  - `src/server/agent-profile/resume-ai.test.ts`
+  - `src/app/api/agent/onboarding/resume-suggestions/route.test.ts`
+- Cleaned stale/duplicate schema scaffolding in `src/server/agent-profile/resume-intake.ts` to keep strict typecheck green.
+
+### Files / Modules Touched (high signal only)
+
+- `src/server/agent-profile/resume-flags.ts`
+- `src/server/agent-profile/resume-ai.ts`
+- `src/app/api/agent/onboarding/resume-suggestions/route.ts`
+- `src/server/agent-profile/resume-suggestions-cookie.ts`
+- `src/app/(app)/agent/onboarding/page.tsx`
+- `src/server/agent-profile/resume-intake.ts`
+- `src/server/agent-profile/resume-ai.test.ts`
+- `src/app/api/agent/onboarding/resume-suggestions/route.test.ts`
+- `.env.example`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep storage ephemeral (signed cookie) for A012 instead of adding a DB table.
+  - **Why:** Maintains suggest-only trust model and keeps this PR scoped for fast production hardening.
+- **Decision:** Heuristic-first fallback remains mandatory when LLM/OCR is unavailable.
+  - **Why:** Controls cost/latency while preserving reliable onboarding prefill outcomes.
+- **Decision:** Keep API envelope/idempotency/rate-limit conventions identical to existing write boundaries.
+  - **Why:** Reduces integration risk and avoids introducing a one-off API contract.
+
+### Data / Schema Notes
+
+- No new Prisma models/migrations in this session.
+- Cookie payload contract upgraded to `ResumeSuggestionV2` with backward-compatible decode from v1.
+
+### How to Run / Test
+
+- `npm run typecheck` — passes.
+- `npm run test -- src/server/agent-profile/resume-ai.test.ts src/app/api/agent/onboarding/resume-suggestions/route.test.ts` — passes (`8/8`).
+
+### Known Issues / Risks
+
+- OCR provider is optional and currently depends on env configuration (`RESUME_OCR_ENDPOINT`, `RESUME_OCR_API_KEY`) or test stub text.
+- LLM extraction quality and cost need staged rollout monitoring (`RESUME_AI_SHADOW_MODE`, confidence thresholds, latency SLOs).
+
+### Next Steps
+
+1. Stage rollout in production using flags (`heuristic` -> `shadow` -> partial `hybrid` -> full `hybrid`).
+2. Add benchmark fixtures to monitor field-coverage and latency trends across resume formats.
+3. Optionally add provider-level telemetry counters for OCR and LLM fallback rates.
+
+---
+
+## Session: 2026-03-23 / 10:05 (GMT) — Public UX alignment + Railway deploy
+
+**Author:** Codex  
+**Context:** User requested confirmation/implementation of GPT-5.4 public UX recommendations and immediate production deploy to Railway.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Apply the highest-impact public UX/copy changes from the new spec and deploy a shareable production update in the same session.
+
+### Changes Made
+
+- Reworked landing page structure and messaging in `src/app/page.tsx`:
+  - New hero and proposition (`Agents compete for your listing. You choose the deal.`)
+  - Trust strip + 4-step flow + side-by-side comparison preview module
+  - Homeowner and agent value sections + stronger final CTA
+  - Header nav anchors (`How it works`, `For homeowners`, `For agents`, `Agent profiles`)
+- Updated public directory and location surfaces:
+  - `src/app/agents/page.tsx`
+  - `src/app/locations/page.tsx`
+  - `src/app/locations/[postcodeDistrict]/page.tsx`
+  - `src/components/instruction-card.tsx`
+  Labels/copy now favor `seller requests` + `offers` and include stronger empty states.
+- Updated auth and role entry messaging:
+  - `src/app/(auth)/sign-in/page.tsx`
+  - `src/app/(auth)/sign-up/page.tsx`
+  - `src/app/onboarding/role/page.tsx`
+- Updated footer and trust-page framing:
+  - `src/components/layout/public-footer.tsx`
+  - `src/app/[slug]/page.tsx`
+  Removed placeholder/draft-facing trust language on public legal/support pages.
+- Updated global metadata proposition in `src/app/layout.tsx` to match homepage narrative.
+
+### Deployment + Verification
+
+- Deployed to Railway production service:
+  - `railway up --ci -p f022373e-a9ea-4a4f-a651-efe34201f09c -e production -s whoma-web`
+- Live checks passed:
+  - `GET /` returns `200`
+  - `GET /locations` returns `200`
+  - `GET /api/health` returns `{"status":"ok", ... "checks":{"database":"up"}}`
+- Live smoke flow passed:
+  - `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs`
+  - Result: `{ ok: true, instructionId, proposalId, ... }`
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/page.tsx`
+- `src/app/layout.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/agents/[slug]/page.tsx`
+- `src/app/locations/page.tsx`
+- `src/app/locations/[postcodeDistrict]/page.tsx`
+- `src/components/instruction-card.tsx`
+- `src/components/layout/public-footer.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/onboarding/role/page.tsx`
+- `src/app/[slug]/page.tsx`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Prioritize public-page trust + positioning updates over deeper logged-in flow redesign in this pass.
+  - **Why:** User requested immediate web-ready shareable UX impact in today’s session.
+- **Decision:** Keep existing routes and domain model names intact while updating user-facing language.
+  - **Why:** Delivers messaging clarity without risky route/schema churn.
+- **Decision:** Deploy immediately after build/type checks and verify with live smoke.
+  - **Why:** Confirms real production behavior, not only local correctness.
+
+### How to Run / Test
+
+- `npm run build` — passes.
+- `npm run typecheck` — passes.
+- `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs` — passes.
+
+### Known Issues / Risks
+
+- One existing lint warning remains in `src/server/agent-profile/resume-suggestions-cookie.ts` (`resumeFieldKeys` used as type-only).
+- This session did not implement all deeper logged-in UX enhancements from the long-form spec (for example advanced compare sorting/badges workflow across dashboard flows).
+
+### Next Steps
+
+1. Apply the same language system consistently to logged-in marketplace screens (`/agent/marketplace*`, `/homeowner/instructions/*/compare`).
+2. Add richer public agent/profile proof blocks (response rate, recent local activity) when data fields are available.
+3. Continue staged rollout for A012 resume AI flags in production (`heuristic` -> `shadow` -> `hybrid`).
+
+---
+
+## Session: 2026-03-23 / 10:45 (GMT) — Logged-in compare UX completion + /requests IA + agent profile proof modules
+
+**Author:** Codex  
+**Context:** User requested continuation from prior session to finish the remaining UX spec gaps: logged-in homeowner compare decision UX, IA migration to `/requests`, deeper agent profile proof modules, and live deployment.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Complete the previously deferred UX scope in one pass:
+  1. finalize compare/sort/badge/shortlist decision UX,
+  2. make `/requests` the primary public area route with safe legacy redirects,
+  3. upgrade public agent profile proof depth,
+  4. deploy and verify live.
+
+### Changes Made
+
+- Completed logged-in homeowner compare UX updates:
+  - Added sortable decision modes (`best value`, `lowest fee`, `most complete service`, `best local fit`, `fastest timeline`).
+  - Added per-offer ranking badges and a new decision-highlight strip.
+  - Added shortlist helper UX for selecting up to 3 submitted offers.
+  - Extended comparison table rows to include `Areas covered` and `Experience`.
+  - Updated action language to decision-first wording (`Choose agent`, `Chosen`).
+- Finalized `/requests` IA rollout:
+  - Public request browse pages now live at `/requests` and `/requests/[postcodeDistrict]`.
+  - Legacy `/locations` and `/locations/[postcodeDistrict]` continue as compatibility redirects.
+  - Updated sitemap wording from location-centric labels to seller-request area labels.
+- Rebuilt `src/app/agents/[slug]/page.tsx` with deeper proof modules using existing fields only:
+  - Trust metrics strip (experience, response speed, seller rating, profile quality).
+  - Seller-fit highlights, richer coverage/specialty blocks, and stronger conversion CTA.
+  - Preserved strict verified-only visibility from service layer.
+- Updated homeowner/agent app-shell nav labels for the new language system (`Sale Requests`, `Seller Requests`, `My Offers`).
+- Ran subagent cross-checks in parallel for IA references and agent proof-module mapping; applied resulting final copy consistency tweak.
+
+### Deployment + Verification
+
+- Validation:
+  - `npm run typecheck` — passes.
+  - `npm run build` — passes (existing known lint warning remains in `resume-suggestions-cookie.ts`).
+- Deployed twice to Railway production (`whoma-web`) to include final post-build copy tweak:
+  - `railway up --ci -p f022373e-a9ea-4a4f-a651-efe34201f09c -e production -s whoma-web`
+- Live checks passed:
+  - `env curl -sS https://whoma-web-production.up.railway.app/api/health` -> `{"status":"ok", ... "checks":{"database":"up"}}`
+  - `env curl -sS -o /dev/null -D - https://whoma-web-production.up.railway.app/requests` -> `200`
+  - `env curl -sS -o /dev/null -D - https://whoma-web-production.up.railway.app/locations` -> `307` redirect to `/requests`
+- Live smoke passed after final deploy:
+  - `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs`
+  - Result: `{ ok: true, instructionId, proposalId, ... }`
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/(app)/homeowner/instructions/[instructionId]/compare/page.tsx`
+- `src/app/(app)/homeowner/instructions/[instructionId]/compare/compare-client.tsx`
+- `src/components/proposal-compare-table.tsx`
+- `src/app/requests/page.tsx`
+- `src/app/requests/[postcodeDistrict]/page.tsx`
+- `src/app/locations/page.tsx`
+- `src/app/locations/[postcodeDistrict]/page.tsx`
+- `src/app/agents/[slug]/page.tsx`
+- `src/components/layout/app-shell.tsx`
+- `src/app/[slug]/page.tsx`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep `/locations*` routes as redirects instead of deleting immediately.
+  - **Why:** Protects existing shared links while moving IA to `/requests`.
+- **Decision:** Build deeper agent proof modules from existing fields only.
+  - **Why:** Avoids fabricated trust signals and keeps the release production-safe without schema expansion.
+- **Decision:** Keep decision logic server behavior unchanged while upgrading compare UX.
+  - **Why:** Improves usability without risking state-transition regressions in award/shortlist workflow.
+
+### Data / Schema Notes
+
+- No Prisma schema changes.
+- No migration changes.
+
+### Next Steps
+
+1. Add a focused E2E assertion pass for the new compare sort/badge/shortlist UI behaviors.
+2. If desired, promote `/requests` in any remaining marketing/nav surfaces and monitor `/locations*` redirect traffic before eventual retirement.
+3. Address the existing lint warning in `src/server/agent-profile/resume-suggestions-cookie.ts`.
+
+---
+
+## Session: 2026-03-31 / 01:35 (CEST) — Phase 1 public repositioning + activation metrics
+
+**Author:** Codex  
+**Context:** Re-align public WHOMA surfaces to the current Phase 1 identity-first thesis, harden public auth, expose clearer activation progress, and strengthen seeded proof without changing the underlying marketplace schema.  
+**Branch/PR:** `main` (uncommitted working tree)
+
+### Goal
+
+- Make the public product story match the repo-backed Phase 1 strategy:
+  1. verified estate agent identity first,
+  2. homeowner tendering clearly secondary/pilot,
+  3. no public preview/admin leakage,
+  4. richer activation signals inside agent/admin flows.
+
+### Changes Made
+
+- Repositioned public entry points around verified estate agent identity:
+  - Rewrote homepage hero, navigation, metadata, sequencing copy, and CTA hierarchy around profile verification/publish/review.
+  - Updated public footer, directory, agent profile, and legal/support pages to align to the Phase 1 story.
+  - Kept `/requests*` live, but reframed it as a controlled secondary pilot and added `noindex` metadata.
+- Hardened public auth UX:
+  - Refactored `GoogleAuthButton` to support explicit `public` vs `internal` UX modes.
+  - Public auth pages now show Google sign-in when configured, or a beta gate/contact path when unavailable.
+  - Preview-role UI remains available only for internal QA/E2E paths; public pages no longer expose preview or `ADMIN`.
+- Added Phase 1 activation visibility:
+  - Introduced a shared activation checklist for agent onboarding and CV builder:
+    `work email verified -> onboarding completed -> profile ready -> profile published -> admin verified`
+  - Expanded admin counters from the original 4-count funnel to richer activation metrics (`started`, `workEmailVerified`, `completed`, `publishReady`, `published`, `pendingVerification`, `verified`).
+- Strengthened seeded public proof:
+  - Extended pilot seed data to populate existing proof fields (`responseTimeMinutes`, `ratingAggregate`) so public profiles render more meaningfully.
+- Added targeted coverage:
+  - New pure helper tests for activation-state derivation.
+  - New auth-component tests proving public mode hides preview/admin while internal mode retains QA preview controls.
+  - Updated landing E2E expectations to the new public copy.
+  - Updated marketplace hydration E2E to use direct preview callback sign-in instead of public preview UI clicks.
+
+### Verification
+
+- `npm run typecheck` — passes.
+- `npx vitest run src/lib/agent-activation.test.ts src/components/auth/google-auth-button.test.tsx src/server/agent-profile/phase1-flow.test.ts` — passes (`phase1-flow` remains skipped without DB env, as expected).
+- `env PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 PLAYWRIGHT_WEB_SERVER_COMMAND='npm run dev -- --hostname 127.0.0.1 --port 3000' npx playwright test tests/e2e/landing.spec.ts --project=chromium` — passes.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/page.tsx`
+- `src/app/layout.tsx`
+- `src/components/layout/public-footer.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/agents/[slug]/page.tsx`
+- `src/app/requests/page.tsx`
+- `src/app/requests/[postcodeDistrict]/page.tsx`
+- `src/app/[slug]/page.tsx`
+- `src/components/auth/google-auth-button.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/onboarding/role/page.tsx`
+- `src/lib/public-site.ts`
+- `src/lib/agent-activation.ts`
+- `src/components/agent/activation-checklist.tsx`
+- `src/server/agent-profile/service.ts`
+- `src/app/(app)/agent/onboarding/page.tsx`
+- `src/app/(app)/agent/profile/edit/page.tsx`
+- `src/app/(app)/admin/agents/page.tsx`
+- `scripts/seed-phase1-pilot-agents.mjs`
+- `docs/TASKS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/PHASE1_AGENT_VALIDATION_PLAN.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep preview auth in `next-auth`, but remove all public preview-role UI.
+  - **Why:** Preserves QA/E2E continuity while fixing the trust problem on public pages.
+- **Decision:** Keep `/requests*` live as a noindex secondary pilot instead of removing it.
+  - **Why:** Maintains existing Phase 2 infrastructure and demo utility without letting it dominate the public story prematurely.
+- **Decision:** Limit activation metrics/checklist to behaviors already modeled in `AgentProfile`.
+  - **Why:** Delivers a truthful Phase 1 heartbeat without inventing unsupported transaction/collaboration primitives.
+- **Decision:** Strengthen public proof only with fields that already exist (`responseTimeMinutes`, `ratingAggregate`, `profileCompleteness`).
+  - **Why:** Improves first impression while staying schema-safe and avoiding fabricated trust signals.
+
+### Data / Schema Notes
+
+- No Prisma schema changes.
+- No migration changes.
+- New shared frontend/server-safe helpers:
+  - `src/lib/public-site.ts`
+  - `src/lib/agent-activation.ts`
+
+### Next Steps
+
+1. Decide whether to hide or further minimize `/requests*` once more pilot evidence exists in `/agents`.
+2. Configure production-facing support/company env values before a broader public push.
+3. If Phase 1 expands, add durable event/audit persistence for the new activation metrics rather than keeping them query-derived only.
+
+---
+
+## Session: 2026-03-31 / 02:11 (CEST) — Railway redeploy + live verification for Phase 1 repositioning
+
+**Author:** Codex  
+**Context:** User requested that the current Phase 1 repositioning work be pushed online, verified against the received public-MVP feedback, and prepared for GitHub publication.  
+**Branch/PR:** `codex-phase1-public-release` (local branch; GitHub push pending at time of writing)
+
+### Goal
+
+- Redeploy the current product state to Railway production, verify the live public experience matches the new Phase 1 thesis, and update release tooling/docs so deployment verification remains truthful after public preview auth was hidden.
+
+### Changes Made
+
+- Created a dedicated release branch for this rollout: `codex-phase1-public-release`.
+- Redeployed Railway production service `whoma-web` using the current working tree.
+- Verified the live public surface against the latest feedback themes:
+  - Homepage now leads with verified estate agent identity and Phase 1 sequencing.
+  - `/requests` remains live as a clearly labeled secondary pilot and serves `noindex, nofollow`.
+  - Public sign-in resolves to the beta-gated auth path and no longer exposes public preview/admin UI.
+- Updated `scripts/smoke-marketplace-flow.mjs` to authenticate through the backend preview callback (`/api/auth/callback/preview`) instead of public preview buttons.
+- Re-ran live smoke using the updated script and confirmed homeowner create-LIVE-instruction plus agent submit-proposal flow succeeds against production.
+- Updated release docs to reflect the redeploy and the new smoke-verification path.
+
+### Verification
+
+- `npm run typecheck` — passes.
+- `npm run build` — passes.
+- `railway up --ci -p f022373e-a9ea-4a4f-a651-efe34201f09c -e production -s whoma-web` — deploy complete.
+- `curl -sS https://whoma-web-production.up.railway.app/api/health` — returns `{"status":"ok", ... "checks":{"database":"up"}}`.
+- `env PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=https://whoma-web-production.up.railway.app npx playwright test tests/e2e/landing.spec.ts --project=chromium` — passes.
+- `curl -sS https://whoma-web-production.up.railway.app/sign-in` — confirms production is serving the new Phase 1 metadata and beta-gated auth payload (`providerConfigured:false`, `uxMode:"public"`).
+- `curl -sS -D - -o /tmp/whoma-requests.html https://whoma-web-production.up.railway.app/requests` — confirms `200` with `meta name="robots" content="noindex, nofollow"` and pilot-first copy.
+- `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs` — passes with persisted instruction id `cmndv31gu0004pg2mmzkb6pti` and proposal id `cmndv33fm0009pg2mxynpuhv4`.
+
+### Files / Modules Touched (high signal only)
+
+- `scripts/smoke-marketplace-flow.mjs`
+- `docs/TASKS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep deployment verification on backend preview callback auth instead of reviving any public preview buttons.
+  - **Why:** Preserves the trust gains from public auth hardening while keeping Railway smoke checks reliable.
+- **Decision:** Verify the live site with both public-page checks and a real write-path smoke run.
+  - **Why:** The feedback covered both product positioning and credibility, so we needed evidence at both the messaging and workflow levels.
+
+### Next Steps
+
+1. Push `codex-phase1-public-release` to GitHub and open the release PR.
+2. If desired, follow with a merge-to-main step once the live deployment and verification notes are reviewed.
+3. Set production Google/Resend credentials when ready to replace the beta-gated public auth path with full production sign-in.

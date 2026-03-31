@@ -1,7 +1,9 @@
 import NextAuth from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { Adapter } from "next-auth/adapters";
 import type { UserRole } from "@prisma/client";
 import { z } from "zod";
 
@@ -33,8 +35,12 @@ const googleProviders =
       ]
     : [];
 
+const previewAccessEnabled =
+  process.env.NODE_ENV !== "production" ||
+  process.env.ENABLE_PREVIEW_AUTH === "true";
+
 const previewProviders =
-  process.env.NODE_ENV !== "production"
+  previewAccessEnabled
     ? [
         Credentials({
           id: "preview",
@@ -87,6 +93,7 @@ const previewProviders =
     : [];
 
 const providers = [...googleProviders, ...previewProviders];
+const authAdapter = PrismaAdapter(prisma) as Adapter;
 
 type TokenWithRole = {
   sub?: string;
@@ -98,12 +105,11 @@ type AdapterUserLike = {
   role?: UserRole | null;
 };
 
-export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+const authConfig: NextAuthConfig = {
+  adapter: authAdapter,
   session: {
     strategy: "jwt"
   },
-  secret: authSecret,
   pages: {
     signIn: "/sign-in"
   },
@@ -139,4 +145,11 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       return session;
     }
   }
-});
+};
+
+if (authSecret) {
+  authConfig.secret = authSecret;
+}
+
+export const { handlers, auth, signIn, signOut, unstable_update } =
+  NextAuth(authConfig);

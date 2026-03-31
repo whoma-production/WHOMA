@@ -2,11 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { ActivationChecklist } from "@/components/agent/activation-checklist";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MIN_AGENT_PUBLISH_COMPLETENESS } from "@/lib/agent-activation";
 import { assertCan } from "@/lib/auth/rbac";
 import { agentProfileDraftSchema, agentProfilePublishSchema, parseCsvList } from "@/lib/validation/agent-profile";
 import { cn } from "@/lib/utils";
@@ -251,7 +253,9 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
         <Card className="space-y-4">
           <div>
             <h3 className="text-base font-semibold text-text-strong">Profile readiness</h3>
-            <p className="mt-1 text-sm text-text-muted">Publishing requires at least 70% completeness and core professional fields.</p>
+            <p className="mt-1 text-sm text-text-muted">
+              Publishing requires at least {MIN_AGENT_PUBLISH_COMPLETENESS}% completeness and core professional fields.
+            </p>
           </div>
           <div className="space-y-2">
             <p className="text-3xl font-semibold text-text-strong">{profile?.profileCompleteness ?? 0}%</p>
@@ -262,12 +266,10 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
               Verification: <span className="font-medium text-text-strong">{profile?.verificationStatus ?? "UNVERIFIED"}</span>
             </p>
           </div>
-
-          <ol className="space-y-2 text-sm text-text-muted">
-            <li className="rounded-md border border-line bg-surface-1 px-3 py-2">1. Complete your profile details and save draft.</li>
-            <li className="rounded-md border border-line bg-surface-1 px-3 py-2">2. Publish your profile to appear in the directory.</li>
-            <li className="rounded-md border border-line bg-surface-1 px-3 py-2">3. Admin verifies your profile for trust-badge visibility.</li>
-          </ol>
+          <ActivationChecklist
+            profile={profile}
+            description="Use the CV builder to push your profile over the publish threshold, then wait for admin verification to unlock public visibility."
+          />
         </Card>
       </div>
     </AppShell>

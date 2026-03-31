@@ -1,107 +1,119 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  FileCheck2,
-  Handshake,
-  MapPinned,
-  Receipt,
-  ShieldCheck,
-  Timer
-} from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import { PublicFooter } from "@/components/layout/public-footer";
-import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  getPublicSiteConfig,
+  PUBLIC_AGENT_CTA_HREF,
+  PUBLIC_AGENT_DIRECTORY_HREF,
+  PUBLIC_REQUESTS_PILOT_HREF
+} from "@/lib/public-site";
 import { cn } from "@/lib/utils";
 
-const howItWorksSteps = [
+const trustStrip = [
+  "Business work-email verification",
+  "Structured public profile",
+  "Admin-reviewed trust badge",
+  "Controlled pilot visibility"
+] as const;
+
+const activationPath = [
   {
-    title: "Post one brief",
-    description: "Share your property details and selling goals once, then open a 24-48h bid window.",
-    icon: Timer
+    title: "Verify your business inbox",
+    body: "Confirm your work email before onboarding is marked complete."
   },
   {
-    title: "Receive structured offers",
-    description: "Real estate agents send standardised proposals so you can compare fees, scope and timelines like-for-like.",
-    icon: FileCheck2
+    title: "Build your WHOMA baseline",
+    body: "Capture agency, service areas, specialties, and a structured professional summary."
   },
   {
-    title: "Choose with confidence",
-    description: "Shortlist, award the instruction, and only then unlock chat to move the deal forward.",
-    icon: ShieldCheck
+    title: "Reach publish readiness",
+    body: "Add enough detail to cross the 70% completeness threshold."
+  },
+  {
+    title: "Publish and pass review",
+    body: "Admin verification unlocks directory visibility and the public trust badge."
   }
 ] as const;
 
-const trustBullets = [
-  "No obligation to award",
-  "Comparable proposals (standardised)",
-  "Chat gated until shortlist/award"
-] as const;
-
-const comparisonCards = [
+const proofBlocks = [
   {
-    title: "Fee model",
-    description: "Fixed fee, %, hybrid or success bands.",
-    icon: Receipt
+    title: "Verified professional identity",
+    body: "WHOMA starts with a business email check and structured profile proof before broader marketplace expansion."
   },
   {
-    title: "Inclusions",
-    description: "Photography, floorplan, viewings, progression support.",
-    icon: CheckCircle2
+    title: "Portable professional credibility",
+    body: "Profiles are designed to help agents show individual strengths beyond agency brand alone."
   },
   {
-    title: "Timeline estimate",
-    description: "Expected timeline and delivery cadence.",
-    icon: Clock3
-  },
-  {
-    title: "Cancellation terms",
-    description: "Notice periods and withdrawal terms upfront.",
-    icon: Handshake
-  },
-  {
-    title: "Local experience",
-    description: "Service areas and fit for your postcode district.",
-    icon: MapPinned
-  },
-  {
-    title: "Verification status",
-    description: "Trust badge shown where available.",
-    icon: ShieldCheck
+    title: "Controlled rollout discipline",
+    body: "Homeowner tendering remains a pilot while we validate agent density, quality, and review mechanics."
   }
 ] as const;
 
-const roleSplit = {
-  homeowners: [
-    "Create one brief instead of repeating the same conversation to multiple agents.",
-    "Compare offers side-by-side on price, scope and terms before speaking to anyone.",
-    "Award only when you are ready, with no obligation to accept a proposal."
-  ],
-  agents: [
-    "Build a personal professional identity beyond just your agency logo.",
-    "Show your expertise through a structured profile and directory visibility.",
-    "Compete on service and pricing with structured proposals to qualified sellers."
-  ]
-} as const;
+const agentValue = [
+  {
+    title: "Create a profile you can share confidently",
+    body: "Show service areas, specialties, experience, and structured credibility signals in one place."
+  },
+  {
+    title: "Publish only when you are ready",
+    body: "The activation checklist makes it obvious what still needs to happen before public visibility."
+  },
+  {
+    title: "Earn public trust through verification",
+    body: "Admin review is the gate that turns a draft profile into a publicly trusted WHOMA presence."
+  }
+] as const;
+
+const phaseSequencing = [
+  {
+    title: "Identity first",
+    body: "Verify the agent, publish the profile, and prove that professionals care about building reputation portability."
+  },
+  {
+    title: "Pilot collaboration second",
+    body: "Run controlled seller-request access as a secondary path while agent depth and review quality improve."
+  },
+  {
+    title: "Structured tendering after proof",
+    body: "Broader homeowner-led comparison becomes stronger once public evidence of agent quality already exists."
+  }
+] as const;
 
 export default function LandingPage(): JSX.Element {
+  const site = getPublicSiteConfig();
+
   return (
     <div className="min-h-screen bg-surface-1">
       <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
-          <div className="flex items-center gap-2">
-            <Link href="/agents" className={cn(buttonVariants({ variant: "tertiary", size: "sm" }))}>
-              Agent directory
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <Logo subtitle={site.logoSubtitle} />
+
+          <nav className="hidden items-center gap-4 text-sm text-text-muted lg:flex">
+            <Link href="/#how-it-works" className="transition-colors hover:text-brand-ink">
+              How it works
             </Link>
+            <Link href="/#for-agents" className="transition-colors hover:text-brand-ink">
+              For agents
+            </Link>
+            <Link href="/#phase-sequencing" className="transition-colors hover:text-brand-ink">
+              Phase 1
+            </Link>
+            <Link href={PUBLIC_AGENT_DIRECTORY_HREF} className="transition-colors hover:text-brand-ink">
+              Verified agents
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-2">
             <Link href="/sign-in" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
               Sign in
             </Link>
-            <Link href="/sign-up" className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
-              Create account
+            <Link href={PUBLIC_AGENT_CTA_HREF} className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
+              Build your profile
             </Link>
           </div>
         </div>
@@ -109,179 +121,189 @@ export default function LandingPage(): JSX.Element {
 
       <main>
         <section className="border-b border-line bg-surface-0">
-          <div className="motif-grid mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
+          <div className="motif-grid mx-auto grid w-full max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
             <div className="space-y-6">
-              <p className="animate-enter-up text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                UK home-selling marketplace
-              </p>
-              <h1 className="animate-enter-up animate-delay-1 max-w-2xl text-4xl sm:text-5xl">
-                Sell your home with confidence: compare real estate agent offers side-by-side.
-              </h1>
-              <p className="animate-enter-up animate-delay-2 max-w-2xl text-base text-text-muted sm:text-lg">
-                Post your property brief once. Receive structured proposals in 24-48 hours. Compare fees,
-                inclusions and timelines, then award the real estate agent you trust.
-              </p>
-              <div className="animate-enter-up animate-delay-2 flex flex-wrap gap-3">
-                <Link href="/sign-up?role=HOMEOWNER" className={cn(buttonVariants({ variant: "primary", size: "lg" }))}>
-                  Create a homeowner brief
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+                  {site.betaStatusLabel}
+                </p>
+                <h1 className="max-w-3xl text-4xl sm:text-5xl">
+                  Build a verified estate agent profile people can trust.
+                </h1>
+                <p className="max-w-2xl text-base text-text-muted sm:text-lg">
+                  WHOMA is validating verified estate agent identity first: business work-email verification,
+                  structured public profiles, and admin-reviewed trust before broader marketplace expansion.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Link href={PUBLIC_AGENT_CTA_HREF} className={cn(buttonVariants({ variant: "primary", size: "lg" }))}>
+                  Build your verified profile
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/sign-up?role=AGENT" className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}>
-                  Join as a real estate agent
+                <Link
+                  href={PUBLIC_AGENT_DIRECTORY_HREF}
+                  className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}
+                >
+                  Browse verified agents
                 </Link>
               </div>
-              <ul className="animate-enter-up animate-delay-3 grid gap-2 text-sm text-text-muted sm:grid-cols-3" aria-label="Trust highlights">
-                {trustBullets.map((bullet) => (
-                  <li key={bullet} className="rounded-md border border-line bg-surface-0 px-3 py-2 shadow-soft">
-                    {bullet}
+
+              <ul className="grid gap-2 text-sm text-text-muted sm:grid-cols-2" aria-label="Phase 1 trust markers">
+                {trustStrip.map((item) => (
+                  <li key={item} className="rounded-md border border-line bg-surface-0 px-3 py-2 shadow-soft">
+                    {item}
                   </li>
                 ))}
               </ul>
+
+              <p className="text-sm text-text-muted">
+                Homeowner tendering remains available as a controlled pilot.{" "}
+                <Link href={PUBLIC_REQUESTS_PILOT_HREF} className="font-medium text-brand-ink underline">
+                  View pilot request areas
+                </Link>
+                .
+              </p>
             </div>
 
-            <Card className="animate-enter-card animate-delay-2 interactive-lift relative border-line bg-surface-0 shadow-lift">
-              <div className="infinity-watermark relative space-y-5">
+            <Card className="border-line bg-surface-0 shadow-lift">
+              <div className="space-y-4">
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">How Whoma works</p>
-                  <h2 className="text-xl">Instruction → Bid Window → Proposals → Shortlist → Award</h2>
-                  <p className="text-sm text-text-muted">
-                    Keep control of the process while real estate agents compete on a clear, comparable proposal format.
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+                    Activation path
                   </p>
+                  <h2 className="text-xl">The Phase 1 proof loop WHOMA is validating</h2>
                 </div>
-                <ol className="space-y-3 text-sm">
-                  <li className="rounded-md border border-line bg-surface-1 px-4 py-3">
-                    1. Create your brief once and open a 24-48h bid window.
-                  </li>
-                  <li className="rounded-md border border-line bg-surface-1 px-4 py-3">
-                    2. Receive structured proposals covering fees, inclusions, timelines and terms.
-                  </li>
-                  <li className="rounded-md border border-line bg-surface-1 px-4 py-3">
-                    3. Shortlist and award the instruction before chat opens.
-                  </li>
-                </ol>
+
+                <div className="space-y-3">
+                  {activationPath.map((item, index) => (
+                    <div
+                      key={item.title}
+                      className="rounded-md border border-line bg-surface-1 px-3 py-3"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                        Step {index + 1}
+                      </p>
+                      <h3 className="mt-1 text-base">{item.title}</h3>
+                      <p className="mt-1 text-sm text-text-muted">{item.body}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </Card>
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">How it works</p>
-              <h2 className="mt-2">A calmer way to choose the right real estate agent and the right deal</h2>
-            </div>
+        <section id="how-it-works" className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mb-8 max-w-3xl space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">How it works</p>
+            <h2>Verified identity first. Public visibility after proof.</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
-            {howItWorksSteps.map((step) => {
-              const Icon = step.icon;
-              return (
-                <Card key={step.title} className="interactive-lift space-y-4">
-                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand-accent/10 text-brand-accent">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
+            {proofBlocks.map((item) => (
+              <Card key={item.title} className="interactive-lift space-y-2">
+                <h3 className="text-base">{item.title}</h3>
+                <p className="text-sm text-text-muted">{item.body}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section id="for-agents" className="border-y border-line bg-surface-0">
+          <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+            <div className="mb-8 max-w-3xl space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">For agents</p>
+              <h2>Use WHOMA to make your professional credibility legible.</h2>
+              <p className="text-sm text-text-muted sm:text-base">
+                The current product goal is simple: prove that serious estate agents will verify their identity, complete
+                a structured profile, publish it, and care about earning visible trust.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {agentValue.map((item) => (
+                <Card key={item.title} className="interactive-lift space-y-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" aria-hidden="true" />
+                    <h3 className="text-base">{item.title}</h3>
                   </div>
-                  <div className="space-y-2">
-                    <h3>{step.title}</h3>
-                    <p className="text-sm text-text-muted">{step.description}</p>
-                  </div>
+                  <p className="text-sm text-text-muted">{item.body}</p>
                 </Card>
-              );
-            })}
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href={PUBLIC_AGENT_CTA_HREF} className={cn(buttonVariants({ variant: "primary" }))}>
+                Start agent onboarding
+              </Link>
+              <Link
+                href={PUBLIC_AGENT_DIRECTORY_HREF}
+                className={cn(buttonVariants({ variant: "secondary" }))}
+              >
+                See verified profile examples
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section id="phase-sequencing" className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mb-8 max-w-3xl space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Phase 1 sequencing</p>
+            <h2>WHOMA is deliberately validating one thing at a time.</h2>
+            <p className="text-sm text-text-muted sm:text-base">
+              The public story matches the current operating thesis: identity depth first, collaboration liquidity next,
+              broader structured tendering after proof.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {phaseSequencing.map((item) => (
+              <Card key={item.title} className="interactive-lift space-y-2">
+                <h3 className="text-base">{item.title}</h3>
+                <p className="text-sm text-text-muted">{item.body}</p>
+              </Card>
+            ))}
           </div>
         </section>
 
         <section className="border-y border-line bg-surface-0">
-          <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <div className="mb-8 max-w-3xl space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">What you compare</p>
-              <h2>Compare like-for-like before you commit</h2>
-              <p className="text-sm text-text-muted sm:text-base">
-                Whoma standardises the important parts of a real estate agent proposal so you can make a decision quickly
-                without digging through mismatched pitches.
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {comparisonCards.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Card key={item.title} className="interactive-lift space-y-3">
-                    <div className="flex items-start gap-3">
-                      <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-accent/10 text-brand-accent">
-                        <Icon className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <div>
-                        <h3 className="text-base">{item.title}</h3>
-                        <p className="mt-1 text-sm text-text-muted">{item.description}</p>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mb-8 max-w-3xl space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Who Whoma is for</p>
-            <h2>Built for clarity on both sides of the instruction</h2>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="interactive-lift space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3>For Homeowners</h3>
-                <span className="rounded-full bg-brand-accent/10 px-3 py-1 text-xs font-semibold text-brand-ink">
-                  Control + clarity
-                </span>
-              </div>
-              <ul className="space-y-2 text-sm text-text-muted">
-                {roleSplit.homeowners.map((item) => (
-                  <li key={item} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" aria-hidden="true" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-
-            <Card className="interactive-lift space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3>For Real Estate Agents</h3>
-                <span className="rounded-full bg-surface-1 px-3 py-1 text-xs font-semibold text-text-strong">
-                  Qualified opportunities
-                </span>
-              </div>
-              <ul className="space-y-2 text-sm text-text-muted">
-                {roleSplit.agents.map((item) => (
-                  <li key={item} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" aria-hidden="true" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          </div>
-        </section>
-
-        <section className="border-t border-line bg-surface-0">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Early access</p>
-              <h2 className="mt-1 text-xl">Launching in the UK. Join early to shape the marketplace.</h2>
-              <p className="mt-1 text-sm text-text-muted">
-                We are focused on a lean MVP: clear proposals, fair comparison, and a calmer selling decision.
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Controlled homeowner pilot</p>
+              <h2 className="text-2xl">Homeowner tendering is live only as a secondary pilot path.</h2>
+              <p className="mt-1 max-w-2xl text-sm text-text-muted sm:text-base">
+                Request browse pages remain available for controlled rollout, but WHOMA is not positioning itself as a
+                broad public comparison portal yet.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link href="/sign-up?role=HOMEOWNER" className={cn(buttonVariants({ variant: "primary" }))}>
-                Create a homeowner brief
+              <Link href={PUBLIC_REQUESTS_PILOT_HREF} className={cn(buttonVariants({ variant: "secondary" }))}>
+                Explore pilot request areas
               </Link>
-              <Link href="/sign-up?role=AGENT" className={cn(buttonVariants({ variant: "secondary" }))}>
-                  Join as a real estate agent
+              <Link href={`mailto:${site.supportEmail}`} className={cn(buttonVariants({ variant: "tertiary" }))}>
+                Contact pilot team
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-surface-0">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+            <div>
+              <h2 className="text-2xl">Ready to build your verified WHOMA profile?</h2>
+              <p className="mt-1 text-sm text-text-muted sm:text-base">
+                Start with business email verification, complete your structured profile, and work toward public trust.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link href={PUBLIC_AGENT_CTA_HREF} className={cn(buttonVariants({ variant: "primary" }))}>
+                Build your profile
+              </Link>
+              <Link href={PUBLIC_AGENT_DIRECTORY_HREF} className={cn(buttonVariants({ variant: "secondary" }))}>
+                Browse verified agents
               </Link>
             </div>
           </div>
         </section>
       </main>
+
       <PublicFooter />
     </div>
   );

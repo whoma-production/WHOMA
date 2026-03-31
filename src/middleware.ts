@@ -14,15 +14,60 @@ function getAuthSecret(): string | undefined {
   return process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? (process.env.NODE_ENV !== "production" ? "dev-only-nextauth-secret-change-me" : undefined);
 }
 
+function getAuthSessionCookieName(): string {
+  return process.env.NODE_ENV === "production"
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token";
+}
+
+function getCanonicalDevOrigin(): URL | null {
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  const candidate = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    return new URL(candidate);
+  } catch {
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest): Promise<Response> {
   const { pathname, search } = request.nextUrl;
+  const canonicalDevOrigin = getCanonicalDevOrigin();
+  const requestHost = request.headers.get("host") ?? request.nextUrl.host;
+
+  if (
+    canonicalDevOrigin &&
+    (requestHost !== canonicalDevOrigin.host ||
+      request.nextUrl.protocol !== canonicalDevOrigin.protocol)
+  ) {
+    const canonicalUrl = request.nextUrl.clone();
+    canonicalUrl.protocol = canonicalDevOrigin.protocol;
+    canonicalUrl.host = canonicalDevOrigin.host;
+
+    return NextResponse.redirect(canonicalUrl, 307);
+  }
+
   const policy = getPageRoutePolicy(pathname);
 
   if (!policy) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req: request, secret: getAuthSecret() });
+  const authSecret = getAuthSecret();
+  const cookieName = getAuthSessionCookieName();
+  const token = await getToken(
+    authSecret
+      ? { req: request, secret: authSecret, cookieName }
+      : { req: request, cookieName }
+  );
   const role = (token?.role as UserRole | null | undefined) ?? null;
 
   if (!token) {
@@ -58,5 +103,13 @@ export async function middleware(request: NextRequest): Promise<Response> {
 }
 
 export const config = {
-  matcher: ["/homeowner/:path*", "/agent/:path*", "/admin/:path*", "/messages/:path*", "/onboarding/role"]
+  matcher: [
+    "/sign-in",
+    "/sign-up",
+    "/onboarding/role",
+    "/homeowner/:path*",
+    "/agent/:path*",
+    "/admin/:path*",
+    "/messages/:path*"
+  ]
 };

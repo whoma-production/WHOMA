@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { assertCan } from "@/lib/auth/rbac";
 import {
-  getAgentOnboardingFunnelCounts,
+  getAgentActivationMetrics,
   listAgentProfilesForVerification,
   setAgentVerificationStatus
 } from "@/server/agent-profile/service";
@@ -58,7 +58,10 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
     redirect("/sign-in?error=AccessDenied&next=/admin/agents");
   }
 
-  const [profiles, funnel] = await Promise.all([listAgentProfilesForVerification(), getAgentOnboardingFunnelCounts()]);
+  const [profiles, activationMetrics] = await Promise.all([
+    listAgentProfilesForVerification(),
+    getAgentActivationMetrics()
+  ]);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const success = resolvedSearchParams?.success;
   const error = resolvedSearchParams?.error;
@@ -68,26 +71,62 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
       <div className="space-y-6">
         <Card className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-text-strong">Onboarding readiness counters</h2>
-            <p className="text-sm text-text-muted">Phase 1 pilot monitoring for the first 100 real estate agents.</p>
+            <h2 className="text-lg font-semibold text-text-strong">Phase 1 activation metrics</h2>
+            <p className="text-sm text-text-muted">
+              Track the behaviors WHOMA needs to validate before broader marketplace expansion.
+            </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Started</p>
-              <p className="text-2xl font-semibold text-text-strong">{funnel.started}</p>
-            </div>
-            <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Completed</p>
-              <p className="text-2xl font-semibold text-text-strong">{funnel.completed}</p>
-            </div>
-            <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Published</p>
-              <p className="text-2xl font-semibold text-text-strong">{funnel.published}</p>
-            </div>
-            <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Verified</p>
-              <p className="text-2xl font-semibold text-text-strong">{funnel.verified}</p>
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                label: "Started",
+                value: activationMetrics.started,
+                hint: "Profiles created"
+              },
+              {
+                label: "Work email verified",
+                value: activationMetrics.workEmailVerified,
+                hint: "Business inbox confirmed"
+              },
+              {
+                label: "Completed",
+                value: activationMetrics.completed,
+                hint: "Onboarding submitted"
+              },
+              {
+                label: "Publish ready",
+                value: activationMetrics.publishReady,
+                hint: "70%+ completeness"
+              },
+              {
+                label: "Published",
+                value: activationMetrics.published,
+                hint: "Eligible for public visibility"
+              },
+              {
+                label: "Pending verification",
+                value: activationMetrics.pendingVerification,
+                hint: "Awaiting admin review"
+              },
+              {
+                label: "Verified",
+                value: activationMetrics.verified,
+                hint: "Public trust unlocked"
+              }
+            ].map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-md border border-line bg-surface-1 px-4 py-3"
+              >
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                  {metric.label}
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-text-strong">
+                  {metric.value}
+                </p>
+                <p className="mt-1 text-xs text-text-muted">{metric.hint}</p>
+              </div>
+            ))}
           </div>
         </Card>
 
@@ -120,7 +159,18 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
                     <p className="text-sm text-text-muted">
                       {profile.agencyName ?? "Agency pending"} · {profile.jobTitle ?? "Role pending"}
                     </p>
-                    <p className="text-xs text-text-muted">Areas: {profile.serviceAreas.join(", ") || "Not listed"}</p>
+                    <p className="text-xs text-text-muted">
+                      Areas: {profile.serviceAreas.join(", ") || "Not listed"}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      Completeness: {profile.profileCompleteness}% · Work email{" "}
+                      {profile.workEmailVerifiedAt ? "verified" : "unverified"} ·{" "}
+                      {profile.profileStatus === "PUBLISHED"
+                        ? "published"
+                        : profile.onboardingCompletedAt
+                          ? "draft ready"
+                          : "onboarding in progress"}
+                    </p>
                   </div>
                   <Badge variant={profile.verificationStatus === "VERIFIED" ? "success" : profile.verificationStatus === "PENDING" ? "warning" : "default"}>
                     {profile.verificationStatus}

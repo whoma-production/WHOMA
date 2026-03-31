@@ -1,37 +1,41 @@
+"use client";
+
 import Link from "next/link";
+import type { Route } from "next";
 import type { ReactNode } from "react";
 
-import { auth, signOut } from "@/auth";
+import { signOut } from "next-auth/react";
 import { Logo } from "@/components/brand/logo";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { getPublicSiteConfig } from "@/lib/public-site";
 import { cn } from "@/lib/utils";
 
 type ShellRole = "HOMEOWNER" | "AGENT" | "ADMIN";
 
 interface NavItem {
   label: string;
-  href: string;
+  href: Route;
 }
 
 const navByRole: Record<ShellRole, NavItem[]> = {
   HOMEOWNER: [
-    { label: "Create Instruction", href: "/homeowner/instructions/new" },
-    { label: "My Instructions", href: "/homeowner/instructions" },
-    { label: "Agent Directory", href: "/agents" },
+    { label: "Create Sale Request", href: "/homeowner/instructions/new" },
+    { label: "My Sale Requests", href: "/homeowner/instructions" },
+    { label: "Agent Profiles", href: "/agents" },
     { label: "Messages", href: "/messages" }
   ],
   AGENT: [
     { label: "Onboarding", href: "/agent/onboarding" },
-    { label: "CV Builder", href: "/agent/profile/edit" },
-    { label: "Public Directory", href: "/agents" },
-    { label: "Marketplace", href: "/agent/marketplace" },
-    { label: "My Proposals", href: "/agent/proposals" },
+    { label: "Profile Builder", href: "/agent/profile/edit" },
+    { label: "Agent Profiles", href: "/agents" },
+    { label: "Seller Requests", href: "/agent/marketplace" },
+    { label: "My Offers", href: "/agent/proposals" },
     { label: "Messages", href: "/messages" }
   ],
   ADMIN: [
-    { label: "Agent Directory", href: "/agents" },
-    { label: "Marketplace", href: "/agent/marketplace" },
+    { label: "Agent Profiles", href: "/agents" },
+    { label: "Seller Requests", href: "/agent/marketplace" },
     { label: "Verification", href: "/admin/agents" },
     { label: "Messages", href: "/messages" }
   ]
@@ -43,16 +47,16 @@ const roleLabel: Record<ShellRole, string> = {
   ADMIN: "ADMIN"
 };
 
-export async function AppShell({ role, title, children }: { role: ShellRole; title: string; children: ReactNode }): Promise<JSX.Element> {
+export function AppShell({ role, title, children }: { role: ShellRole; title: string; children: ReactNode }): JSX.Element {
   const navItems = navByRole[role];
-  const session = await auth();
+  const site = getPublicSiteConfig();
 
   return (
     <div className="min-h-screen bg-surface-1">
       <header className="border-b border-line bg-surface-0">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
-            <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
+            <Logo subtitle={site.logoSubtitle} />
             <Badge variant="accent">{roleLabel[role]}</Badge>
           </div>
           <nav aria-label="Primary" className="hidden items-center gap-2 md:flex">
@@ -63,25 +67,16 @@ export async function AppShell({ role, title, children }: { role: ShellRole; tit
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            {session?.user ? (
-              <>
-                <span className="hidden text-xs text-text-muted md:inline">{session.user.email}</span>
-                <form
-                  action={async (): Promise<void> => {
-                    "use server";
-                    await signOut({ redirectTo: "/sign-in" });
-                  }}
-                >
-                  <Button type="submit" variant="secondary" size="sm">
-                    Sign out
-                  </Button>
-                </form>
-              </>
-            ) : (
-              <Link href="/sign-in" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
-                Sign in
-              </Link>
-            )}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                void signOut({ redirectTo: "/sign-in" });
+              }}
+            >
+              Sign out
+            </Button>
           </div>
         </div>
       </header>

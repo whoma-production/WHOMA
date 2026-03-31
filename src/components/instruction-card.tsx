@@ -33,7 +33,7 @@ export function InstructionCard({ instruction }: { instruction: InstructionCardM
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Badge>{instruction.proposalsCount} proposals</Badge>
+        <Badge>{instruction.proposalsCount} offers</Badge>
         <Badge variant="accent">{instruction.sellerTimelineGoal}</Badge>
       </div>
 
@@ -42,13 +42,13 @@ export function InstructionCard({ instruction }: { instruction: InstructionCardM
           href={`/agent/marketplace/${instruction.id}/proposal`}
           className={cn(buttonVariants({ variant: "primary" }))}
         >
-          Submit Proposal
+          Submit offer
         </Link>
         <Link
           href={`/agent/marketplace/${instruction.id}`}
           className={cn(buttonVariants({ variant: "secondary" }))}
         >
-          View Brief
+          View seller request
         </Link>
       </div>
     </Card>

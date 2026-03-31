@@ -2,16 +2,27 @@
 
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { startTransition, useState } from "react";
+import React, { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getAuthErrorMessage } from "@/lib/auth/session";
+import { cn } from "@/lib/utils";
 
 interface GoogleAuthButtonProps {
   redirectTo?: string;
   fullWidth?: boolean;
   providerConfigured: boolean;
+  uxMode?: "public" | "internal";
+  allowPreviewAccess?: boolean;
+  betaSupportEmail?: string;
+  betaMessage?: string;
+  betaCtaHref?: string;
+  betaCtaLabel?: string;
 }
+
+type PreviewRole = "HOMEOWNER" | "AGENT" | "ADMIN";
+type PendingAction = "google" | "homeowner" | "agent" | "admin" | "preview" | null;
 
 function GoogleMark(): JSX.Element {
   return (
@@ -24,20 +35,66 @@ function GoogleMark(): JSX.Element {
   );
 }
 
+function getDefaultPreviewEmail(role: PreviewRole): string {
+  if (role === "HOMEOWNER") {
+    return "homeowner.preview@whoma.local";
+  }
+
+  if (role === "AGENT") {
+    return "agent.preview@whoma.local";
+  }
+
+  return "admin.preview@whoma.local";
+}
+
+function isEmailCandidate(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export function GoogleAuthButton({
   redirectTo = "/onboarding/role",
   fullWidth = true,
-  providerConfigured
+  providerConfigured,
+  uxMode = "public",
+  allowPreviewAccess = false,
+  betaSupportEmail,
+  betaMessage = "Google sign-in is being opened in stages. For now, WHOMA is inviting users into the public beta manually.",
+  betaCtaHref,
+  betaCtaLabel
 }: GoogleAuthButtonProps): JSX.Element {
   const searchParams = useSearchParams();
-  const [pendingAction, setPendingAction] = useState<"google" | "homeowner" | "agent" | "admin" | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [previewEmail, setPreviewEmail] = useState<string>("");
+  const [previewRole, setPreviewRole] = useState<PreviewRole>("AGENT");
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const nextParam = searchParams.get("next");
   const oauthError = searchParams.get("error");
   const errorMessage = getAuthErrorMessage(oauthError);
   const target = nextParam ?? redirectTo;
-  const showPreviewAccess = !providerConfigured && process.env.NODE_ENV !== "production";
   const isPending = pendingAction !== null;
+  const showPreviewAccess =
+    uxMode === "internal" && !providerConfigured && allowPreviewAccess;
+
+  async function runSignIn(
+    provider: "google" | "preview",
+    options: Record<string, string | boolean>,
+    fallbackUrl?: string
+  ): Promise<void> {
+    const response = await signIn(provider, {
+      ...options,
+      redirect: false
+    });
+
+    const destination = response?.url ?? fallbackUrl;
+
+    if (destination) {
+      window.location.assign(destination);
+      return;
+    }
+
+    setPendingAction(null);
+  }
 
   function handleGoogleClick(): void {
     if (!providerConfigured || isPending) {
@@ -46,34 +103,96 @@ export function GoogleAuthButton({
 
     setPendingAction("google");
 
-    startTransition(() => {
-      void signIn("google", { redirectTo: target });
+    void runSignIn("google", { callbackUrl: target }).catch(() => {
+      setPendingAction(null);
     });
   }
 
-  function handlePreviewClick(role: "HOMEOWNER" | "AGENT" | "ADMIN"): void {
+  function handlePreviewClick(role: PreviewRole, customEmail?: string): void {
     if (isPending) {
       return;
     }
 
-    const previewEmail =
-      role === "HOMEOWNER"
-        ? "homeowner.preview@whoma.local"
-        : role === "AGENT"
-          ? "agent.preview@whoma.local"
-          : "admin.preview@whoma.local";
+    const resolvedCustomEmail = customEmail?.trim().toLowerCase();
+    const resolvedEmail = resolvedCustomEmail?.length
+      ? resolvedCustomEmail
+      : getDefaultPreviewEmail(role);
     const previewRedirectTo =
-      role === "HOMEOWNER" ? "/homeowner/instructions" : role === "AGENT" ? "/agent/onboarding" : "/admin/agents";
+      role === "HOMEOWNER"
+        ? "/homeowner/instructions"
+        : role === "AGENT"
+          ? "/agent/onboarding"
+          : "/admin/agents";
 
-    setPendingAction(role === "HOMEOWNER" ? "homeowner" : role === "AGENT" ? "agent" : "admin");
+    setPendingAction(
+      role === "HOMEOWNER" ? "homeowner" : role === "AGENT" ? "agent" : "admin"
+    );
 
-    startTransition(() => {
-      void signIn("preview", {
-        email: previewEmail,
+    const destination = nextParam ?? previewRedirectTo;
+
+    void runSignIn(
+      "preview",
+      {
+        email: resolvedEmail,
         role,
-        redirectTo: nextParam ?? previewRedirectTo
-      });
+        callbackUrl: destination
+      },
+      destination
+    ).catch(() => {
+      setPendingAction(null);
     });
+  }
+
+  function handlePreviewSubmit(event: React.FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    setPreviewError(null);
+
+    const trimmedEmail = previewEmail.trim().toLowerCase();
+    if (trimmedEmail.length > 0 && !isEmailCandidate(trimmedEmail)) {
+      setPreviewError("Enter a valid email address or leave it empty for temporary preview email.");
+      return;
+    }
+
+    setPendingAction("preview");
+    handlePreviewClick(previewRole, trimmedEmail || undefined);
+  }
+
+  if (!providerConfigured && uxMode === "public") {
+    return (
+      <div className="space-y-2">
+        {errorMessage ? (
+          <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
+            {errorMessage}
+          </p>
+        ) : null}
+
+        <div className="rounded-md border border-line bg-surface-1 p-4 text-left">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-text-strong">Public beta access</p>
+            <p className="text-sm text-text-muted">{betaMessage}</p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {betaSupportEmail ? (
+              <a
+                href={`mailto:${betaSupportEmail}`}
+                className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
+              >
+                Email pilot team
+              </a>
+            ) : null}
+            {betaCtaHref && betaCtaLabel ? (
+              <a
+                href={betaCtaHref}
+                className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+              >
+                {betaCtaLabel}
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -90,12 +209,6 @@ export function GoogleAuthButton({
         {pendingAction === "google" ? "Redirecting to Google..." : "Continue with Google"}
       </Button>
 
-      {!providerConfigured ? (
-        <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-          Google OAuth is not configured yet. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to enable sign-in.
-        </p>
-      ) : null}
-
       {errorMessage ? (
         <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
           {errorMessage}
@@ -105,44 +218,73 @@ export function GoogleAuthButton({
       {showPreviewAccess ? (
         <div className="rounded-md border border-line bg-surface-1 p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-strong">Local preview access</p>
-            <span className="text-xs uppercase tracking-[0.12em] text-text-muted">Dev only</span>
+            <p className="text-sm font-medium text-text-strong">Internal preview access</p>
+            <span className="text-xs uppercase tracking-[0.12em] text-text-muted">QA only</span>
           </div>
           <p className="mb-3 text-xs text-text-muted">
-            Use a temporary local role session to explore the platform without Google credentials.
+            Use a temporary role session for local QA or automated tests when Google credentials are unavailable.
           </p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <Button
-              type="button"
-              variant="secondary"
-              fullWidth
-              onClick={() => handlePreviewClick("HOMEOWNER")}
-              disabled={isPending}
-              aria-busy={pendingAction === "homeowner"}
-            >
-              {pendingAction === "homeowner" ? "Entering..." : "Preview as Homeowner"}
+          <form onSubmit={handlePreviewSubmit} className="space-y-3">
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-text-muted">Email (optional)</span>
+              <Input
+                type="email"
+                inputMode="email"
+                placeholder="you@example.com"
+                value={previewEmail}
+                onChange={(event) => {
+                  setPreviewEmail(event.target.value);
+                  if (previewError) {
+                    setPreviewError(null);
+                  }
+                }}
+                disabled={isPending}
+              />
+            </label>
+
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                type="button"
+                variant={previewRole === "HOMEOWNER" ? "primary" : "secondary"}
+                fullWidth
+                className="min-w-0 whitespace-normal text-center leading-tight"
+                disabled={isPending}
+                onClick={() => setPreviewRole("HOMEOWNER")}
+              >
+                Homeowner
+              </Button>
+              <Button
+                type="button"
+                variant={previewRole === "AGENT" ? "primary" : "secondary"}
+                fullWidth
+                className="min-w-0 whitespace-normal text-center leading-tight"
+                disabled={isPending}
+                onClick={() => setPreviewRole("AGENT")}
+              >
+                Agent
+              </Button>
+              <Button
+                type="button"
+                variant={previewRole === "ADMIN" ? "primary" : "secondary"}
+                fullWidth
+                className="min-w-0 whitespace-normal text-center leading-tight"
+                disabled={isPending}
+                onClick={() => setPreviewRole("ADMIN")}
+              >
+                Admin
+              </Button>
+            </div>
+
+            <Button type="submit" variant="secondary" fullWidth disabled={isPending} aria-busy={isPending}>
+              {isPending ? "Entering preview..." : "Continue with Preview Email"}
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              fullWidth
-              onClick={() => handlePreviewClick("AGENT")}
-              disabled={isPending}
-              aria-busy={pendingAction === "agent"}
-            >
-              {pendingAction === "agent" ? "Entering..." : "Preview as Real Estate Agent"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              fullWidth
-              onClick={() => handlePreviewClick("ADMIN")}
-              disabled={isPending}
-              aria-busy={pendingAction === "admin"}
-            >
-              {pendingAction === "admin" ? "Entering..." : "Preview as Admin"}
-            </Button>
-          </div>
+
+            {previewError ? (
+              <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-xs text-state-danger">
+                {previewError}
+              </p>
+            ) : null}
+          </form>
         </div>
       ) : null}
     </div>

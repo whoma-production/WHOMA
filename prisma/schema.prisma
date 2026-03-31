@@ -100,6 +100,7 @@ model User {
   messages         Message[]
   homeownerThreads MessageThread[]  @relation("ThreadHomeowner")
   agentThreads     MessageThread[]  @relation("ThreadAgent")
+  idempotencyKeys  IdempotencyKey[]
   accounts         Account[]
   sessions         Session[]
 }
@@ -157,6 +158,12 @@ model AgentProfile {
   jobTitle            String?
   phone               String?
   workEmail           String?
+  workEmailVerifiedAt DateTime?
+  workEmailVerificationCodeHash String?
+  workEmailVerificationCodeExpiresAt DateTime?
+  workEmailVerificationCodeSentAt DateTime?
+  workEmailVerificationAttemptCount Int @default(0)
+  workEmailVerificationLockedUntil DateTime?
   bio                 String?
   yearsExperience     Int?
   serviceAreas        String[]           @default([])
@@ -204,6 +211,7 @@ model Instruction {
   id               String            @id @default(cuid())
   propertyId       String
   sellerGoals      String
+  mustHaves        String[]          @default([])
   targetTimeline   TargetTimeline
   bidWindowStartAt DateTime
   bidWindowEndAt   DateTime
@@ -268,4 +276,22 @@ model Message {
   sender User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([threadId, createdAt])
+}
+
+model IdempotencyKey {
+  id             String   @id @default(cuid())
+  actorId        String
+  route          String
+  key            String
+  requestHash    String
+  responseStatus Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@unique([actorId, route, key])
+  @@index([route, createdAt])
+  @@index([expiresAt])
 }

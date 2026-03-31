@@ -14,6 +14,8 @@
     "test:e2e": "playwright test",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "smoke:marketplace": "node scripts/smoke-marketplace-flow.mjs",
     "seed:phase1:pilot": "node scripts/seed-phase1-pilot-agents.mjs",
     "demo:phase1:weekly": "node scripts/run-phase1-weekly-demo.mjs",
     "format": "prettier --write .",

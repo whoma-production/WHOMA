@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const postcodeDistrictPattern = /^[A-Za-z]{1,2}\d[A-Za-z\d]?$/;
+const verificationCodePattern = /^\d{6}$/;
 
 const listItemSchema = z.string().trim().min(1).max(80);
 
@@ -25,12 +26,50 @@ function dedupe(values: string[]): string[] {
   return [...new Set(values)];
 }
 
+const disallowedPersonalEmailDomains = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "yahoo.co.uk",
+  "outlook.com",
+  "hotmail.com",
+  "hotmail.co.uk",
+  "icloud.com",
+  "me.com",
+  "aol.com",
+  "proton.me",
+  "protonmail.com",
+  "live.com",
+  "msn.com",
+  "gmx.com",
+  "mail.com"
+]);
+
+export function isBusinessWorkEmail(email: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  const atIndex = normalized.lastIndexOf("@");
+
+  if (atIndex <= 0 || atIndex === normalized.length - 1) {
+    return false;
+  }
+
+  const domain = normalized.slice(atIndex + 1);
+  return !disallowedPersonalEmailDomains.has(domain);
+}
+
+const workEmailSchema = z
+  .string()
+  .trim()
+  .email()
+  .max(320)
+  .refine(isBusinessWorkEmail, "Use your business work email (personal inboxes are not accepted).");
+
 const professionalListSchema = z.array(listItemSchema).max(12);
 const serviceAreaListSchema = z.array(serviceAreaSchema).min(1).max(12);
 
 export const agentOnboardingSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
-  workEmail: z.string().trim().email().max(320),
+  workEmail: workEmailSchema,
   phone: z.string().trim().min(8).max(32),
   agencyName: z.string().trim().min(2).max(120),
   jobTitle: z.string().trim().min(2).max(120),
@@ -43,7 +82,7 @@ export const agentOnboardingSchema = z.object({
 export const agentProfileDraftSchema = z.object({
   agencyName: z.string().trim().min(2).max(120),
   jobTitle: z.string().trim().min(2).max(120),
-  workEmail: z.string().trim().email().max(320),
+  workEmail: workEmailSchema,
   phone: z.string().trim().min(8).max(32),
   yearsExperience: z.coerce.number().int().min(0).max(60).optional(),
   bio: z.string().trim().max(3000).optional(),
@@ -79,6 +118,20 @@ export const agentProfilePublishSchema = agentProfileDraftSchema.superRefine((va
   }
 });
 
+export const agentWorkEmailVerificationSendSchema = z.object({
+  workEmail: workEmailSchema
+});
+
+export const agentWorkEmailVerificationConfirmSchema = z.object({
+  workEmail: workEmailSchema,
+  verificationCode: z
+    .string()
+    .trim()
+    .regex(verificationCodePattern, "Enter the 6-digit verification code.")
+});
+
 export type AgentOnboardingInput = z.infer<typeof agentOnboardingSchema>;
 export type AgentProfileDraftInput = z.infer<typeof agentProfileDraftSchema>;
 export type AgentProfilePublishInput = z.infer<typeof agentProfilePublishSchema>;
+export type AgentWorkEmailVerificationSendInput = z.infer<typeof agentWorkEmailVerificationSendSchema>;
+export type AgentWorkEmailVerificationConfirmInput = z.infer<typeof agentWorkEmailVerificationConfirmSchema>;

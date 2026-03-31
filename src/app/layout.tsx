@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 
 import { Providers } from "@/app/providers";
+import { getPublicSiteConfig } from "@/lib/public-site";
 
 import "@/app/globals.css";
 
@@ -12,15 +13,20 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "WHOMA | Real Estate Agent Profiles and Structured Home-Seller Tendering",
+  title: "WHOMA | Verified identity for estate agents",
   description:
-    "Real estate agents build public professional profiles while homeowners compare structured agent proposals side-by-side."
+    "WHOMA is validating verified estate agent identity first: business email verification, structured public profiles, and trust-led pilot visibility before broader marketplace expansion."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {
+  const site = getPublicSiteConfig();
+
   return (
     <html lang="en-GB">
       <body className={montserrat.variable}>
+        <a className="sr-only" href={`mailto:${site.supportEmail}`}>
+          Contact {site.brandName} support
+        </a>
         <Providers>{children}</Providers>
       </body>
     </html>

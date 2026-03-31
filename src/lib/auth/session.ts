@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import type { UserRole } from "@prisma/client";
 
 const pageRoutePolicies = [
@@ -30,15 +31,14 @@ export function canAccessPagePath(role: UserRole, pathname: string): boolean {
   return role === policy;
 }
 
-export function defaultRouteForRole(role: UserRole): string {
-  switch (role) {
-    case "HOMEOWNER":
-      return "/homeowner/instructions";
-    case "AGENT":
-      return "/agent/onboarding";
-    case "ADMIN":
-      return "/admin/agents";
-  }
+const defaultRouteByRole: Record<UserRole, Route> = {
+  HOMEOWNER: "/homeowner/instructions",
+  AGENT: "/agent/onboarding",
+  ADMIN: "/admin/agents"
+};
+
+export function defaultRouteForRole(role: UserRole): Route {
+  return defaultRouteByRole[role];
 }
 
 export function normalizeRedirectPath(candidate: string | undefined | null): string | null {
