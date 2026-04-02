@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import { Manrope, Newsreader } from "next/font/google";
 
 import { Providers } from "@/app/providers";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
@@ -7,16 +7,22 @@ import { getPublicSiteConfig } from "@/lib/public-site";
 
 import "@/app/globals.css";
 
-const montserrat = Montserrat({
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap"
+});
+
+const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-ui",
   display: "swap"
 });
 
 export const metadata: Metadata = {
-  title: "WHOMA | Identity and reputation infrastructure for estate agents",
+  title: "WHOMA | The Professional Layer for Independent Estate Agents",
   description:
-    "WHOMA is a UK-first pilot for verified estate-agent identity, agent-owned reputation, and structured collaboration infrastructure."
+    "WHOMA helps independent estate agents build verified public profiles and manage high-trust collaboration more clearly."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {
@@ -24,7 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
   return (
     <html lang="en-GB">
-      <body className={montserrat.variable}>
+      <body className={`${newsreader.variable} ${manrope.variable}`}>
         <a className="sr-only" href={`mailto:${site.supportEmail}`}>
           Contact {site.brandName} support
         </a>

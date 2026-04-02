@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 
 import { Logo } from "@/components/brand/logo";
 import { getPublicSiteConfig, getSupportMailto } from "@/lib/public-site";
@@ -7,15 +8,14 @@ const footerSections = [
   {
     title: "Product",
     links: [
-      { href: "/#what-whoma-is", label: "What WHOMA is" },
-      { href: "/#pilot-proof", label: "Pilot proof" },
-      { href: "/#interaction-demo", label: "Workflow demo" },
-      { href: "/agents", label: "Verified agents" },
-      { href: "/sign-up?role=AGENT", label: "Build your verified profile" }
+      { href: "/#platform", label: "Platform" },
+      { href: "/#how-it-works", label: "How it works" },
+      { href: "/agents", label: "Agents" },
+      { href: "/sign-up?role=AGENT", label: "Create profile" }
     ]
   },
   {
-    title: "Company",
+    title: "Support",
     links: [
       { href: "/contact", label: "Contact" },
       { href: "/complaints", label: "Complaints" }
@@ -41,9 +41,9 @@ export function PublicFooter(): JSX.Element {
         <div className="space-y-3">
           <Logo subtitle={site.logoSubtitle} />
           <p className="max-w-sm text-sm text-text-muted">
-            {site.brandName} is operating a {site.betaStatusLabel.toLowerCase()}{" "}
-            focused on verified identity, agent-owned reputation, and structured
-            collaboration infrastructure for estate agents.
+            WHOMA is the professional layer for independent estate agents:
+            verified identity, portable reputation, and structured
+            collaboration.
           </p>
           <p className="text-sm text-text-muted">
             Support:{" "}
@@ -55,8 +55,8 @@ export function PublicFooter(): JSX.Element {
             </a>
           </p>
           <p className="max-w-sm text-sm text-text-muted">
-            {site.companyLegalName} · {site.operatingRegion} ·{" "}
-            {site.supportResponseWindow} response window.
+            {site.companyLegalName} · {site.operatingRegion} · Typical response
+            window: {site.supportResponseWindow.toLowerCase()}.
           </p>
         </div>
 
@@ -69,7 +69,7 @@ export function PublicFooter(): JSX.Element {
               {section.links.map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={link.href}
+                    href={link.href as Route}
                     className="transition-colors hover:text-brand-ink"
                   >
                     {link.label}

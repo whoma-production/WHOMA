@@ -239,36 +239,22 @@ function mapAgentProfile(profile: AgentProfileWithUser): AgentProfileWithUser {
   return profile;
 }
 
-export interface PublicAgentTrustSignals {
-  responseTimeMinutes: number | null;
-  responseTimeSource: "measured" | "estimated" | "unavailable";
-  sellerFitSignal: number | null;
-  sellerFitSource: "measured" | "estimated" | "unavailable";
-  historicTransactionsLogged: number;
-  liveCollaborationListings: number;
-  totalOffersLogged: number;
-  shortlistedOffers: number;
+function shouldRestrictOfficialProductionData(): boolean {
+  return process.env.NODE_ENV === "production";
 }
 
-function clampValue(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function median(values: number[]): number | null {
-  if (values.length === 0) {
-    return null;
+function getOfficialAgentProfileFilter(): Prisma.AgentProfileWhereInput {
+  if (!shouldRestrictOfficialProductionData()) {
+    return {};
   }
 
-  const sorted = [...values].sort((left, right) => left - right);
-  const middle = Math.floor(sorted.length / 2);
-
-  if (sorted.length % 2 === 0) {
-    const left = sorted[middle - 1] ?? sorted[middle] ?? 0;
-    const right = sorted[middle] ?? left;
-    return (left + right) / 2;
-  }
-
-  return sorted[middle] ?? null;
+  return {
+    user: {
+      is: {
+        dataOrigin: "PRODUCTION"
+      }
+    }
+  };
 }
 
 export async function completeAgentOnboarding(userId: string, input: AgentOnboardingInput): Promise<AgentProfileWithUser> {
@@ -576,6 +562,7 @@ export async function getAgentProfileByUserId(userId: string): Promise<AgentProf
 export async function getPublicAgentProfileBySlug(slug: string): Promise<AgentProfileWithUser | null> {
   const profile = await prisma.agentProfile.findFirst({
     where: {
+      ...getOfficialAgentProfileFilter(),
       profileSlug: slug,
       profileStatus: AgentProfileStatus.PUBLISHED,
       verificationStatus: "VERIFIED"
@@ -590,121 +577,6 @@ export async function getPublicAgentProfileBySlug(slug: string): Promise<AgentPr
   return profile ? mapAgentProfile(profile) : null;
 }
 
-export async function getPublicAgentTrustSignals(input: {
-  userId: string;
-  profileCompleteness: number;
-  verificationStatus: VerificationStatus;
-  responseTimeMinutes: number | null;
-  ratingAggregate: number | null;
-}): Promise<PublicAgentTrustSignals> {
-  const proposalRows = await prisma.proposal.findMany({
-    where: { agentId: input.userId },
-    select: {
-      status: true,
-      createdAt: true,
-      instruction: {
-        select: {
-          createdAt: true,
-          status: true
-        }
-      }
-    }
-  });
-
-  const totalOffersLogged = proposalRows.length;
-  const shortlistedOffers = proposalRows.filter(
-    (proposal) => proposal.status === "SHORTLISTED" || proposal.status === "ACCEPTED"
-  ).length;
-  const historicTransactionsLogged = proposalRows.filter(
-    (proposal) => proposal.status === "ACCEPTED"
-  ).length;
-  const liveCollaborationListings = proposalRows.filter(
-    (proposal) =>
-      (proposal.status === "SUBMITTED" || proposal.status === "SHORTLISTED") &&
-      (proposal.instruction.status === "LIVE" ||
-        proposal.instruction.status === "SHORTLIST")
-  ).length;
-
-  const measuredResponse =
-    input.responseTimeMinutes !== null && input.responseTimeMinutes > 0
-      ? input.responseTimeMinutes
-      : null;
-
-  const inferredResponseDurations = proposalRows
-    .map((proposal) => {
-      const minutes =
-        (proposal.createdAt.getTime() - proposal.instruction.createdAt.getTime()) /
-        (1000 * 60);
-      return Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes) : null;
-    })
-    .filter((value): value is number => value !== null && value <= 60 * 24 * 30);
-
-  const estimatedResponse =
-    inferredResponseDurations.length > 0 ? median(inferredResponseDurations) : null;
-  const normalizedEstimatedResponse =
-    estimatedResponse !== null ? Math.round(estimatedResponse) : null;
-  const resolvedResponseTime =
-    measuredResponse ?? normalizedEstimatedResponse ?? null;
-
-  let responseTimeSource: PublicAgentTrustSignals["responseTimeSource"] = "unavailable";
-  if (measuredResponse !== null) {
-    responseTimeSource = "measured";
-  } else if (normalizedEstimatedResponse !== null) {
-    responseTimeSource = "estimated";
-  }
-
-  const measuredSellerFitSignal =
-    input.ratingAggregate !== null && input.ratingAggregate > 0
-      ? input.ratingAggregate
-      : null;
-
-  let estimatedSellerFitSignal: number | null = null;
-  if (measuredSellerFitSignal === null) {
-    const verificationBonus =
-      input.verificationStatus === "VERIFIED"
-        ? 0.5
-        : input.verificationStatus === "PENDING"
-          ? 0.2
-          : 0;
-    const completenessFactor = input.profileCompleteness / 100;
-    const transactionSignal = Math.min(historicTransactionsLogged, 4) * 0.1;
-    const shortlistSignal = Math.min(shortlistedOffers, 6) * 0.04;
-
-    const rawScore =
-      2.9 +
-      completenessFactor * 1.2 +
-      verificationBonus +
-      transactionSignal +
-      shortlistSignal;
-
-    if (input.profileCompleteness > 0 || totalOffersLogged > 0) {
-      estimatedSellerFitSignal =
-        Math.round(clampValue(rawScore, 1, 5) * 10) / 10;
-    }
-  }
-
-  const sellerFitSignal =
-    measuredSellerFitSignal ?? estimatedSellerFitSignal ?? null;
-
-  let sellerFitSource: PublicAgentTrustSignals["sellerFitSource"] = "unavailable";
-  if (measuredSellerFitSignal !== null) {
-    sellerFitSource = "measured";
-  } else if (estimatedSellerFitSignal !== null) {
-    sellerFitSource = "estimated";
-  }
-
-  return {
-    responseTimeMinutes: resolvedResponseTime,
-    responseTimeSource,
-    sellerFitSignal,
-    sellerFitSource,
-    historicTransactionsLogged,
-    liveCollaborationListings,
-    totalOffersLogged,
-    shortlistedOffers
-  };
-}
-
 export async function listPublicAgentProfiles(filters: {
   serviceArea?: string | null;
   specialty?: string | null;
@@ -713,6 +585,7 @@ export async function listPublicAgentProfiles(filters: {
   const normalizedSpecialty = filters.specialty?.trim().toLowerCase();
   const profiles = await prisma.agentProfile.findMany({
     where: {
+      ...getOfficialAgentProfileFilter(),
       profileStatus: AgentProfileStatus.PUBLISHED,
       verificationStatus: "VERIFIED",
       ...(filters.serviceArea ? { serviceAreas: { has: filters.serviceArea.toUpperCase() } } : {})
@@ -1006,6 +879,7 @@ export async function setAgentVerificationStatus(userId: string, status: Verific
 
 export async function listAgentProfilesForVerification(limit = 200): Promise<AgentProfileWithUser[]> {
   const profiles = await prisma.agentProfile.findMany({
+    where: getOfficialAgentProfileFilter(),
     include: {
       user: {
         select: { id: true, name: true, image: true }
@@ -1029,6 +903,7 @@ export interface AgentActivationMetrics {
 }
 
 export async function getAgentActivationMetrics(): Promise<AgentActivationMetrics> {
+  const officialAgentProfileFilter = getOfficialAgentProfileFilter();
   const [
     started,
     workEmailVerified,
@@ -1038,27 +913,45 @@ export async function getAgentActivationMetrics(): Promise<AgentActivationMetric
     pendingVerification,
     verified
   ] = await Promise.all([
-    prisma.agentProfile.count(),
     prisma.agentProfile.count({
-      where: { workEmailVerifiedAt: { not: null } }
-    }),
-    prisma.agentProfile.count({
-      where: { onboardingCompletedAt: { not: null } }
+      where: officialAgentProfileFilter
     }),
     prisma.agentProfile.count({
       where: {
+        ...officialAgentProfileFilter,
+        workEmailVerifiedAt: { not: null }
+      }
+    }),
+    prisma.agentProfile.count({
+      where: {
+        ...officialAgentProfileFilter,
+        onboardingCompletedAt: { not: null }
+      }
+    }),
+    prisma.agentProfile.count({
+      where: {
+        ...officialAgentProfileFilter,
         onboardingCompletedAt: { not: null },
         profileCompleteness: { gte: MIN_AGENT_PUBLISH_COMPLETENESS }
       }
     }),
     prisma.agentProfile.count({
-      where: { profileStatus: AgentProfileStatus.PUBLISHED }
+      where: {
+        ...officialAgentProfileFilter,
+        profileStatus: AgentProfileStatus.PUBLISHED
+      }
     }),
     prisma.agentProfile.count({
-      where: { verificationStatus: "PENDING" }
+      where: {
+        ...officialAgentProfileFilter,
+        verificationStatus: "PENDING"
+      }
     }),
     prisma.agentProfile.count({
-      where: { verificationStatus: "VERIFIED" }
+      where: {
+        ...officialAgentProfileFilter,
+        verificationStatus: "VERIFIED"
+      }
     })
   ]);
 

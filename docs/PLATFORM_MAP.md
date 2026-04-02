@@ -170,13 +170,11 @@ Phase 1 delivery focus:
 - Root layout now mounts a global consent banner (`CookieConsentBanner`) that appears until a consent decision is stored.
 - `/cookies` now includes live preference controls (`CookieConsentPanel`) and footer links deep-link to `/cookies#manage-consent`.
 
-23. Trust signal data-quality fallback layer (new)
+23. Public trust-proof cleanup (new, supersedes prior heuristic trust fallback layer)
 
-- Public agent profile now computes trust-signal fallbacks when first-party metrics are missing:
-  - response speed estimated from instruction-to-offer timing,
-  - seller-fit signal estimated from profile completeness + verification + platform activity.
-- Trust metrics are explicitly labeled as measured vs estimated vs unavailable; no fabricated precision is shown.
-- Additional profile trust counters now surface historic transactions logged, live collaboration listings, total offers logged, and shortlisted offers.
+- Removed heuristic public trust signals and unsupported counters from homepage, public profile, and directory surfaces.
+- Public-facing trust modules now stay within substantiated profile facts: verification status, profile completeness, service areas, specialties, experience, and publish visibility.
+- Historic transaction, live collaboration, response-speed, seller-fit, and synthetic featured-proof claims are no longer used on public pages pending first-class domain + measurement support.
 
 24. Behavioural-validation audit delta (new)
 
@@ -184,6 +182,29 @@ Phase 1 delivery focus:
 - Public-facing copy now outruns the modeled backend in a few places (`Log your first transactions`, `Historic transactions`, `Live collaborations`), so execution must bring product truth and measurement truth back into sync before calling Phase 1 aligned.
 - `/admin/agents` is an activation dashboard, not yet a true behavioural-validation dashboard; it does not report the six client Phase 1 objectives or exclude preview/seed/test actors.
 - The highest-sensitivity trust blocker remains preview-auth posture when `ENABLE_PREVIEW_AUTH=true`, because the backend preview callback can remain reachable even when public pages hide preview controls.
+
+25. Public brand reset: profile-first editorial layer (new)
+
+- `/` now leads with a profile-first editorial narrative for independent estate agents instead of a portal-like pilot explainer.
+- Shared public proof content lives in `src/lib/public-proof.ts` and now models:
+  - why agents join,
+  - proof modules,
+  - profile journey,
+  - collaboration flow,
+  - sample profile/comparison records.
+- Global public styling now uses `Newsreader` display typography, `Manrope` UI/body typography, a warmer stone/off-white palette, flatter shadows, and calmer public section spacing.
+- Shared public brand scaffolding (`public-site`, `public-footer`, `logo`) now uses shorter descriptors so homepage/header/footer no longer reintroduce the old internal thesis language.
+- `/requests` and `/requests/[postcodeDistrict]` remain available, but now present as a secondary homeowner collaboration pilot rather than the primary public category story.
+- `/sign-in`, `/sign-up`, and `/agents` now speak to profile-building, proof, and selective professional presence rather than access mechanics or empty pilot supply.
+
+25. Gate 1 trust hardening (new)
+
+- Added `User.dataOrigin` classification (`PRODUCTION`, `PREVIEW`, `SEED`, `TEST`) with checked-in migration `20260402124000_gate1_trust_data_origin` plus backfill rules for seeded, preview, and test actors.
+- Preview credentials are now hard-disabled in production code regardless of `ENABLE_PREVIEW_AUTH`; `src/lib/auth/preview-access.test.ts` covers that contract.
+- Public directory/profile reads and admin activation counts now exclude non-production actors in production runtime.
+- Public live-instruction reads now exclude non-production homeowner and agent activity in production runtime so public proof counts do not absorb preview or seed traffic.
+- `/agent/marketplace/[instructionId]` no longer renders a hardcoded scaffold and now redirects to the real proposal route.
+- `scripts/smoke-marketplace-flow.mjs` now refuses remote preview callback auth unless an explicit internal override is supplied.
 
 ## Frontend/Backend Map
 
@@ -219,8 +240,10 @@ Phase 1 delivery focus:
 - Migration: `prisma/migrations/20260321190500_api_safety_idempotency/migration.sql`
 - Migration: `prisma/migrations/20260321194500_agent_work_email_verification/migration.sql`
 - Migration: `prisma/migrations/20260322130500_agent_work_email_anti_abuse/migration.sql`
+- Migration: `prisma/migrations/20260402124000_gate1_trust_data_origin/migration.sql`
 - DB-backed service test: `src/server/agent-profile/phase1-flow.test.ts`
 - API safety tests: `src/server/http/idempotency.test.ts`, `src/server/http/rate-limit.test.ts`
+- Gate 1 auth contract test: `src/lib/auth/preview-access.test.ts`
 - T004 decision guard tests: `src/server/marketplace/service.test.ts`
 - T005 persistence tests: `src/server/marketplace/service.persistence.test.ts`, `src/server/marketplace/messages.persistence.test.ts`
 - End-to-end flow test: `tests/e2e/phase1-agent-flow.spec.ts`

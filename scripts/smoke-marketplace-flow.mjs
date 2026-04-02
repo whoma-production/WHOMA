@@ -5,6 +5,7 @@ import { chromium } from "playwright";
 
 const baseUrl = process.env.SMOKE_BASE_URL ?? process.env.AUTH_URL ?? "http://localhost:3012";
 const headed = process.env.SMOKE_HEADED === "1";
+const allowRemotePreviewAuth = process.env.SMOKE_ALLOW_REMOTE_PREVIEW_AUTH === "1";
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
 const outputDir = path.join(process.cwd(), "output", "playwright", "marketplace-smoke", runId);
 
@@ -16,6 +17,25 @@ function toDateTimeLocal(value) {
   const minutes = String(value.getMinutes()).padStart(2, "0");
 
   return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function assertPreviewAuthTargetIsSafe() {
+  const targetUrl = new URL(baseUrl);
+  const isLocalTarget =
+    targetUrl.hostname === "localhost" ||
+    targetUrl.hostname === "127.0.0.1";
+
+  if (isLocalTarget || allowRemotePreviewAuth) {
+    return;
+  }
+
+  throw new Error(
+    [
+      `Refusing preview-auth smoke sign-in against non-local target: ${baseUrl}.`,
+      "Preview callback auth is reserved for local or explicitly approved internal environments.",
+      "Use SMOKE_ALLOW_REMOTE_PREVIEW_AUTH=1 only for an internal non-production target."
+    ].join(" ")
+  );
 }
 
 async function signInAs(
@@ -70,6 +90,7 @@ async function openReadyForm(page, pathName) {
 }
 
 async function run() {
+  assertPreviewAuthTargetIsSafe();
   await fs.mkdir(outputDir, { recursive: true });
 
   const browser = await chromium.launch({ headless: !headed });

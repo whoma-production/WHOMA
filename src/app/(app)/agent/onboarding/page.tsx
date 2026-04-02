@@ -436,7 +436,6 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const error = resolvedSearchParams?.error;
   const success = resolvedSearchParams?.success;
-  const devCode = resolvedSearchParams?.devCode;
   const retryAfterRaw = Number.parseInt(resolvedSearchParams?.retryAfter ?? "", 10);
   const retryAfterSeconds =
     Number.isFinite(retryAfterRaw) && retryAfterRaw > 0 ? retryAfterRaw : null;
@@ -458,14 +457,16 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
   const resumePrefillCount = countResumePrefillFields(suggestedPrefill);
 
   return (
-    <AppShell role="AGENT" title="Real Estate Agent Onboarding">
+    <AppShell role="AGENT" title="Agent Onboarding">
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="space-y-4">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Phase 1 pilot onboarding</p>
-            <h2 className="text-lg font-semibold text-text-strong">Build your professional identity profile</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Agent onboarding</p>
+            <h2 className="text-lg font-semibold text-text-strong">Verify your work email and complete your profile</h2>
             <p className="text-sm text-text-muted">
-              This creates your verified professional baseline on WHOMA. Verify your business work email first, then complete your guided profile details.
+              This creates your professional baseline on WHOMA. Verify your
+              business work email first, then complete your core profile
+              details.
             </p>
           </div>
 
@@ -538,7 +539,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
 
           {error === "complete_onboarding_first" ? (
             <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Complete onboarding before opening the CV builder.
+              Complete onboarding before opening your profile.
             </p>
           ) : null}
 
@@ -631,12 +632,6 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
           {success === "resume_prefill_cleared" ? (
             <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
               Resume suggestions cleared.
-            </p>
-          ) : null}
-
-          {devCode ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Development verification code: <span className="font-semibold">{devCode}</span>
             </p>
           ) : null}
 
@@ -780,7 +775,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
               <Textarea
                 name="bio"
                 required
-                placeholder="Describe your real estate track record, approach, and what homeowners can expect when working with you."
+                placeholder="Describe your estate agency track record, approach, and what homeowners can expect when working with you."
                 defaultValue={defaultBio}
               />
             </label>
@@ -788,7 +783,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
             <div className="flex flex-wrap gap-2">
               <Button type="submit">Save onboarding details</Button>
               <Link href="/agent/profile/edit" className={cn(buttonVariants({ variant: "secondary" }))}>
-                Go to CV builder
+                Go to profile
               </Link>
             </div>
           </form>
@@ -797,7 +792,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
         <Card className="space-y-4">
           <ActivationChecklist
             profile={profile}
-            description={`Phase 1 is validating five concrete behaviors: verify your business inbox, finish onboarding, reach ${MIN_AGENT_PUBLISH_COMPLETENESS}% readiness, publish, and pass admin review.`}
+            description={`Complete the five steps required for public visibility: verify your business inbox, finish onboarding, reach ${MIN_AGENT_PUBLISH_COMPLETENESS}% readiness, publish, and pass review.`}
           />
         </Card>
       </div>

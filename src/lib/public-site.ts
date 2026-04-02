@@ -30,7 +30,7 @@ export function getPublicSiteConfig(): PublicSiteConfig {
     ),
     logoSubtitle: readEnvValue(
       process.env.NEXT_PUBLIC_LOGO_SUBTITLE,
-      "Identity and reputation infrastructure for estate agents"
+      "The professional layer for independent estate agents"
     ),
     supportEmail: readEnvValue(
       process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
@@ -38,19 +38,19 @@ export function getPublicSiteConfig(): PublicSiteConfig {
     ),
     supportResponseWindow: readEnvValue(
       process.env.NEXT_PUBLIC_SUPPORT_RESPONSE_WINDOW,
-      "3 business days"
+      "2 business days"
     ),
     supportCoverage: readEnvValue(
       process.env.NEXT_PUBLIC_SUPPORT_COVERAGE,
-      "Support is coordinated through a monitored email route during the pilot."
+      "Support is handled through a monitored email inbox."
     ),
     betaStatusLabel: readEnvValue(
       process.env.NEXT_PUBLIC_BETA_STATUS_LABEL,
-      "Phase 1 controlled pilot"
+      "Access by invitation"
     ),
     pilotSummary: readEnvValue(
       process.env.NEXT_PUBLIC_PILOT_SUMMARY,
-      "WHOMA is validating verified estate-agent identity, agent-owned reputation, and structured collaboration before any broader public launch."
+      "WHOMA helps independent estate agents build a verified profile, show real transaction depth, and open the right collaboration opportunities."
     ),
     operatingRegion: readEnvValue(
       process.env.NEXT_PUBLIC_OPERATING_REGION,

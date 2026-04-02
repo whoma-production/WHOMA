@@ -66,9 +66,11 @@ Target date for onboarding start: Monday, **2026-03-30**.
 
 - [ ] BV004 — Public narrative truthfulness cleanup
       **Acceptance:** Public CTA routing, homepage proof modules, `/requests*` cards, and public profile trust labels reflect real Phase 1 capabilities only; no public route reuses internal tender-marketplace CTAs or metrics that overstate current transaction depth.
+      **Progress (2026-04-02):** Gate 1 trust cleanup removed unsupported public proof from homepage, directory, and public profile surfaces: heuristic response/seller-fit signals, historic/live collaboration counters, synthetic featured-profile proof, and scaffolded public-trust labels are no longer rendered. Remaining Gate 2 work: correct the misleading transaction CTA route, split `/requests*` public cards from internal marketplace cards, and align docs/tests with the truthful public thesis.
 
 - [ ] BV005 — Production auth posture hardening
       **Acceptance:** Backend preview auth is disabled in public production or protected by a strict internal-only control plane; hidden callback access can no longer create arbitrary homeowner/agent/admin sessions on the live service.
+      **Progress (2026-04-02):** Gate 1 trust pass now hard-disables preview auth in production code (`src/lib/auth/preview-access.ts`, `src/auth.ts`) even when `ENABLE_PREVIEW_AUTH=true`; added `User.dataOrigin` (`PRODUCTION` / `PREVIEW` / `SEED` / `TEST`) with checked-in migration `20260402124000_gate1_trust_data_origin`; public directory/profile/admin activation counts and production live-instruction reads now exclude non-production actors; smoke automation now refuses remote preview callback auth unless explicitly overridden. Remaining sign-off work: redeploy and verify live public production no longer exposes the preview provider, then replace any non-local QA path that still depends on the preview callback.
 
 ## Phase 1 Milestones (working plan)
 
@@ -118,6 +120,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Acceptance:** All primary MVP screens have non-empty empty states, skeletons for loading, and user-visible error messages with recovery actions.
       **Progress (2026-04-02):** Public auth now resolves sign-in `next`/`error` state server-side so the page no longer depends on a Suspense placeholder; public directory/request zero states now include rollout explanation, proof/example content, and one clear CTA instead of placeholder emptiness. App-wide skeleton/loading polish is still pending on the logged-in surfaces.
       **Progress (2026-04-02):** Replaced logged-in placeholder pages with DB-backed lifecycle surfaces for homeowners (`/homeowner/instructions`) and agents (`/agent/proposals`) including non-empty empty states, status cards, and direct recovery actions.
+      **Progress (2026-04-02):** Public auth, directory, and request zero-state copy now reads as selective and launch-ready rather than empty or mechanics-heavy; homeowner activity remains secondary while support and recovery actions stay visible.
 
 - [x] T013 — Trust pages + HTML sitemap + browse LIVE Instructions by location (public)
       **Acceptance:** Public routes exist for `/privacy`, `/cookies`, `/terms`, `/complaints`, `/contact`, `/sitemap`, `/locations`, and `/locations/[postcodeDistrict]`; footer links expose trust/support pages; sitemap lists key pages and location routes; location pages list LIVE Instructions (not property listings).
@@ -125,6 +128,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Progress (2026-03-23):** Public-facing IA/copy was aligned to outcome-first positioning (`Agents compete for your listing. You choose the deal.`) across homepage, `/agents`, `/locations*`, auth entry pages, footer, and legal/support pages; user-facing labels now prefer `sale request`/`offer` language and remove placeholder/trust-friction messaging on public pages.
       **Progress (2026-03-23):** Public IA now uses `/requests` as the primary seller-request browse route (`/requests`, `/requests/[postcodeDistrict]`), while `/locations*` remains as compatibility redirects to preserve existing external links.
       **Progress (2026-04-02):** Legal/support pages now surface a concrete support inbox, operating entity/region, response-window language, and named operational providers; public zero states now include rollout-stage explanation plus a proof/example block and one strong CTA instead of empty placeholder copy.
+      **Progress (2026-04-02):** Public brand language was reset around profile-first positioning for independent estate agents: homepage now leads with featured profiles and proof modules, footer/support scaffolding uses calmer descriptors, and `/requests*` now reads as a secondary homeowner collaboration pilot rather than the product's main category story.
 
 - [x] T014 — Cookie consent mechanism + preferences control (MVP)
       **Acceptance:** Non-essential cookies remain off until consent; user can review/change preferences; cookies page links to live consent controls and accurately reflects behavior.

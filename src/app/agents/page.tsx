@@ -8,17 +8,11 @@ import { Input } from "@/components/ui/input";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
-  PUBLIC_REQUESTS_PILOT_HREF
+  PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
-import {
-  PUBLIC_AGENT_PROOF_LOOP,
-  PUBLIC_FALLBACK_AGENT_PROOF
-} from "@/lib/public-proof";
+import { PUBLIC_AGENT_PROOF_LOOP } from "@/lib/public-proof";
 import { cn } from "@/lib/utils";
-import {
-  getPublicAgentTrustSignals,
-  listPublicAgentProfiles
-} from "@/server/agent-profile/service";
+import { listPublicAgentProfiles } from "@/server/agent-profile/service";
 
 interface PageProps {
   searchParams?: Promise<{ area?: string; specialty?: string }>;
@@ -41,15 +35,6 @@ export default async function AgentDirectoryPage({
     (serviceArea || specialty
       ? ((await listPublicAgentProfiles({ limit: 1 }))[0] ?? null)
       : null);
-  const fallbackTrustSignals = fallbackFeaturedAgent
-    ? await getPublicAgentTrustSignals({
-        userId: fallbackFeaturedAgent.userId,
-        profileCompleteness: fallbackFeaturedAgent.profileCompleteness,
-        verificationStatus: fallbackFeaturedAgent.verificationStatus,
-        responseTimeMinutes: fallbackFeaturedAgent.responseTimeMinutes,
-        ratingAggregate: fallbackFeaturedAgent.ratingAggregate
-      })
-    : null;
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -69,7 +54,7 @@ export default async function AgentDirectoryPage({
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your verified profile
+              Create your profile
             </Link>
           </div>
         </div>
@@ -78,38 +63,35 @@ export default async function AgentDirectoryPage({
       <main className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-            Verified agent directory
+            Verified profiles
           </p>
-          <h1>
-            Browse verified estate-agent profiles and see how public proof is
-            earned.
-          </h1>
+          <h1>Verified independent estate agents.</h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            This directory only shows profiles that are both published and admin
-            verified. Public cards are designed to make profile depth, historic
-            activity, and collaboration credibility legible at a glance.
+            Browse published WHOMA profiles by area and specialty, or create
+            your own profile to build a stronger public presence.
           </p>
         </div>
 
         <Card className="mt-6 space-y-3 bg-surface-0">
           <p className="text-sm text-text-muted">
-            Looking for homeowner collaboration? It remains a secondary pilot
-            path while WHOMA validates verified agent depth first.
+            Seller access is opened selectively so quality stays high. If you
+            are preparing a sale, contact WHOMA and we will route you
+            correctly.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your verified profile
+              Create your profile
             </Link>
             <Link
-              href={PUBLIC_REQUESTS_PILOT_HREF}
+              href={PUBLIC_COLLABORATION_PILOT_HREF}
               className={cn(
                 buttonVariants({ variant: "secondary", size: "sm" })
               )}
             >
-              View pilot request areas
+              Request seller access
             </Link>
           </div>
         </Card>
@@ -140,7 +122,7 @@ export default async function AgentDirectoryPage({
               type="submit"
               className="rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white"
             >
-              Apply filters
+              Search profiles
             </button>
           </div>
         </form>
@@ -148,50 +130,34 @@ export default async function AgentDirectoryPage({
         {agents.length === 0 ? (
           <Card className="mt-6 space-y-3">
             <h2 className="text-lg font-semibold text-text-strong">
-              No verified pilot profiles match those filters yet
+              No verified agents match that search
             </h2>
             <p className="text-sm text-text-muted">
-              This directory only opens once a profile has passed work-email
-              verification, reached publish readiness, and cleared admin review.
-              Try a wider area search, or start your own profile to enter that
-              rollout.
+              Broaden the search or return to all agents. Published WHOMA
+              profiles appear once profile and identity checks are complete.
             </p>
             <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
               {fallbackFeaturedAgent ? (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                    Featured live example
+                    Published profile
                   </p>
                   <p className="mt-1 text-sm text-text-muted">
                     {fallbackFeaturedAgent.user.name ?? "Estate agent"} ·{" "}
                     {fallbackFeaturedAgent.agencyName ?? "Independent"} ·{" "}
-                    {fallbackTrustSignals?.historicTransactionsLogged ?? 0}{" "}
-                    historic transaction
-                    {(fallbackTrustSignals?.historicTransactionsLogged ?? 0) ===
-                    1
-                      ? ""
-                      : "s"}{" "}
-                    logged ·{" "}
-                    {fallbackTrustSignals?.liveCollaborationListings ?? 0} live
-                    collaboration
-                    {(fallbackTrustSignals?.liveCollaborationListings ?? 0) ===
-                    1
-                      ? ""
-                      : "s"}
-                    .
+                    {fallbackFeaturedAgent.serviceAreas.slice(0, 3).join(", ") ||
+                      "Service areas being confirmed"}{" "}
+                    · {fallbackFeaturedAgent.profileCompleteness}% profile
+                    readiness
                   </p>
                 </>
               ) : (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                    Seeded proof loop
+                    Selective publication
                   </p>
                   <p className="mt-1 text-sm text-text-muted">
-                    {PUBLIC_FALLBACK_AGENT_PROOF.name} ·{" "}
-                    {PUBLIC_FALLBACK_AGENT_PROOF.historicTransactionsLogged}{" "}
-                    historic transactions logged ·{" "}
-                    {PUBLIC_FALLBACK_AGENT_PROOF.liveCollaborationListings} live
-                    collaborations · shareable public profile.
+                    Profiles appear here once publication review is complete.
                   </p>
                 </>
               )}
@@ -221,7 +187,7 @@ export default async function AgentDirectoryPage({
                   buttonVariants({ variant: "primary", size: "sm" })
                 )}
               >
-                Build your verified profile
+                Create your profile
               </Link>
               <Link
                 href="/agents"
@@ -237,7 +203,7 @@ export default async function AgentDirectoryPage({
               <Card key={agent.userId} className="space-y-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                    Verified profile
+                    Verified WHOMA profile
                   </p>
                   <h2 className="mt-1 text-lg font-semibold text-text-strong">
                     {agent.user.name ?? "Estate agent"}
@@ -248,18 +214,18 @@ export default async function AgentDirectoryPage({
                 </div>
                 <div className="space-y-1 text-sm text-text-muted">
                   <p>Agency: {agent.agencyName ?? "Independent"}</p>
-                  <p>Areas: {agent.serviceAreas.join(", ") || "Not listed"}</p>
+                  <p>Coverage: {agent.serviceAreas.join(", ") || "Not listed"}</p>
                   <p>
                     Specialties: {agent.specialties.join(", ") || "Not listed"}
                   </p>
-                  <p>Profile completeness: {agent.profileCompleteness}%</p>
+                  <p>Profile readiness: {agent.profileCompleteness}%</p>
                 </div>
                 {agent.profileSlug ? (
                   <Link
                     href={`/agents/${agent.profileSlug}`}
                     className="text-sm font-medium text-brand-ink underline"
                   >
-                    View verified profile
+                    View profile
                   </Link>
                 ) : null}
               </Card>

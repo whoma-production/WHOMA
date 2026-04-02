@@ -143,11 +143,13 @@ export async function seedPhase1PilotAgents() {
       create: {
         email,
         name: blueprint.fullName,
-        role: "AGENT"
+        role: "AGENT",
+        dataOrigin: "SEED"
       },
       update: {
         name: blueprint.fullName,
-        role: "AGENT"
+        role: "AGENT",
+        dataOrigin: "SEED"
       }
     });
 

@@ -77,7 +77,7 @@ export function getAuthErrorMessage(
     case "AccessDenied":
       return "Sign-in was denied. Please try again or use a different Google account.";
     case "Configuration":
-      return "Google sign-in is not available on this pilot environment yet. Use the support route for access help.";
+      return "Google sign-in is currently unavailable. Contact support if you need access.";
     case "Callback":
       return "Google sign-in failed during callback. Please try again.";
     default:

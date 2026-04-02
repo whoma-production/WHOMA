@@ -2938,3 +2938,153 @@
 1. Ship `BV004` + `BV005` first if public production still exposes backend preview auth or misleading narrative/CTA surfaces.
 2. Ship `BV001` + `BV002` next to create a real Phase 1 measurement contract and durable event/reporting spine.
 3. Ship `BV003` after that so transaction/collaboration proof is supported by first-class domain models rather than proposal-derived heuristics.
+
+## Session: 2026-04-02 / 21:57 (CEST) — Public brand reset across homepage, visual system, and entry journeys
+
+### Goal
+
+Land the first public brand execution pass so WHOMA reads as a calmer, more premium professional product for independent estate agents instead of a portal-like pilot explainer.
+
+### Changes Made
+
+- Rebuilt the public homepage around a profile-first narrative:
+  - approved hero copy for independent estate agents,
+  - fewer boxed sections,
+  - featured profile record,
+  - sample completed profile sheet,
+  - proof modules,
+  - quieter collaboration note,
+  - direct support close.
+- Replaced thesis-like public proof copy with reusable brand content exports in `src/lib/public-proof.ts`:
+  - why agents join,
+  - proof modules,
+  - agent journey,
+  - collaboration flow,
+  - sample profile and comparison records.
+- Reset the public visual system:
+  - `Newsreader` display type + `Manrope` UI/body,
+  - warmer stone/off-white palette,
+  - flatter shadows,
+  - reduced radii,
+  - calmer public spacing utilities.
+- Tightened shared brand scaffolding:
+  - shorter `logoSubtitle`,
+  - calmer public footer descriptor/support line,
+  - reduced stacked software-label feel in the logo.
+- Reworked public journey surfaces:
+  - sign-in now leads with belonging instead of access mechanics,
+  - sign-up now follows `Build profile -> Add proof -> Share profile -> Receive interest`,
+  - directory headline/zero state now read as selective professional presence.
+- Demoted homeowner-request surfaces so they no longer shape the category story:
+  - `Homeowner pilot`,
+  - `Current pilot activity`,
+  - `Invited homeowner briefs`,
+  - selective zero-state language.
+- Softened support/legal intros so they stay operationally credible without sounding procedural or defensive.
+
+### Verification
+
+- `npm run typecheck` — passed
+- `npm run lint` — passed
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/page.tsx`
+- `src/lib/public-proof.ts`
+- `src/app/layout.tsx`
+- `src/app/globals.css`
+- `src/lib/tokens.ts`
+- `src/lib/public-site.ts`
+- `src/components/layout/public-footer.tsx`
+- `src/components/brand/logo.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/agents/[slug]/page.tsx`
+- `src/app/requests/page.tsx`
+- `src/app/requests/[postcodeDistrict]/page.tsx`
+- `src/app/[slug]/page.tsx`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Treat the homepage as a profile-led editorial surface, not a cleaned-up workflow demo.
+  - **Why:** The old structure was too tied to card grids, stat boxes, and pilot explanation, which kept the portal/beta feel alive.
+- **Decision:** Reset the shared public strings and logo/footer scaffolding in the same pass as the homepage.
+  - **Why:** Leaving old subtitles and footer language in place would immediately reintroduce the internal strategy tone on the same page.
+- **Decision:** Demote request browsing language while keeping the routes visible.
+  - **Why:** Homeowner activity should remain legible, but it cannot keep acting as the main category signal for WHOMA.
+
+### Next Steps
+
+1. Review the new public homepage in-browser on desktop and mobile to tune spacing, image treatment, and any remaining card-heavy areas.
+2. Carry the same brand system through `src/app/agents/[slug]/page.tsx` and any remaining public support/profile details that still feel too utility-first.
+3. Decide whether to tighten authenticated app chrome next so signed-in surfaces inherit the warmer visual system without feeling mismatched.
+
+---
+
+## Session: 2026-04-02 / 21:58 (CEST) — Gate 1 trust remediation pass
+
+**Author:** Codex  
+**Context:** User moved from audit into strict gate execution and instructed that work must begin with `GATE 1 — TRUST` before truth, measurement, domain, or activation changes.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Remove the highest-sensitivity trust blockers first: production preview-auth exposure, synthetic actor leakage into official proof/reporting, unsupported public trust counters, and scaffolded logged-in surfaces that present as real.
+
+### Changes Made
+
+- Added `User.dataOrigin` (`PRODUCTION`, `PREVIEW`, `SEED`, `TEST`) to Prisma with migration `20260402124000_gate1_trust_data_origin` and backfill rules for seeded, preview, and test users.
+- Hard-disabled preview auth in production code via `src/lib/auth/preview-access.ts` and `src/auth.ts`, so `ENABLE_PREVIEW_AUTH=true` no longer re-enables the preview provider on public production.
+- Tagged preview-created users as `PREVIEW` and phase-one seed users as `SEED`.
+- Updated public directory/profile/admin activation queries to exclude non-production actors in production runtime.
+- Updated live-instruction reads to exclude non-production homeowner and agent activity in production runtime so public proof counts do not absorb preview or seed traffic.
+- Removed unsupported public proof from homepage, directory, and public profile surfaces:
+  - no heuristic response speed,
+  - no seller-fit signal,
+  - no historic/live collaboration counters,
+  - no synthetic featured-profile fallback proof.
+- Removed the dead heuristic public trust-signal service path from `src/server/agent-profile/service.ts`.
+- Replaced the scaffolded `/agent/marketplace/[instructionId]` page with a redirect to the real proposal route.
+- Guarded `scripts/smoke-marketplace-flow.mjs` so remote preview callback auth is refused unless explicitly overridden for an internal environment.
+- Added a narrow auth contract test for the production preview-auth lock and updated the Phase 1 E2E expectation to match the new public trust surface.
+
+### Verification
+
+- `npm run prisma:generate` — passed.
+- Applied Gate 1 migration SQL manually to local dev DB (non-destructive) and marked it applied in Prisma history:
+  - `psql ... -f prisma/migrations/20260402124000_gate1_trust_data_origin/migration.sql`
+  - `npx prisma migrate resolve --applied 20260402124000_gate1_trust_data_origin`
+- Read-only DB verification:
+  - `SELECT "dataOrigin", COUNT(*) FROM "User" GROUP BY 1 ORDER BY 1;`
+  - result: `PREVIEW=3`, `SEED=8`, `TEST=62`
+- `npm run typecheck` — passed.
+- `npm run test -- src/lib/auth/preview-access.test.ts src/server/marketplace/queries.test.ts src/components/auth/google-auth-button.test.tsx` — passed (`9` tests across `3` files).
+- `npm run test -- src/server/agent-profile/phase1-flow.test.ts` — file loads successfully; tests are currently skipped in this environment.
+- Attempted unrestricted Playwright verification against local dev runtime:
+  - browser launch required escalation,
+  - local server/browser connectivity remained environment-limited,
+  - therefore runtime browser proof for this pass remains incomplete.
+
+### Decisions (and why)
+
+- **Decision:** Treat public synthetic featured proof and heuristic trust counters as Gate 1 trust failures, not optional copy cleanup.
+  - **Why:** They create public proof the backend cannot substantiate and would pollute the live trust posture even before Gate 2.
+- **Decision:** Hard-disable preview auth in production code rather than trying to preserve an ambiguous prod-like QA path.
+  - **Why:** This is the smallest high-integrity fix that closes the backdoor immediately.
+- **Decision:** Apply the new migration non-destructively with manual SQL + `migrate resolve` instead of `prisma migrate reset`.
+  - **Why:** Local DB drift already existed, and a reset would have violated the non-destructive execution rule.
+
+### Status
+
+- `GATE 1 — TRUST`: `AMBER`
+
+### Remaining Gate 1 Sign-off Work
+
+1. Redeploy and verify live public production no longer exposes the preview provider (`/api/auth/providers` and attempted preview callback auth).
+2. Replace any non-local QA or smoke path that still relies on preview callback auth against a production-like target.
+3. Re-run one browser-level public-surface check in an unrestricted runtime to capture end-to-end evidence for the cleaned trust surfaces.

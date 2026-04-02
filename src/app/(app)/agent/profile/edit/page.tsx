@@ -117,14 +117,15 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
   const slug = resolvedSearchParams?.slug ?? profile?.profileSlug ?? undefined;
 
   return (
-    <AppShell role="AGENT" title="Agent CV Builder">
+    <AppShell role="AGENT" title="Your Profile">
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="space-y-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Professional identity</p>
-            <h2 className="text-lg font-semibold text-text-strong">Build your public real estate agent profile</h2>
+            <h2 className="text-lg font-semibold text-text-strong">Build your public estate agent profile</h2>
             <p className="text-sm text-text-muted">
-              Think of this as your estate-agency specific professional CV. Save drafts as you go, then publish when complete.
+              Build the profile clients and partners will see on WHOMA. Save
+              drafts as you go, then publish when ready.
             </p>
           </div>
 
@@ -160,7 +161,8 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
 
           {success === "published" ? (
             <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Profile published. It is publicly visible only while your verification status is VERIFIED.
+              Profile published. It remains visible while your verification
+              status stays approved.
             </p>
           ) : null}
 
@@ -268,7 +270,7 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
           </div>
           <ActivationChecklist
             profile={profile}
-            description="Use the CV builder to push your profile over the publish threshold, then wait for admin verification to unlock public visibility."
+            description="Use your profile to reach the publish threshold, then wait for review to unlock public visibility."
           />
         </Card>
       </div>

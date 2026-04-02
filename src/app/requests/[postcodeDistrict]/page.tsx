@@ -40,8 +40,8 @@ export async function generateMetadata({
   const normalizedDistrict = normalizePostcodeDistrictKey(postcodeDistrict);
 
   return {
-    title: `WHOMA | Pilot requests in ${normalizedDistrict}`,
-    description: `Controlled Phase 1 homeowner collaboration pilot visibility for ${normalizedDistrict}.`,
+    title: `WHOMA | Open instructions in ${normalizedDistrict}`,
+    description: `Selective seller access and open instruction activity in ${normalizedDistrict}.`,
     robots: {
       index: false,
       follow: false
@@ -79,13 +79,13 @@ export default async function LocationPage({
                 buttonVariants({ variant: "secondary", size: "sm" })
               )}
             >
-              All pilot areas
+              All collaboration areas
             </Link>
             <Link
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your verified profile
+              Create your profile
             </Link>
           </div>
         </div>
@@ -94,15 +94,15 @@ export default async function LocationPage({
       <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
         <section className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-            Controlled homeowner pilot
+            Seller access
           </p>
           <h1>
-            Live pilot requests in {city} · {normalizedDistrict}
+            Open instructions in {city} · {normalizedDistrict}
           </h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            This is a secondary request surface for controlled rollout.
-            WHOMA&apos;s primary public proof remains the verified agent
-            directory.
+            This page shows instruction activity currently visible in{" "}
+            {normalizedDistrict}. WHOMA keeps seller access selective so the
+            verified profile network remains the primary public layer.
           </p>
         </section>
 
@@ -117,7 +117,7 @@ export default async function LocationPage({
           </Card>
           <Card className="space-y-1 bg-surface-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-              Open pilot requests
+              Open instructions
             </p>
             <p className="text-lg font-semibold text-text-strong">
               {instructions.length}
@@ -135,8 +135,8 @@ export default async function LocationPage({
 
         <Card className="space-y-3 bg-surface-0">
           <p className="text-sm text-text-muted">
-            If you want the main Phase 1 story, go back to verified agent
-            profiles. Use this page as pilot context only.
+            Start with verified profiles, then use this page as supporting
+            context once seller access is in place.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -148,33 +148,33 @@ export default async function LocationPage({
               Browse verified agents
             </Link>
             <Link
-              href={PUBLIC_AGENT_CTA_HREF}
+              href={PUBLIC_COLLABORATION_PILOT_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your verified profile
+              Request seller access
             </Link>
           </div>
         </Card>
 
         <section className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl">Request feed</h2>
+            <h2 className="text-xl">Open instructions in {normalizedDistrict}</h2>
             <Link
               href={PUBLIC_COLLABORATION_PILOT_HREF}
               className={cn(buttonVariants({ variant: "secondary" }))}
             >
-              Join collaboration pilot
+              Request seller access
             </Link>
           </div>
           {instructions.length === 0 ? (
             <Card className="border-dashed bg-surface-0">
               <div className="space-y-2">
                 <h3 className="text-base font-semibold text-text-strong">
-                  No live pilot requests here right now
+                  No open instructions are visible here right now
                 </h3>
                 <p className="text-sm text-text-muted">
-                  That is normal while WHOMA keeps homeowner collaboration
-                  controlled and identity-first.
+                  New instructions appear here only when seller access is open
+                  and moderation is in place.
                 </p>
                 <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
@@ -209,7 +209,7 @@ export default async function LocationPage({
                     buttonVariants({ variant: "primary", size: "sm" })
                   )}
                 >
-                  Join collaboration pilot
+                  Request seller access
                 </Link>
               </div>
             </Card>

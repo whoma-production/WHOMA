@@ -8,6 +8,7 @@ import type { UserRole } from "@prisma/client";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { isPreviewAccessEnabled } from "@/lib/auth/preview-access";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -35,9 +36,7 @@ const googleProviders =
       ]
     : [];
 
-const previewAccessEnabled =
-  process.env.NODE_ENV !== "production" ||
-  process.env.ENABLE_PREVIEW_AUTH === "true";
+const previewAccessEnabled = isPreviewAccessEnabled();
 
 const previewProviders =
   previewAccessEnabled
@@ -73,11 +72,13 @@ const previewProviders =
               create: {
                 email,
                 name: displayName,
-                role
+                role,
+                dataOrigin: "PREVIEW"
               },
               update: {
                 name: displayName,
-                role
+                role,
+                dataOrigin: "PREVIEW"
               }
             });
 

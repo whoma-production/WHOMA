@@ -4,13 +4,12 @@ import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Logo } from "@/components/brand/logo";
 import { Card } from "@/components/ui/card";
 import { normalizeRedirectPath } from "@/lib/auth/session";
-import { PUBLIC_AGENT_PROOF_LOOP } from "@/lib/public-proof";
+import { PUBLIC_AGENT_JOURNEY } from "@/lib/public-proof";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_AGENT_DIRECTORY_HREF,
-  PUBLIC_COLLABORATION_PILOT_HREF,
-  PUBLIC_REQUESTS_PILOT_HREF
+  PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
 
 interface SignUpPageProps {
@@ -19,23 +18,23 @@ interface SignUpPageProps {
 
 const roleContent = {
   HOMEOWNER: {
-    eyebrow: "Collaboration pilot",
-    headline: "Join the limited homeowner collaboration pilot.",
-    body: "Homeowner access is coordinated manually while WHOMA validates verified estate-agent identity, agent-owned reputation, and structured collaboration records first.",
+    eyebrow: "Seller access",
+    headline: "Request seller access.",
+    body: "WHOMA currently opens seller access selectively to maintain a high-quality collaboration standard.",
     reassurance: [
-      "Limited pilot access",
-      "Structured offer comparison only",
-      "Messaging unlocks after shortlist"
+      "Access by invitation",
+      "Structured offer comparison",
+      "Messaging opens after shortlist"
     ]
   },
   AGENT: {
     eyebrow: "Agent account",
-    headline: "Build your verified estate agent profile",
-    body: "Start with work-email verification, publish your profile, and build an agent-owned reputation record before broader marketplace expansion.",
+    headline: "Create a profile clients, referrers, and collaborators can trust.",
+    body: "WHOMA helps independent estate agents build a stronger professional presence before collaboration begins.",
     reassurance: [
       "Business email verification",
-      "Portable public profile",
-      "Admin-reviewed trust badge"
+      "Shareable public profile",
+      "Proof that travels with you"
     ]
   }
 } as const;
@@ -73,26 +72,26 @@ export default async function SignUpPage({
 
   const betaCtaHref =
     role === "HOMEOWNER"
-      ? PUBLIC_REQUESTS_PILOT_HREF
+      ? PUBLIC_COLLABORATION_PILOT_HREF
       : PUBLIC_AGENT_DIRECTORY_HREF;
   const betaCtaLabel =
     role === "HOMEOWNER"
-      ? "View pilot request areas"
+      ? "Contact support"
       : "Browse verified agents";
   const entryTitle = providerConfigured
     ? role === "HOMEOWNER"
-      ? "Request pilot access"
-      : "Start your account"
+      ? "Request seller access"
+      : "Create your profile"
     : role === "HOMEOWNER"
-      ? "Request pilot access"
+      ? "Request seller access"
       : "Request agent access";
   const entryDescription = providerConfigured
     ? role === "HOMEOWNER"
-      ? "If you already have pilot approval, continue with Google. Otherwise use the direct support route below."
-      : "Continue with Google to enter the verified-profile workflow without placeholder steps or dead-end loaders."
+      ? "If your access is already approved, continue with Google. Otherwise contact support."
+      : "Continue with Google to create your profile, add professional detail, and publish it."
     : role === "HOMEOWNER"
-      ? "Collaboration access is coordinated manually. Use the monitored support route below and include the area or request context if you have one."
-      : "Agent access is currently coordinated manually. Use the support route below to request entry into the verified-profile pilot.";
+      ? "Seller access is handled through support. Tell us which area or brief you are asking about and we will route you correctly."
+      : "Agent access is opened through support. Tell us where you work and how you plan to use WHOMA.";
 
   return (
     <main className="min-h-screen bg-surface-1 px-4 py-10">
@@ -111,10 +110,13 @@ export default async function SignUpPage({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
             {content?.eyebrow ?? "Create your account"}
           </p>
-          <h1>{content?.headline ?? "Join the WHOMA controlled pilot"}</h1>
+          <h1>
+            {content?.headline ??
+              "Create your WHOMA account."}
+          </h1>
           <p className="max-w-3xl text-text-muted">
             {content?.body ??
-              "WHOMA leads with verified estate-agent identity, agent-owned reputation, and structured collaboration. Homeowner access remains a limited pilot path."}
+              "WHOMA helps independent estate agents build verified public profiles and manage high-trust collaboration more clearly."}
           </p>
         </div>
 
@@ -122,36 +124,34 @@ export default async function SignUpPage({
           <div className="grid gap-4 md:grid-cols-2">
             <Card className="border-brand-accent/30 space-y-3 bg-surface-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Primary public path
+                Primary path
               </p>
               <h2 className="text-xl">I&apos;m an estate agent</h2>
               <p className="text-sm text-text-muted">
-                Verify your business email, publish a structured profile, and
-                build a portable reputation record you can carry into future
-                instructions.
+                Create your public profile, add professional depth, and publish
+                it for review.
               </p>
               <Link
                 href={PUBLIC_AGENT_CTA_HREF}
                 className="text-sm font-medium text-brand-ink underline"
               >
-                Build your verified profile
+                Create your profile
               </Link>
             </Card>
             <Card className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Secondary pilot path
+                Seller access
               </p>
-              <h2 className="text-xl">I&apos;m exploring homeowner access</h2>
+              <h2 className="text-xl">I&apos;m requesting seller access</h2>
               <p className="text-sm text-text-muted">
-                Join the limited collaboration pilot only if you need manual
-                homeowner access while WHOMA keeps its public focus on
-                estate-agent trust infrastructure.
+                Request seller access if you need help opening an instruction
+                through WHOMA.
               </p>
               <Link
                 href={PUBLIC_COLLABORATION_PILOT_HREF}
                 className="text-sm font-medium text-brand-ink underline"
               >
-                Join collaboration pilot
+                Contact support
               </Link>
             </Card>
           </div>
@@ -174,20 +174,18 @@ export default async function SignUpPage({
           <Card className="space-y-4 bg-surface-0">
             <div className="space-y-1">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Agent proof loop
+                What your profile includes
               </p>
               <h2 className="text-xl">
-                The public pilot is validating a specific sequence of agent
-                behaviours.
+                Create your profile, add professional depth, and publish it.
               </h2>
               <p className="text-sm text-text-muted">
-                WHOMA is not just testing sign-up. It is testing whether agents
-                will build profile depth, log activity, share a public proof
-                page, and turn that trust into collaboration.
+                WHOMA is designed to help independent estate agents build a
+                stronger public presence before collaboration begins.
               </p>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
-              {PUBLIC_AGENT_PROOF_LOOP.map((step) => (
+              {PUBLIC_AGENT_JOURNEY.map((step) => (
                 <div
                   key={step.title}
                   className="rounded-md border border-line bg-surface-1 px-4 py-3"
@@ -222,8 +220,8 @@ export default async function SignUpPage({
             betaCtaLabel={betaCtaLabel}
             betaMessage={
               role === "HOMEOWNER"
-                ? "Homeowner access is coordinated manually while WHOMA keeps its public focus on verified estate-agent identity first."
-                : "Agent access is coordinated through the monitored support route until your pilot account is live."
+                ? `If you need seller access, email ${site.supportEmail} and we will point you in the right direction.`
+                : `If you need access, email ${site.supportEmail} with your role and area.`
             }
             nextParam={nextParam}
             oauthError={resolvedSearchParams?.error ?? null}

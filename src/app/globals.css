@@ -3,34 +3,38 @@
 @tailwind utilities;
 
 :root {
-  --font-ui: "Montserrat";
+  --font-display: "Newsreader";
+  --font-ui: "Manrope";
 
-  --color-brand-ink: #1c1c3a;
-  --color-brand-accent: #02a79c;
+  --color-brand-ink: #191713;
+  --color-brand-accent: #1f5c58;
+  --color-brand-brass: #a8844a;
 
-  --color-surface-0: #ffffff;
-  --color-surface-1: #f7f7fa;
-  --color-surface-2: #efeff4;
-  --color-surface-inverse: #16162e;
+  --color-surface-0: #fbf8f2;
+  --color-surface-1: #f6f1e8;
+  --color-surface-2: #efe7da;
+  --color-surface-inverse: #211d18;
 
-  --color-line: #d8d9e2;
+  --color-line: #d9d0c2;
 
-  --color-text-strong: #191a27;
-  --color-text-base: #2c2d3e;
-  --color-text-muted: #666a7a;
-  --color-text-inverse: #f7f8fd;
+  --color-text-strong: #191713;
+  --color-text-base: #2b2722;
+  --color-text-muted: #6b655d;
+  --color-text-inverse: #f7f1e7;
 
-  --color-success: #197b4c;
-  --color-warning: #a06a00;
-  --color-danger: #a12828;
+  --color-success: #2b6b46;
+  --color-warning: #996b2c;
+  --color-danger: #9f3c31;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
 
-  --shadow-soft: 0 1px 3px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.04);
-  --shadow-lift: 0 2px 10px rgba(17, 24, 39, 0.08), 0 20px 40px rgba(17, 24, 39, 0.07);
+  --shadow-soft: 0 1px 2px rgba(25, 23, 19, 0.05),
+    0 8px 20px rgba(25, 23, 19, 0.04);
+  --shadow-lift: 0 2px 6px rgba(25, 23, 19, 0.06),
+    0 18px 34px rgba(25, 23, 19, 0.05);
 }
 
 * {
@@ -43,14 +47,16 @@ body {
 }
 
 body {
-  background: linear-gradient(180deg, #ffffff 0%, #f7f7fa 100%);
+  background:
+    radial-gradient(circle at top, rgba(168, 132, 74, 0.08), transparent 28%),
+    linear-gradient(180deg, #fbf8f2 0%, #f6f1e8 100%);
   color: var(--color-text-base);
   font-family: var(--font-ui), system-ui, sans-serif;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: rgba(2, 167, 156, 0.18);
+  background: rgba(31, 92, 88, 0.18);
   color: var(--color-text-strong);
 }
 
@@ -62,7 +68,7 @@ a {
 @keyframes whoma-fade-up {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
 
   to {
@@ -74,14 +80,12 @@ a {
 @keyframes whoma-slide-in {
   from {
     opacity: 0;
-    transform: translate3d(14px, 10px, 0);
-    box-shadow: var(--shadow-soft);
+    transform: translate3d(10px, 8px, 0);
   }
 
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
-    box-shadow: var(--shadow-lift);
   }
 }
 
@@ -93,29 +97,30 @@ a {
   h5,
   h6 {
     color: var(--color-text-strong);
-    letter-spacing: -0.02em;
+    font-family: var(--font-display), Georgia, serif;
+    letter-spacing: -0.03em;
   }
 
   h1 {
-    font-size: 2.25rem;
-    line-height: 1.1;
-    font-weight: 600;
+    font-size: clamp(3rem, 6vw, 4.75rem);
+    line-height: 0.96;
+    font-weight: 500;
   }
 
   h2 {
-    font-size: 1.75rem;
-    line-height: 1.15;
-    font-weight: 600;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.02;
+    font-weight: 500;
   }
 
   h3 {
-    font-size: 1.25rem;
-    line-height: 1.2;
-    font-weight: 600;
+    font-size: 1.4rem;
+    line-height: 1.12;
+    font-weight: 500;
   }
 
   p {
-    line-height: 1.5;
+    line-height: 1.65;
   }
 
   :focus-visible {
@@ -127,58 +132,72 @@ a {
 @layer utilities {
   .motif-grid {
     background-image:
-      linear-gradient(to right, rgba(28, 28, 58, 0.06) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(28, 28, 58, 0.06) 1px, transparent 1px);
-    background-size: 28px 28px;
-  }
-
-  .infinity-watermark::after {
-    content: "∞";
-    position: absolute;
-    right: 1rem;
-    bottom: -0.25rem;
-    font-size: 5rem;
-    line-height: 1;
-    font-weight: 600;
-    color: rgba(28, 28, 58, 0.05);
-    pointer-events: none;
+      linear-gradient(to right, rgba(25, 23, 19, 0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(25, 23, 19, 0.025) 1px, transparent 1px);
+    background-size: 42px 42px;
   }
 
   .animate-enter-up {
-    animation: whoma-fade-up 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: whoma-fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .animate-enter-card {
-    animation: whoma-slide-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: whoma-slide-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .animate-delay-1 {
-    animation-delay: 80ms;
+    animation-delay: 70ms;
   }
 
   .animate-delay-2 {
-    animation-delay: 140ms;
+    animation-delay: 130ms;
   }
 
   .animate-delay-3 {
-    animation-delay: 220ms;
+    animation-delay: 190ms;
   }
 
   .interactive-lift {
     transition:
-      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 220ms ease;
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
   }
 
   .interactive-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lift);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
   }
 
   .interactive-lift:focus-within {
     transform: translateY(-1px);
     box-shadow: var(--shadow-soft);
+  }
+
+  .public-section {
+    padding-block: clamp(4rem, 8vw, 7rem);
+  }
+
+  .public-kicker {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .public-record {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    background: rgba(251, 248, 242, 0.92);
+    padding: clamp(1.25rem, 2vw, 2rem);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .public-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--color-line);
   }
 }
 

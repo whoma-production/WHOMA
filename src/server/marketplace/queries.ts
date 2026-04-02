@@ -67,9 +67,9 @@ interface LiveInstructionQueryRow {
     propertyType: PropertyType;
     bedrooms: number;
   };
-  _count: {
-    proposals: number;
-  };
+  proposals: Array<{
+    id: string;
+  }>;
 }
 
 const propertyTypeLabels: Record<PropertyType, string> = {
@@ -127,6 +127,10 @@ function parsePropertyTypeFilter(
   return undefined;
 }
 
+function shouldRestrictOfficialProductionData(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
 async function readLiveInstructionRowsWithFilters(
   filters: LiveInstructionFilters
 ): Promise<LiveInstructionQueryRow[]> {
@@ -143,6 +147,7 @@ async function readLiveInstructionRowsWithFilters(
     typeof filters.bedrooms === "number" && Number.isFinite(filters.bedrooms)
       ? filters.bedrooms
       : undefined;
+  const restrictToProductionOrigin = shouldRestrictOfficialProductionData();
 
   const where: Prisma.InstructionWhereInput = {
     status: "LIVE",
@@ -152,6 +157,14 @@ async function readLiveInstructionRowsWithFilters(
   };
 
   const propertyWhere: Prisma.PropertyWhereInput = {};
+
+  if (restrictToProductionOrigin) {
+    propertyWhere.owner = {
+      is: {
+        dataOrigin: "PRODUCTION"
+      }
+    };
+  }
 
   if (normalizedDistrict) {
     propertyWhere.postcode = {
@@ -174,7 +187,7 @@ async function readLiveInstructionRowsWithFilters(
     };
   }
 
-  return prisma.instruction.findMany({
+  const rows = await prisma.instruction.findMany({
     where,
     select: {
       id: true,
@@ -188,11 +201,24 @@ async function readLiveInstructionRowsWithFilters(
           bedrooms: true
         }
       },
-      _count: {
-        select: {
-          proposals: true
-        }
-      }
+      proposals: restrictToProductionOrigin
+        ? {
+            where: {
+              agent: {
+                is: {
+                  dataOrigin: "PRODUCTION"
+                }
+              }
+            },
+            select: {
+              id: true
+            }
+          }
+        : {
+            select: {
+              id: true
+            }
+          }
     },
     orderBy: [
       {
@@ -202,7 +228,22 @@ async function readLiveInstructionRowsWithFilters(
         createdAt: "desc"
       }
     ]
-  }) as Promise<LiveInstructionQueryRow[]>;
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    bidWindowEndAt: row.bidWindowEndAt,
+    targetTimeline: row.targetTimeline,
+    property: {
+      city: row.property.city,
+      postcode: row.property.postcode,
+      propertyType: row.property.propertyType,
+      bedrooms: row.property.bedrooms
+    },
+    proposals: row.proposals.map((proposal) => ({
+      id: proposal.id
+    }))
+  }));
 }
 
 export async function getLiveInstructionCards(
@@ -217,7 +258,7 @@ export async function getLiveInstructionCards(
     propertyType: propertyTypeLabels[row.property.propertyType],
     bedrooms: row.property.bedrooms,
     sellerTimelineGoal: targetTimelineLabels[row.targetTimeline],
-    proposalsCount: row._count.proposals,
+    proposalsCount: row.proposals.length,
     bidWindowEndAtIso: row.bidWindowEndAt.toISOString()
   }));
 }

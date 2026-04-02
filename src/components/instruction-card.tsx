@@ -48,7 +48,7 @@ export function InstructionCard({ instruction }: { instruction: InstructionCardM
           href={`/agent/marketplace/${instruction.id}`}
           className={cn(buttonVariants({ variant: "secondary" }))}
         >
-          View seller request
+          View instruction
         </Link>
       </div>
     </Card>

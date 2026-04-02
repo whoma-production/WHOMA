@@ -20,22 +20,22 @@ interface NavItem {
 
 const navByRole: Record<ShellRole, NavItem[]> = {
   HOMEOWNER: [
-    { label: "Create Sale Request", href: "/homeowner/instructions/new" },
-    { label: "My Sale Requests", href: "/homeowner/instructions" },
-    { label: "Agent Profiles", href: "/agents" },
+    { label: "Create Instruction", href: "/homeowner/instructions/new" },
+    { label: "My Instructions", href: "/homeowner/instructions" },
+    { label: "Agents", href: "/agents" },
     { label: "Messages", href: "/messages" }
   ],
   AGENT: [
     { label: "Onboarding", href: "/agent/onboarding" },
-    { label: "Profile Builder", href: "/agent/profile/edit" },
-    { label: "Agent Profiles", href: "/agents" },
-    { label: "Seller Requests", href: "/agent/marketplace" },
+    { label: "Your Profile", href: "/agent/profile/edit" },
+    { label: "Agents", href: "/agents" },
+    { label: "Open Instructions", href: "/agent/marketplace" },
     { label: "My Offers", href: "/agent/proposals" },
     { label: "Messages", href: "/messages" }
   ],
   ADMIN: [
-    { label: "Agent Profiles", href: "/agents" },
-    { label: "Seller Requests", href: "/agent/marketplace" },
+    { label: "Agents", href: "/agents" },
+    { label: "Instructions", href: "/agent/marketplace" },
     { label: "Verification", href: "/admin/agents" },
     { label: "Messages", href: "/messages" }
   ]
@@ -43,7 +43,7 @@ const navByRole: Record<ShellRole, NavItem[]> = {
 
 const roleLabel: Record<ShellRole, string> = {
   HOMEOWNER: "HOMEOWNER",
-  AGENT: "REAL ESTATE AGENT",
+  AGENT: "ESTATE AGENT",
   ADMIN: "ADMIN"
 };
 

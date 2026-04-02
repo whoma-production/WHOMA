@@ -93,7 +93,8 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
           <CardHeader>
             <CardTitle>What brings you to Whoma?</CardTitle>
             <CardDescription>
-              You only do this once. We use it to guide you into the right experience.
+              You only do this once. We use it to route you into the right part
+              of WHOMA.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -110,7 +111,8 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
                   <div>
                     <h2 className="text-lg">I&apos;m selling my home</h2>
                     <p className="mt-2 text-sm text-text-muted">
-                      Homeowner access remains a controlled pilot while WHOMA prioritizes verified agent identity first.
+                      Create an instruction, compare structured offers, and
+                      manage communication in one place.
                     </p>
                   </div>
                   <Button type="submit" fullWidth>
@@ -125,7 +127,8 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
                   <div>
                     <h2 className="text-lg">I&apos;m an estate agent</h2>
                     <p className="mt-2 text-sm text-text-muted">
-                      Verify your work email, complete your structured profile, and work toward public verification.
+                      Verify your work email, complete your structured profile,
+                      and build a stronger public presence.
                     </p>
                   </div>
                   <Button type="submit" variant="primary" fullWidth>

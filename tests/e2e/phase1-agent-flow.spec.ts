@@ -151,8 +151,8 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
     publicPage.getByRole("heading", { name: /trust and contact/i })
   ).toBeVisible();
   await expect(publicPage.getByText(/profile quality/i)).toBeVisible();
-  await expect(publicPage.getByText(/historic transactions/i)).toBeVisible();
-  await expect(publicPage.getByText(/live collaborations/i)).toBeVisible();
+  await expect(publicPage.getByText(/admin verified/i)).toBeVisible();
+  await expect(publicPage.getByText(/work email:/i)).toBeVisible();
 
   await adminPage.close();
   await publicPage.close();

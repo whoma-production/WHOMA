@@ -5,73 +5,28 @@ import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { buttonVariants } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   getPublicSiteConfig,
   getSupportMailto,
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_AGENT_DIRECTORY_HREF,
-  PUBLIC_AGENT_TRANSACTIONS_HREF,
-  PUBLIC_COLLABORATION_PILOT_HREF,
-  PUBLIC_REQUESTS_PILOT_HREF
+  PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
 import {
-  PUBLIC_AGENT_PROOF_LOOP,
-  PUBLIC_FALLBACK_AGENT_PROOF,
-  PUBLIC_SAMPLE_COMPARISON
+  PUBLIC_COLLABORATION_FLOW,
+  PUBLIC_PROOF_MODULES,
+  PUBLIC_SAMPLE_COMPARISON,
+  PUBLIC_SAMPLE_PROFILE_VIEW,
+  PUBLIC_WHY_AGENTS_JOIN
 } from "@/lib/public-proof";
 import { cn } from "@/lib/utils";
-import {
-  getPublicAgentTrustSignals,
-  listPublicAgentProfiles
-} from "@/server/agent-profile/service";
+import { listPublicAgentProfiles } from "@/server/agent-profile/service";
 import {
   getLiveInstructionCards,
   getLiveInstructionLocationSummaries
 } from "@/server/marketplace/queries";
 
 export const dynamic = "force-dynamic";
-
-const trustStrip = [
-  "Business work-email verification",
-  "Agent-owned public reputation",
-  "Structured proposal workflow",
-  "Shortlist-gated collaboration"
-] as const;
-
-const proofBlocks = [
-  {
-    title: "Verified transaction identity",
-    body: "WHOMA starts with the identity layer: verified work email, structured role context, and a clearer record of who is actually participating."
-  },
-  {
-    title: "Agent-owned reputation",
-    body: "The public profile is designed to travel with the individual agent, so credibility is not trapped inside agency branding alone."
-  },
-  {
-    title: "Structured collaboration infrastructure",
-    body: "Requests, proposals, shortlist decisions, and messaging are structured so the next layer of proof comes from behaviour, not just claims."
-  }
-] as const;
-
-const sampleCaseStudy = {
-  label: "Sample pilot case study",
-  title:
-    "A London instruction moves from verification to shortlist in one controlled loop.",
-  summary:
-    "This is the kind of behaviour WHOMA is validating before any broader public launch: identity checked first, structured responses second, collaboration unlocked only after a shortlist signal.",
-  metrics: [
-    "2-bed flat in SW1A",
-    "24-hour response window",
-    "3 structured proposals submitted",
-    "2 shortlisted before award"
-  ],
-  timeline: [
-    "Agent publishes a verified profile with service areas, specialties, and response expectations.",
-    "Homeowner instruction opens for a time-boxed response window with structured submission requirements.",
-    "Structured proposals are compared side by side before one shortlist opens the collaboration thread."
-  ]
-} as const;
 
 export default async function LandingPage(): Promise<JSX.Element> {
   const site = getPublicSiteConfig();
@@ -89,119 +44,97 @@ export default async function LandingPage(): Promise<JSX.Element> {
   }
 
   const featuredAgent = publicAgents[0] ?? null;
-  const featuredTrustSignals = featuredAgent
-    ? await getPublicAgentTrustSignals({
-        userId: featuredAgent.userId,
-        profileCompleteness: featuredAgent.profileCompleteness,
-        verificationStatus: featuredAgent.verificationStatus,
-        responseTimeMinutes: featuredAgent.responseTimeMinutes,
-        ratingAggregate: featuredAgent.ratingAggregate
-      })
-    : null;
   const locationSummaries =
     getLiveInstructionLocationSummaries(liveInstructions);
-  const submittedResponses = liveInstructions.reduce(
-    (sum, instruction) => sum + instruction.proposalsCount,
-    0
-  );
-  const proofStats = [
-    {
-      label: "Verified public profiles",
-      value:
-        publicAgents.length > 0
-          ? publicAgents.length.toString()
-          : "Seeding now",
-      note:
-        publicAgents.length > 0
-          ? "Currently visible in the public directory"
-          : "Seeded proof stays visible while the directory fills"
-    },
-    {
-      label: "Live pilot areas",
-      value:
-        locationSummaries.length > 0
-          ? locationSummaries.length.toString()
-          : "Invite-led",
-      note:
-        locationSummaries.length > 0
-          ? "Current public pilot coverage"
-          : "New areas open only when collaboration supply is ready"
-    },
-    {
-      label: "Open collaboration requests",
-      value:
-        liveInstructions.length > 0
-          ? liveInstructions.length.toString()
-          : "On demand",
-      note:
-        liveInstructions.length > 0
-          ? "Current live requests"
-          : "Public demand stays tightly controlled during the pilot"
-    },
-    {
-      label: "Structured responses",
-      value:
-        submittedResponses > 0 ? submittedResponses.toString() : "Proof-led",
-      note:
-        submittedResponses > 0
-          ? "Recorded against current live requests"
-          : "Case studies and seeded examples fill the cold-start gap"
-    }
-  ];
 
   const featuredProof = featuredAgent
     ? {
         name: featuredAgent.user.name ?? "Estate agent",
-        role: featuredAgent.jobTitle ?? "Estate agent",
+        role: featuredAgent.jobTitle ?? "Independent estate agent",
         agency: featuredAgent.agencyName ?? "Independent",
         serviceAreas: featuredAgent.serviceAreas,
         specialties: featuredAgent.specialties,
         profileCompleteness: featuredAgent.profileCompleteness,
-        historicTransactionsLogged:
-          featuredTrustSignals?.historicTransactionsLogged ?? 0,
-        liveCollaborationListings:
-          featuredTrustSignals?.liveCollaborationListings ?? 0,
-        shortlistedOffers: featuredTrustSignals?.shortlistedOffers ?? 0,
-        label: "Featured verified agent",
+        yearsExperience: featuredAgent.yearsExperience,
+        publishedAt: featuredAgent.publishedAt,
+        image: featuredAgent.user.image ?? null,
         href: featuredAgent.profileSlug
           ? (`/agents/${featuredAgent.profileSlug}` as Route)
           : PUBLIC_AGENT_DIRECTORY_HREF
       }
-    : {
-        ...PUBLIC_FALLBACK_AGENT_PROOF,
-        href: PUBLIC_AGENT_CTA_HREF
-      };
+    : null;
+
+  const sellerAccessNote =
+    locationSummaries.length > 0
+      ? `Seller access is currently visible in ${locationSummaries.length} ${
+          locationSummaries.length === 1 ? "area" : "areas"
+        }.`
+      : "Seller access opens carefully as matching supply and moderation come into place.";
+
+  const featuredProfileFacts = [
+    {
+      label: "Service areas",
+      value:
+        featuredProof?.serviceAreas.slice(0, 3).join(", ") ||
+        "Visible once the first production profile is public"
+    },
+    {
+      label: "Specialties",
+      value:
+        featuredProof?.specialties.slice(0, 3).join(", ") ||
+        "Professional profile in progress"
+    },
+    {
+      label: "Verification",
+      value: featuredAgent ? "Admin verified" : "Awaiting first live profile"
+    },
+    {
+      label: "Experience",
+      value:
+        featuredProof?.yearsExperience !== null &&
+        featuredProof?.yearsExperience !== undefined
+          ? `${featuredProof.yearsExperience} years`
+          : "Self-reported once the profile is live"
+    },
+    {
+      label: "Profile readiness",
+      value: `${featuredProof?.profileCompleteness ?? 0}% complete`
+    }
+  ] as const;
 
   return (
     <div className="min-h-screen bg-surface-1">
       <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <Logo subtitle={site.logoSubtitle} />
 
-          <nav className="hidden items-center gap-4 text-sm text-text-muted lg:flex">
+          <nav
+            className="hidden items-center gap-5 text-sm text-text-muted lg:flex"
+            aria-label="Primary"
+          >
             <Link
-              href="/#what-whoma-is"
-              className="transition-colors hover:text-brand-ink"
+              href="/#platform"
+              className="transition-colors hover:text-text-strong"
             >
-              What it is
+              Platform
             </Link>
             <Link
-              href="/#pilot-proof"
-              className="transition-colors hover:text-brand-ink"
+              href="/#how-it-works"
+              className="transition-colors hover:text-text-strong"
             >
-              Pilot proof
-            </Link>
-            <Link
-              href="/#interaction-demo"
-              className="transition-colors hover:text-brand-ink"
-            >
-              Flow demo
+              How it works
             </Link>
             <Link
               href={PUBLIC_AGENT_DIRECTORY_HREF}
-              className="transition-colors hover:text-brand-ink"
+              className="transition-colors hover:text-text-strong"
             >
-              Verified agents
+              Agents
+            </Link>
+            <Link
+              href={PUBLIC_COLLABORATION_PILOT_HREF}
+              className="transition-colors hover:text-text-strong"
+            >
+              Support
             </Link>
           </nav>
 
@@ -225,21 +158,18 @@ export default async function LandingPage(): Promise<JSX.Element> {
       </header>
 
       <main>
-        <section className="border-b border-line bg-surface-0">
-          <div className="motif-grid mx-auto grid w-full max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                  {site.betaStatusLabel}
-                </p>
-                <h1 className="max-w-3xl text-4xl sm:text-5xl">
-                  Identity and reputation infrastructure for estate agents.
+        <section className="public-section border-b border-line bg-surface-1">
+          <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_0.92fr] lg:px-8">
+            <div className="max-w-2xl space-y-6">
+              <p className="public-kicker">For independent estate agents</p>
+              <div className="space-y-4">
+                <h1 className="max-w-3xl">
+                  The professional layer for independent estate agents.
                 </h1>
-                <p className="max-w-2xl text-base text-text-muted sm:text-lg">
+                <p className="max-w-xl text-base text-text-muted sm:text-lg">
                   {site.pilotSummary}
                 </p>
               </div>
-
               <div className="flex flex-wrap gap-3">
                 <Link
                   href={PUBLIC_AGENT_CTA_HREF}
@@ -247,472 +177,265 @@ export default async function LandingPage(): Promise<JSX.Element> {
                     buttonVariants({ variant: "primary", size: "lg" })
                   )}
                 >
-                  Build your verified profile
+                  Create your profile
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
-                  href={PUBLIC_AGENT_TRANSACTIONS_HREF}
+                  href={PUBLIC_AGENT_DIRECTORY_HREF}
                   className={cn(
                     buttonVariants({ variant: "secondary", size: "lg" })
                   )}
                 >
-                  Log your first transactions
+                  Browse verified agents
                 </Link>
                 <Link
-                  href={PUBLIC_COLLABORATION_PILOT_HREF}
+                  href="/sign-in"
                   className={cn(
                     buttonVariants({ variant: "tertiary", size: "lg" })
                   )}
                 >
-                  Join collaboration pilot
+                  Sign in
                 </Link>
               </div>
-
-              <ul
-                className="grid gap-2 text-sm text-text-muted sm:grid-cols-2"
-                aria-label="Pilot trust markers"
-              >
-                {trustStrip.map((item) => (
-                  <li
-                    key={item}
-                    className="rounded-md border border-line bg-surface-0 px-3 py-2 shadow-soft"
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-
-              <p className="text-sm text-text-muted">
-                Homeowner collaboration remains available only as a limited
-                pilot.{" "}
-                <Link
-                  href={PUBLIC_REQUESTS_PILOT_HREF}
-                  className="font-medium text-brand-ink underline"
-                >
-                  Explore limited pilot request areas
-                </Link>
-                .
-              </p>
             </div>
 
-            <Card className="border-line bg-surface-0 shadow-lift">
-              <div className="space-y-5">
+            <div className="public-record space-y-6">
+              <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-                    Pilot snapshot
-                  </p>
-                  <h2 className="text-xl">
-                    Operational proof already visible in the current rollout
+                  <p className="public-kicker">Featured profile</p>
+                  <h2 className="text-2xl">
+                    {featuredProof?.name ?? "Featured profile unlocks after live verification"}
                   </h2>
                   <p className="text-sm text-text-muted">
-                    Public proof stays narrow on purpose: verified profiles
-                    first, structured collaboration second, broader launch
-                    later.
+                    {featuredProof
+                      ? `${featuredProof.role} · ${featuredProof.agency}`
+                      : "A real production-verified profile appears here once admin review is complete"}
                   </p>
                 </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {proofStats.map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="rounded-md border border-line bg-surface-1 px-3 py-3"
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                        {stat.label}
-                      </p>
-                      <p className="mt-1 text-2xl font-semibold text-text-strong">
-                        {stat.value}
-                      </p>
-                      <p className="mt-1 text-xs text-text-muted">
-                        {stat.note}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-md border border-line bg-surface-1 px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Support route
-                  </p>
-                  <p className="mt-1 text-sm text-text-muted">
-                    {site.companyLegalName} is running this{" "}
-                    {site.betaStatusLabel.toLowerCase()} for the{" "}
-                    {site.operatingRegion}. Support and pilot access are
-                    coordinated through{" "}
-                    <a
-                      href={getSupportMailto(site.supportEmail)}
-                      className="font-medium text-brand-ink underline"
-                    >
-                      {site.supportEmail}
-                    </a>{" "}
-                    with a typical response window of{" "}
-                    {site.supportResponseWindow.toLowerCase()}.
-                  </p>
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-line bg-surface-1 text-sm font-semibold text-text-strong">
+                  {featuredProof?.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={featuredProof.image}
+                      alt={featuredProof.name}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  ) : (
+                    (featuredProof?.name ?? "WHOMA")
+                      .split(" ")
+                      .map((part) => part[0])
+                      .join("")
+                      .slice(0, 2)
+                  )}
                 </div>
               </div>
-            </Card>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {featuredProfileFacts.map((item) => (
+                  <div key={item.label} className="space-y-1">
+                    <p className="public-kicker">{item.label}</p>
+                    <p className="text-sm text-text-strong">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="max-w-xl text-sm text-text-muted">
+                {featuredAgent
+                  ? "This is a live production-verified public profile."
+                  : "Live public examples appear here only after a real agent profile clears verification."}
+              </p>
+            </div>
           </div>
         </section>
 
-        <section
-          id="agent-proof-loop"
-          className="border-y border-line bg-surface-0"
-        >
-          <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <div className="mb-8 max-w-3xl space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                Agent proof loop
-              </p>
-              <h2>
-                The pilot is validating a sequence, not just a sign-up event.
-              </h2>
-              <p className="text-sm text-text-muted sm:text-base">
-                This is the agent journey WHOMA needs to prove: profile depth
-                first, verified activity next, then portable reputation and
-                collaboration interest.
-              </p>
+        <section id="platform" className="public-section bg-surface-0">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl space-y-3">
+              <p className="public-kicker">Platform</p>
+              <h2>WHOMA makes professional standing easier to understand.</h2>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {PUBLIC_AGENT_PROOF_LOOP.map((step) => (
-                <Card key={step.title} className="interactive-lift space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base">{step.title}</h3>
-                    <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      {step.status}
-                    </span>
-                  </div>
-                  <p className="text-sm text-text-muted">{step.description}</p>
-                </Card>
+
+            <div className="mt-10 grid gap-8 md:grid-cols-3">
+              {PUBLIC_WHY_AGENTS_JOIN.map((item) => (
+                <div key={item.title} className="space-y-3 border-t border-line pt-4">
+                  <h3>{item.title}</h3>
+                  <p className="text-sm text-text-muted sm:text-base">
+                    {item.description}
+                  </p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section
-          id="what-whoma-is"
-          className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8"
-        >
-          <div className="mb-8 max-w-3xl space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-              What WHOMA is
-            </p>
-            <h2>
-              Not a generic lead-gen portal. A controlled proof layer for
-              identity, reputation, and collaboration.
-            </h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {proofBlocks.map((item) => (
-              <Card key={item.title} className="interactive-lift space-y-2">
-                <h3 className="text-base">{item.title}</h3>
-                <p className="text-sm text-text-muted">{item.body}</p>
-              </Card>
-            ))}
+        <section className="public-section border-y border-line bg-surface-1">
+          <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <p className="public-kicker">Featured profile</p>
+                <h2>A public profile should make professional standing easy to read.</h2>
+                <p className="max-w-2xl text-sm text-text-muted sm:text-base">
+                  WHOMA brings identity, profile depth, and collaboration
+                  readiness into one page that can be shared with confidence.
+                </p>
+              </div>
+
+              <div className="public-record space-y-4">
+                <div className="public-divider" />
+                <p className="text-sm leading-7 text-text-base">
+                  {featuredAgent
+                    ? "This live profile is public because it has been published and admin verified."
+                    : "This space switches from placeholder to live profile once the first production-verified agent is public."}
+                </p>
+                <Link
+                  href={(featuredProof?.href ?? PUBLIC_AGENT_CTA_HREF) as Route}
+                  className={cn(buttonVariants({ variant: "secondary" }))}
+                >
+                  {featuredAgent ? "View this profile" : "Build your verified profile"}
+                </Link>
+              </div>
+            </div>
+
+            <div className="public-record space-y-5" id="featured-profile">
+              <div className="space-y-2">
+                <p className="public-kicker">{PUBLIC_SAMPLE_PROFILE_VIEW.eyebrow}</p>
+                <h3 className="text-2xl">{PUBLIC_SAMPLE_PROFILE_VIEW.title}</h3>
+                <p className="text-sm text-text-muted sm:text-base">
+                  {PUBLIC_SAMPLE_PROFILE_VIEW.summary}
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {PUBLIC_SAMPLE_PROFILE_VIEW.fields.map((field) => (
+                  <div
+                    key={field.label}
+                    className="border-t border-line pt-3"
+                  >
+                    <p className="public-kicker">{field.label}</p>
+                    <p className="mt-1 text-sm text-text-strong">
+                      {field.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
-        <section id="pilot-proof" className="border-y border-line bg-surface-0">
-          <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-14 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-            <Card className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                  {featuredProof.label}
-                </p>
-                <h2 className="text-2xl">
-                  A verified profile is meant to carry the agent, not just the
-                  agency.
-                </h2>
-              </div>
+        <section id="how-it-works" className="public-section bg-surface-0">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl space-y-3">
+              <p className="public-kicker">How it works</p>
+              <h2>Professional detail becomes more useful when it is structured.</h2>
+            </div>
 
-              <div className="rounded-lg border border-line bg-surface-1 p-4">
-                <p className="text-sm font-semibold text-text-strong">
-                  {featuredProof.name}
-                </p>
-                <p className="text-sm text-text-muted">
-                  {featuredProof.role} · {featuredProof.agency}
-                </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Areas
-                    </p>
-                    <p className="mt-1 text-sm text-text-muted">
-                      {featuredProof.serviceAreas.slice(0, 3).join(", ") ||
-                        "Being configured"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Specialties
-                    </p>
-                    <p className="mt-1 text-sm text-text-muted">
-                      {featuredProof.specialties.slice(0, 3).join(", ") ||
-                        "Structured profile depth"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Profile readiness
-                    </p>
-                    <p className="mt-1 text-sm text-text-muted">
-                      {featuredProof.profileCompleteness}% complete
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Historic transactions
-                    </p>
-                    <p className="mt-1 text-sm text-text-muted">
-                      {featuredProof.historicTransactionsLogged}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Live collaborations
-                    </p>
-                    <p className="mt-1 text-sm text-text-muted">
-                      {featuredProof.liveCollaborationListings}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Shortlisted offers
-                    </p>
-                    <p className="mt-1 text-sm text-text-muted">
-                      {featuredProof.shortlistedOffers}
-                    </p>
-                  </div>
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
+              {PUBLIC_PROOF_MODULES.map((item) => (
+                <div key={item.title} className="public-record space-y-3">
+                  <h3>{item.title}</h3>
+                  <p className="text-sm text-text-muted sm:text-base">
+                    {item.description}
+                  </p>
                 </div>
-              </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-              <Link
-                href={featuredProof.href as Route}
-                className={cn(buttonVariants({ variant: "secondary" }))}
-              >
-                {featuredAgent
-                  ? "View featured verified profile"
-                  : "Build your verified profile"}
-              </Link>
-            </Card>
-
-            <Card className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                  {sampleCaseStudy.label}
-                </p>
-                <h2 className="text-2xl">{sampleCaseStudy.title}</h2>
-                <p className="text-sm text-text-muted">
-                  {sampleCaseStudy.summary}
+        <section className="public-section border-y border-line bg-surface-1">
+          <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <p className="public-kicker">{PUBLIC_COLLABORATION_FLOW.eyebrow}</p>
+                <h2>{PUBLIC_COLLABORATION_FLOW.title}</h2>
+                <p className="text-sm text-text-muted sm:text-base">
+                  {PUBLIC_COLLABORATION_FLOW.summary}
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                {sampleCaseStudy.metrics.map((metric) => (
-                  <div
-                    key={metric}
-                    className="rounded-md border border-line bg-surface-1 px-3 py-3 text-sm text-text-muted"
-                  >
-                    {metric}
+              <div className="space-y-5">
+                {PUBLIC_COLLABORATION_FLOW.steps.map((step) => (
+                  <div key={step.title} className="border-t border-line pt-4">
+                    <h3>{step.title}</h3>
+                    <p className="mt-2 text-sm text-text-muted sm:text-base">
+                      {step.description}
+                    </p>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="public-record space-y-5">
+              <div className="space-y-2">
+                <p className="public-kicker">{PUBLIC_SAMPLE_COMPARISON.eyebrow}</p>
+                <h3 className="text-2xl">{PUBLIC_SAMPLE_COMPARISON.title}</h3>
+                <p className="text-sm text-text-muted sm:text-base">
+                  {PUBLIC_SAMPLE_COMPARISON.summary}
+                </p>
               </div>
 
               <div className="space-y-3">
-                {sampleCaseStudy.timeline.map((item, index) => (
+                {PUBLIC_SAMPLE_COMPARISON.offers.map((offer) => (
                   <div
-                    key={item}
-                    className="flex items-start gap-3 rounded-md border border-line bg-surface-1 px-3 py-3"
+                    key={offer.agent}
+                    className="rounded-lg border border-line bg-surface-0 px-4 py-4"
                   >
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold text-white">
-                      {index + 1}
-                    </span>
-                    <p className="text-sm text-text-muted">{item}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-text-strong">
+                          {offer.agent}
+                        </p>
+                        <p className="mt-1 text-sm text-text-muted">
+                          {offer.fee} · {offer.timeline}
+                        </p>
+                      </div>
+                      <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                        {offer.badge}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
-            </Card>
-          </div>
-        </section>
-
-        <section
-          id="interaction-demo"
-          className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8"
-        >
-          <div className="mb-8 max-w-3xl space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-              {PUBLIC_SAMPLE_COMPARISON.eyebrow}
-            </p>
-            <h2>{PUBLIC_SAMPLE_COMPARISON.title}</h2>
-            <p className="text-sm text-text-muted sm:text-base">
-              {PUBLIC_SAMPLE_COMPARISON.summary}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-line bg-surface-0 p-5 shadow-lift sm:p-6">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                  Interaction preview
-                </p>
-                <h3 className="text-lg font-semibold text-text-strong">
-                  Instruction → structured proposals → shortlist → messaging
-                </h3>
-              </div>
-              <span className="rounded-full border border-line bg-surface-1 px-3 py-1 text-xs font-medium text-text-muted">
-                Controlled pilot flow
-              </span>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[0.88fr_1.12fr_0.8fr]">
-              <div className="rounded-xl border border-line bg-surface-1 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Step 1
-                </p>
-                <h4 className="mt-2 text-base font-semibold text-text-strong">
-                  Seller brief goes live
-                </h4>
-                <p className="mt-1 text-sm text-text-muted">
-                  London flat · 24-hour response window · accompanied viewings
-                  required
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-text-muted">
-                  <li className="rounded-md border border-line bg-surface-0 px-3 py-2">
-                    Must-have: accompanied viewings
-                  </li>
-                  <li className="rounded-md border border-line bg-surface-0 px-3 py-2">
-                    Timeline goal: ASAP
-                  </li>
-                  <li className="rounded-md border border-line bg-surface-0 px-3 py-2">
-                    Status: LIVE
-                  </li>
-                </ul>
-              </div>
-
-              <div className="rounded-xl border border-line bg-surface-1 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Step 2
-                    </p>
-                    <h4 className="mt-2 text-base font-semibold text-text-strong">
-                      Proposals stay comparable
-                    </h4>
-                  </div>
-                  <span className="bg-brand-accent/10 rounded-full px-3 py-1 text-xs font-medium text-brand-ink">
-                    3 structured responses
-                  </span>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {PUBLIC_SAMPLE_COMPARISON.offers.map((offer) => (
-                    <div
-                      key={offer.agent}
-                      className="rounded-md border border-line bg-surface-0 px-3 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-text-strong">
-                          {offer.agent}
-                        </p>
-                        <span className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted">
-                          {offer.badge}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-text-muted">
-                        {offer.fee} · {offer.timeline}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-line bg-surface-1 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Step 3
-                </p>
-                <h4 className="mt-2 text-base font-semibold text-text-strong">
-                  Shortlist unlocks collaboration
-                </h4>
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-md border border-line bg-surface-0 px-3 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                      Thread state
-                    </p>
-                    <p className="mt-1 text-sm text-text-strong">
-                      LOCKED → OPEN
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-line bg-surface-0 px-3 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                      First useful message
-                    </p>
-                    <p className="mt-1 text-sm text-text-muted">
-                      “Can you confirm weekend viewing availability and your
-                      pricing recommendation?”
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
 
-        <section className="border-y border-line bg-surface-0">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                Limited collaboration pilot
-              </p>
-              <h2 className="text-2xl">
-                Homeowner demand capture stays tightly controlled while the
-                proof layer matures.
-              </h2>
-              <p className="mt-1 max-w-2xl text-sm text-text-muted sm:text-base">
-                Public homeowner collaboration is not the lead story at this
-                stage. Pilot access is coordinated manually so the identity and
-                reputation layer can stay clear and trustworthy.
+        <section className="public-section bg-surface-0">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
+            <div className="max-w-2xl space-y-3">
+              <p className="public-kicker">Seller access</p>
+              <h2>Seller access stays selective so quality stays high.</h2>
+              <p className="text-sm text-text-muted sm:text-base">
+                WHOMA stays centred on agent quality, profile depth, and
+                clearer transaction visibility. {sellerAccessNote}
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href={PUBLIC_COLLABORATION_PILOT_HREF}
-                className={cn(buttonVariants({ variant: "secondary" }))}
-              >
-                Join collaboration pilot
-              </Link>
-              <a
-                href={getSupportMailto(site.supportEmail)}
-                className={cn(buttonVariants({ variant: "tertiary" }))}
-              >
-                Contact pilot team
-              </a>
-            </div>
+            <Link
+              href={PUBLIC_COLLABORATION_PILOT_HREF}
+              className={cn(buttonVariants({ variant: "secondary" }))}
+            >
+              Request seller access
+            </Link>
           </div>
         </section>
 
-        <section className="bg-surface-0">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-            <div>
-              <h2 className="text-2xl">
-                Ready to build your verified WHOMA profile?
-              </h2>
-              <p className="mt-1 text-sm text-text-muted sm:text-base">
-                Start with business email verification, publish your structured
-                profile, then bring real collaboration proof into the record.
+        <section className="public-section border-t border-line bg-surface-1">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
+            <div className="max-w-2xl space-y-3">
+              <p className="public-kicker">Support</p>
+              <h2>Questions about profiles, access, or collaboration?</h2>
+              <p className="text-sm text-text-muted sm:text-base">
+                Email {site.supportEmail} and we&apos;ll point you in the right
+                direction. Typical response window:{" "}
+                {site.supportResponseWindow.toLowerCase()}.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href={PUBLIC_AGENT_CTA_HREF}
-                className={cn(buttonVariants({ variant: "primary" }))}
-              >
-                Build your verified profile
-              </Link>
-              <Link
-                href={PUBLIC_AGENT_TRANSACTIONS_HREF}
-                className={cn(buttonVariants({ variant: "secondary" }))}
-              >
-                Log your first transactions
-              </Link>
-            </div>
+            <a
+              href={getSupportMailto(site.supportEmail)}
+              className={cn(buttonVariants({ variant: "primary" }))}
+            >
+              Contact support
+            </a>
           </div>
         </section>
       </main>

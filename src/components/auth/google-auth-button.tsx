@@ -77,7 +77,7 @@ export function GoogleAuthButton({
   uxMode = "public",
   allowPreviewAccess = false,
   betaSupportEmail,
-  betaMessage = "Google sign-in is being opened in stages. For now, WHOMA is inviting users into the public beta manually.",
+  betaMessage = "Access is currently issued by invitation. If your account is already approved, continue with Google. For access queries, contact support.",
   betaCtaHref,
   betaCtaLabel,
   nextParam = null,
@@ -108,7 +108,7 @@ export function GoogleAuthButton({
     if (response?.error) {
       setSignInError(
         getAuthErrorMessage(response.error) ??
-          "We could not complete sign-in. Try again or contact the pilot team."
+          "We could not complete sign-in. Try again or contact support."
       );
       setPendingAction(null);
       return;
@@ -122,7 +122,7 @@ export function GoogleAuthButton({
     }
 
     setSignInError(
-      "We could not complete sign-in. Try again or contact the pilot team."
+      "We could not complete sign-in. Try again or contact support."
     );
     setPendingAction(null);
   }
@@ -209,7 +209,7 @@ export function GoogleAuthButton({
 
         <div className="rounded-md border border-line bg-surface-1 p-4 text-left">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-text-strong">Pilot access</p>
+            <p className="text-sm font-medium text-text-strong">Access</p>
             <p className="text-sm text-text-muted">{betaMessage}</p>
           </div>
 

@@ -1,25 +1,26 @@
 export const designTokens = {
   color: {
-    brandInk: "#1C1C3A",
-    brandAccent: "#02A79C",
-    surface0: "#FFFFFF",
-    surface1: "#F7F7FA",
-    surface2: "#EFEFF4",
-    surfaceInverse: "#16162E",
-    line: "#D8D9E2",
-    textStrong: "#191A27",
-    textBase: "#2C2D3E",
-    textMuted: "#666A7A",
-    textInverse: "#F7F8FD",
-    success: "#197B4C",
-    warning: "#A06A00",
-    danger: "#A12828"
+    brandInk: "#191713",
+    brandAccent: "#1F5C58",
+    brandBrass: "#A8844A",
+    surface0: "#FBF8F2",
+    surface1: "#F6F1E8",
+    surface2: "#EFE7DA",
+    surfaceInverse: "#211D18",
+    line: "#D9D0C2",
+    textStrong: "#191713",
+    textBase: "#2B2722",
+    textMuted: "#6B655D",
+    textInverse: "#F7F1E7",
+    success: "#2B6B46",
+    warning: "#996B2C",
+    danger: "#9F3C31"
   },
   radius: {
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 20
+    sm: 6,
+    md: 10,
+    lg: 14,
+    xl: 18
   },
   spacing: {
     1: 4,
@@ -31,18 +32,22 @@ export const designTokens = {
     8: 32,
     10: 40,
     12: 48,
-    16: 64
+    16: 64,
+    20: 80,
+    24: 96,
+    28: 112
   },
   shadow: {
-    soft: "0 1px 3px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.04)",
-    lift: "0 2px 10px rgba(17, 24, 39, 0.08), 0 20px 40px rgba(17, 24, 39, 0.07)"
+    soft: "0 1px 2px rgba(25, 23, 19, 0.05), 0 8px 20px rgba(25, 23, 19, 0.04)",
+    lift: "0 2px 6px rgba(25, 23, 19, 0.06), 0 18px 34px rgba(25, 23, 19, 0.05)"
   },
   typeScale: {
-    h1: { sizeRem: 2.25, lineHeight: 1.1, weight: 600 },
-    h2: { sizeRem: 1.75, lineHeight: 1.15, weight: 600 },
-    h3: { sizeRem: 1.25, lineHeight: 1.2, weight: 600 },
-    body: { sizeRem: 1, lineHeight: 1.5, weight: 400 },
-    small: { sizeRem: 0.875, lineHeight: 1.4, weight: 400 },
-    caption: { sizeRem: 0.75, lineHeight: 1.3, weight: 500 }
+    display: { sizeRem: 3.5, lineHeight: 0.98, weight: 500 },
+    h1: { sizeRem: 2.75, lineHeight: 1.02, weight: 500 },
+    h2: { sizeRem: 2, lineHeight: 1.08, weight: 500 },
+    h3: { sizeRem: 1.3, lineHeight: 1.15, weight: 600 },
+    body: { sizeRem: 1, lineHeight: 1.65, weight: 400 },
+    small: { sizeRem: 0.875, lineHeight: 1.55, weight: 400 },
+    caption: { sizeRem: 0.75, lineHeight: 1.35, weight: 600 }
   }
 } as const;

@@ -10,14 +10,10 @@ import { Card } from "@/components/ui/card";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
-  PUBLIC_AGENT_DIRECTORY_HREF,
-  PUBLIC_REQUESTS_PILOT_HREF
+  PUBLIC_AGENT_DIRECTORY_HREF
 } from "@/lib/public-site";
 import { cn } from "@/lib/utils";
-import {
-  getPublicAgentProfileBySlug,
-  getPublicAgentTrustSignals
-} from "@/server/agent-profile/service";
+import { getPublicAgentProfileBySlug } from "@/server/agent-profile/service";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -35,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const displayName = profile.user.name ?? "Estate agent";
   const title = `${displayName} | Verified WHOMA Profile`;
-  const description = `${displayName} is publicly visible on WHOMA because the profile is published and admin verified. Review service areas, specialties, and trust markers.`;
+  const description = `${displayName} has a published WHOMA profile with service areas, specialties, and professional details available to review.`;
 
   return {
     title,
@@ -52,50 +48,13 @@ const londonDateFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/London"
 });
 
-function formatResponseTime(
-  minutes: number | null,
-  source: "measured" | "estimated" | "unavailable"
-): string {
-  if (!minutes || minutes <= 0) {
-    return "Building baseline";
-  }
-
-  if (minutes < 60) {
-    return source === "estimated" ? `~${minutes} mins` : `${minutes} mins`;
-  }
-
-  const roundedHours = Math.round((minutes / 60) * 10) / 10;
-  return source === "estimated" ? `~${roundedHours} hrs` : `${roundedHours} hrs`;
-}
-
-function formatSellerFitSignal(
-  rating: number | null,
-  source: "measured" | "estimated" | "unavailable"
-): string {
-  if (!rating || rating <= 0) {
-    return "Building baseline";
-  }
-
-  const formatted = `${new Intl.NumberFormat("en-GB", {
-    maximumFractionDigits: 1
-  }).format(rating)} / 5`;
-
-  if (source === "estimated") {
-    return `${formatted} (estimated)`;
-  }
-
-  return formatted;
-}
-
 function buildPublicProofBullets(profile: {
   yearsExperience: number | null;
   serviceAreas: string[];
   specialties: string[];
-  responseTimeMinutes: number | null;
-  responseTimeSource: "measured" | "estimated" | "unavailable";
   achievements: string[];
-  historicTransactionsLogged: number;
-  liveCollaborationListings: number;
+  publishedAt: Date | null;
+  profileCompleteness: number;
 }): string[] {
   const bullets: string[] = [];
 
@@ -104,41 +63,36 @@ function buildPublicProofBullets(profile: {
   }
 
   if (profile.serviceAreas.length > 0) {
-    bullets.push(`Active across ${profile.serviceAreas.slice(0, 3).join(", ")}.`);
+    bullets.push(`Covers ${profile.serviceAreas.slice(0, 3).join(", ")}.`);
   }
 
   if (profile.specialties.length > 0) {
     bullets.push(
-      `Structured specialties include ${profile.specialties.slice(0, 2).join(", ")}.`
+      `Specialties include ${profile.specialties.slice(0, 2).join(", ")}.`
     );
   }
 
-  if (profile.responseTimeMinutes !== null && profile.responseTimeMinutes > 0) {
+  if (profile.publishedAt) {
     bullets.push(
-      `Typical response speed currently ${profile.responseTimeSource === "estimated" ? "estimated at" : "tracked at"} ${formatResponseTime(
-        profile.responseTimeMinutes,
-        profile.responseTimeSource
-      )}.`
+      `Published on WHOMA since ${londonDateFormatter.format(profile.publishedAt)}.`
     );
-  }
-
-  if (profile.historicTransactionsLogged > 0) {
-    bullets.push(`${profile.historicTransactionsLogged} historic transaction${profile.historicTransactionsLogged === 1 ? "" : "s"} logged.`);
-  }
-
-  if (profile.liveCollaborationListings > 0) {
-    bullets.push(`${profile.liveCollaborationListings} live collaboration listing${profile.liveCollaborationListings === 1 ? "" : "s"} currently active.`);
   }
 
   if (profile.achievements.length > 0) {
     bullets.push(`Notable proof point: ${profile.achievements[0]}.`);
   }
 
+  if (profile.profileCompleteness > 0) {
+    bullets.push(
+      `Profile readiness is currently ${profile.profileCompleteness}% complete.`
+    );
+  }
+
   if (bullets.length === 0) {
     return [
-      "Published and admin verified on WHOMA.",
-      "Structured service-area and specialty information is visible.",
-      "Public visibility is restricted to trusted pilot profiles."
+      "Published on WHOMA after profile review.",
+      "Service areas and specialties are visible.",
+      "Directory visibility is reserved for approved profiles."
     ];
   }
 
@@ -156,26 +110,21 @@ export default async function PublicAgentProfilePage({
     notFound();
   }
 
-  const trustSignals = await getPublicAgentTrustSignals({
-    userId: profile.userId,
-    profileCompleteness: profile.profileCompleteness,
-    verificationStatus: profile.verificationStatus,
-    responseTimeMinutes: profile.responseTimeMinutes,
-    ratingAggregate: profile.ratingAggregate
-  });
-
   const proofBullets = buildPublicProofBullets({
     yearsExperience: profile.yearsExperience,
     serviceAreas: profile.serviceAreas,
     specialties: profile.specialties,
-    responseTimeMinutes: trustSignals.responseTimeMinutes,
-    responseTimeSource: trustSignals.responseTimeSource,
     achievements: profile.achievements,
-    historicTransactionsLogged: trustSignals.historicTransactionsLogged,
-    liveCollaborationListings: trustSignals.liveCollaborationListings
+    publishedAt: profile.publishedAt,
+    profileCompleteness: profile.profileCompleteness
   });
 
   const proofStats = [
+    {
+      label: "Verification",
+      value: "Admin verified",
+      note: "Required before public directory visibility"
+    },
     profile.yearsExperience !== null
       ? {
           label: "Experience",
@@ -184,40 +133,14 @@ export default async function PublicAgentProfilePage({
         }
       : null,
     {
-      label: "Response speed",
-      value: formatResponseTime(
-        trustSignals.responseTimeMinutes,
-        trustSignals.responseTimeSource
-      ),
-      note:
-        trustSignals.responseTimeSource === "measured"
-          ? "Measured from platform activity"
-          : trustSignals.responseTimeSource === "estimated"
-            ? "Estimated from proposal timing"
-            : "Appears after enough platform activity"
+      label: "Service areas",
+      value: String(profile.serviceAreas.length),
+      note: "Structured coverage published on profile"
     },
     {
-      label: "Seller fit signal",
-      value: formatSellerFitSignal(
-        trustSignals.sellerFitSignal,
-        trustSignals.sellerFitSource
-      ),
-      note:
-        trustSignals.sellerFitSource === "measured"
-          ? "Measured from live ratings"
-          : trustSignals.sellerFitSource === "estimated"
-            ? "Estimated from trust profile + activity"
-            : "Appears after enough platform activity"
-    },
-    {
-      label: "Historic transactions",
-      value: String(trustSignals.historicTransactionsLogged),
-      note: "Accepted offers logged on WHOMA"
-    },
-    {
-      label: "Live collaborations",
-      value: String(trustSignals.liveCollaborationListings),
-      note: "Active offers in LIVE/SHORTLIST requests"
+      label: "Specialties",
+      value: String(profile.specialties.length),
+      note: "Structured specialties published on profile"
     },
     {
       label: "Profile quality",
@@ -249,7 +172,7 @@ export default async function PublicAgentProfilePage({
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your verified profile
+              Create your profile
             </Link>
           </div>
         </div>
@@ -260,7 +183,7 @@ export default async function PublicAgentProfilePage({
           <Card className="space-y-4">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                Verified estate agent profile
+                Verified WHOMA profile
               </p>
               <h1 className="text-3xl font-semibold text-text-strong">
                 {profile.user.name ?? "Estate agent"}
@@ -272,8 +195,9 @@ export default async function PublicAgentProfilePage({
               <div className="flex flex-wrap gap-2">
                 <Badge variant="success">Verified profile</Badge>
                 <Badge variant="accent">
-                  {profile.serviceAreas.length} service area
+                  {profile.serviceAreas.length} area
                   {profile.serviceAreas.length === 1 ? "" : "s"}
+                  {" "}covered
                 </Badge>
                 <Badge variant="default">
                   {profile.specialties.length} specialt
@@ -308,20 +232,14 @@ export default async function PublicAgentProfilePage({
                 href={PUBLIC_AGENT_CTA_HREF}
                 className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
               >
-                Start your own profile
-              </Link>
-              <Link
-                href={PUBLIC_REQUESTS_PILOT_HREF}
-                className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
-              >
-                View pilot request areas
+                Create your profile
               </Link>
             </div>
           </Card>
 
           <Card className="space-y-3">
             <h2 className="text-lg font-semibold text-text-strong">
-              Why this profile is public
+              Profile standards
             </h2>
             <ul className="space-y-2 text-sm text-text-muted">
               {proofBullets.map((item) => (
@@ -334,7 +252,8 @@ export default async function PublicAgentProfilePage({
               ))}
             </ul>
             <p className="text-xs text-text-muted">
-              WHOMA only shows profiles that are both published and admin verified.
+              WHOMA only publishes profiles once they are approved for
+              directory visibility.
             </p>
           </Card>
         </div>
@@ -355,8 +274,6 @@ export default async function PublicAgentProfilePage({
               <li>Verification: Admin verified</li>
               <li>Work email: {profile.workEmail ?? "Not listed"}</li>
               <li>Phone: {profile.phone ?? "Not listed"}</li>
-              <li>Total offers logged: {trustSignals.totalOffersLogged}</li>
-              <li>Shortlisted offers: {trustSignals.shortlistedOffers}</li>
               <li>
                 Last profile update:{" "}
                 {profile.updatedAt
@@ -444,20 +361,21 @@ export default async function PublicAgentProfilePage({
             Want a WHOMA profile like this?
           </h2>
           <p className="text-sm text-text-muted">
-            Start with work-email verification, complete your structured profile, and publish it for admin review.
+            Start with work-email verification, complete your profile, and
+            publish it for review.
           </p>
           <div className="flex flex-wrap gap-2">
             <Link
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your verified profile
+              Create your profile
             </Link>
             <Link
               href={PUBLIC_AGENT_DIRECTORY_HREF}
               className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
             >
-              Browse more verified agents
+              Browse agents
             </Link>
           </div>
         </Card>

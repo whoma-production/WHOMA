@@ -1066,5 +1066,80 @@
       "Add a durable event spine plus explicit behavioural-validation metric definitions and source exclusion.",
       "Model historic and live transaction logging explicitly before expanding public proof claims."
     ]
+  },
+  {
+    "session_id": "2026-04-02-2158-gate1-trust-remediation-pass",
+    "timestamp": "2026-04-02T21:58:00+02:00",
+    "summary": "Executed the first Gate 1 trust pass: hard-disabled preview auth in production code, introduced user data-origin tagging with backfill, excluded synthetic actors from production proof/reporting reads, removed unsupported public trust counters, and retired the scaffolded marketplace detail route.",
+    "files_changed": [
+      "prisma/schema.prisma",
+      "prisma/migrations/20260402124000_gate1_trust_data_origin/migration.sql",
+      "scripts/seed-phase1-pilot-agents.mjs",
+      "scripts/smoke-marketplace-flow.mjs",
+      "src/auth.ts",
+      "src/lib/auth/preview-access.ts",
+      "src/lib/auth/preview-access.test.ts",
+      "src/server/agent-profile/service.ts",
+      "src/server/marketplace/queries.ts",
+      "src/app/page.tsx",
+      "src/lib/public-proof.ts",
+      "src/app/agents/page.tsx",
+      "src/app/agents/[slug]/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/page.tsx",
+      "tests/e2e/phase1-agent-flow.spec.ts",
+      "src/app/[slug]/page.tsx",
+      "src/components/brand/logo.tsx",
+      "src/components/layout/public-footer.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Closed the production preview-auth hole in code immediately rather than preserving a permissive production-like QA path.",
+      "Moved synthetic-actor isolation into first-party schema metadata (`User.dataOrigin`) so public proof/reporting can exclude preview, seed, and test users structurally.",
+      "Removed unsupported heuristic and synthetic proof from public pages instead of relabeling it as if that would make it trustworthy."
+    ],
+    "next_steps": [
+      "Redeploy and verify live public production no longer exposes the preview provider or accepts preview callback auth.",
+      "Complete Gate 1 sign-off with one unrestricted browser-level verification pass against the cleaned public trust surfaces.",
+      "Only after Gate 1 and Gate 2 are signed off, begin the explicit Phase 1 measurement contract work."
+    ]
+  },
+  {
+    "session_id": "2026-04-02-2157-public-brand-reset",
+    "timestamp": "2026-04-02T21:57:00+02:00",
+    "summary": "Shipped the first public brand reset across homepage, shared public scaffolding, entry journeys, and homeowner-pilot surfaces so WHOMA reads as a warmer, profile-first professional product for independent estate agents.",
+    "files_changed": [
+      "src/app/page.tsx",
+      "src/lib/public-proof.ts",
+      "src/app/layout.tsx",
+      "src/app/globals.css",
+      "src/lib/tokens.ts",
+      "src/lib/public-site.ts",
+      "src/components/layout/public-footer.tsx",
+      "src/components/brand/logo.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/app/agents/page.tsx",
+      "src/app/agents/[slug]/page.tsx",
+      "src/app/requests/page.tsx",
+      "src/app/requests/[postcodeDistrict]/page.tsx",
+      "src/app/[slug]/page.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Moved the homepage from a card-heavy pilot explainer to a profile-led editorial narrative so the first viewport immediately signals a premium agent product.",
+      "Updated shared public strings, footer, and logo scaffolding in the same pass so old internal thesis language could not leak back into the header/footer.",
+      "Kept homeowner request routes live but demoted their language so they now read as a secondary invited collaboration layer rather than the main category story."
+    ],
+    "next_steps": [
+      "Review the new public homepage and request surfaces in-browser on desktop and mobile for final spacing and image-treatment adjustments.",
+      "Carry the same brand system through any remaining public profile/detail pages that still feel utility-first.",
+      "Decide whether authenticated app chrome should inherit more of the new visual language in a follow-up pass."
+    ]
   }
 ]

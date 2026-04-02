@@ -49,10 +49,10 @@ const staticPageSlugs: readonly StaticPageSlug[] = [
 ] as const;
 const sitemapPublicPages: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/", label: "Home" },
+  { href: "/agents", label: "Agents" },
   { href: "/sign-in", label: "Sign in" },
-  { href: "/sign-up", label: "Sign up" },
-  { href: "/agents", label: "Verified agent profiles" },
-  { href: "/requests", label: "Limited collaboration pilot" }
+  { href: "/sign-up?role=AGENT", label: "Create profile" },
+  { href: "/contact", label: "Contact" }
 ];
 
 function getOperationalProcessors(): OperationalProcessor[] {
@@ -106,26 +106,27 @@ function getLegalContent(
   return {
     privacy: {
       title: "Privacy Policy",
-      intro: `${site.companyLegalName} operates WHOMA as a ${site.betaStatusLabel.toLowerCase()} in the ${site.operatingRegion}. This page explains what pilot data is handled, why it is handled, and which operational providers are involved.`,
+      intro:
+        "This page explains what WHOMA collects, why it is needed, and which service providers support the service.",
       sections: [
         {
           heading: "What data WHOMA handles",
           paragraphs: [
-            "We handle account identity details, role selection, business work-email verification data, public profile information, and support or complaints correspondence needed to operate the pilot responsibly.",
-            "Where the collaboration pilot is active, we also handle homeowner-request data, structured proposals, shortlist or award decisions, and message-thread records tied to the relevant participants."
+            "We handle account identity details, role selection, work-email verification data, public profile information, and support or complaints correspondence needed to operate WHOMA.",
+            "Where seller access is active, we also handle instruction data, structured offers, shortlist or award decisions, and message records tied to the relevant participants."
           ]
         },
         {
           heading: "Why it is handled",
           paragraphs: [
-            "Pilot data is used to verify identity, publish and review professional profiles, protect the product from abuse, operate the structured collaboration flow, and respond to support, privacy, or complaints requests.",
-            "WHOMA prefers low-PII operational metrics and audit trails over broad behavioural profiling."
+            "Data is used to verify identity, publish and review professional profiles, protect the service from misuse, operate structured collaboration, and respond to support, privacy, or complaints requests.",
+            "WHOMA prefers limited operational metrics and audit trails over broad behavioural profiling."
           ]
         },
         {
           heading: "Sharing, retention, and contact",
           paragraphs: [
-            "We do not sell personal data. Operational providers only receive the minimum information required to run authentication, hosting, storage, email verification, or optional AI resume processing.",
+            "We do not sell personal data. Operational providers only receive the minimum information required to run authentication, hosting, storage, work-email verification, or optional resume processing.",
             `Privacy requests should be sent to ${site.supportEmail}. Include the account email, profile slug, or request reference so the team can locate the relevant record quickly.`
           ]
         }
@@ -134,7 +135,7 @@ function getLegalContent(
     cookies: {
       title: "Cookies Policy",
       intro:
-        "WHOMA currently uses cookies and similar storage only where needed for secure sign-in, session continuity, and product controls that keep pilot access reliable.",
+        "WHOMA uses cookies and similar storage only where needed for secure sign-in, session continuity, and consent preferences.",
       sections: [
         {
           heading: "Essential cookies",
@@ -146,8 +147,8 @@ function getLegalContent(
         {
           heading: "Non-essential cookies",
           paragraphs: [
-            "WHOMA does not currently run broad public marketing analytics as part of this pilot. If non-essential analytics are added later, this page and the consent controls will be updated before rollout.",
-            "Until then, the consent panel is limited to essential-cookie clarity and future preference readiness."
+            "WHOMA does not currently use broad public marketing analytics. If non-essential analytics are added, this page and the consent controls will be updated first.",
+            "Until then, the consent panel explains essential cookies only."
           ]
         },
         {
@@ -161,12 +162,13 @@ function getLegalContent(
     terms: {
       title: "Terms of Use",
       intro:
-        "These terms describe the current product boundary: WHOMA is running a controlled pilot for verified identity, reputation, and structured collaboration infrastructure.",
+        "These terms govern use of WHOMA's profile, verification, and collaboration services.",
       sections: [
         {
           heading: "Current service scope",
           paragraphs: [
-            "WHOMA currently leads with verified estate-agent identity, structured public profiles, and admin-reviewed trust. Collaboration tooling remains a limited pilot rather than a broad public comparison marketplace.",
+            "WHOMA centres on verified estate-agent identity, structured public profiles, and structured collaboration.",
+            "Seller access is selective and controlled. WHOMA is not a public comparison portal or open-listing marketplace.",
             "WHOMA is not acting as an estate agent, broker, valuation provider, conveyancer, or legal adviser unless a separate signed service agreement states otherwise."
           ]
         },
@@ -174,22 +176,22 @@ function getLegalContent(
           heading: "User responsibilities",
           paragraphs: [
             "Users must provide accurate information, avoid impersonation or misuse of another party's data, and only submit profile or collaboration information they are entitled to share.",
-            "Agents are responsible for the truthfulness of profile claims and structured proposal content submitted through the pilot."
+            "Agents are responsible for the truthfulness of profile claims and structured offer content submitted through WHOMA."
           ]
         },
         {
           heading: "Platform limits",
           paragraphs: [
-            "WHOMA does not process transaction payments in-platform during this stage, and pilot visibility or verification markers should not be treated as guarantees of outcome.",
+            "WHOMA does not currently process transaction payments in-platform, and verification markers should not be treated as guarantees of outcome.",
             "Independent due diligence still matters before instructing, shortlisting, awarding, or transacting with another party."
           ]
         }
       ]
     },
     complaints: {
-      title: "Complaints and Support",
+      title: "Complaints",
       intro:
-        "WHOMA handles pilot complaints through a named support route so verification, access, data, and collaboration issues can be reviewed against the actual operational record.",
+        "This page explains how to raise a complaint and how WHOMA reviews service issues.",
       sections: [
         {
           heading: "How to raise a complaint",
@@ -215,29 +217,29 @@ function getLegalContent(
       ]
     },
     contact: {
-      title: "Contact and Pilot Access",
+      title: "Contact",
       intro:
-        "This is the operational contact route for pilot access, verification questions, profile support, privacy queries, complaints, and partnership conversations.",
+        "Contact WHOMA for support, profile questions, partnerships, or seller access enquiries.",
       sections: [
         {
-          heading: "Primary support route",
+          heading: "Support",
           paragraphs: [
-            `Email ${site.supportEmail}. This inbox is the named support channel for WHOMA's current pilot.`,
+            `Email ${site.supportEmail}.`,
             `Typical response window: ${site.supportResponseWindow}. ${site.supportCoverage}`
           ]
         },
         {
           heading: "What to include",
           paragraphs: [
-            "Include your account email, public profile slug, or request reference where relevant so the team can locate the right operational record quickly.",
-            "Please also state whether the enquiry relates to agent onboarding, verification, profile visibility, collaboration pilot access, privacy, or partnerships."
+            "Include your account email, public profile slug, or request reference where relevant so the team can locate the right record quickly.",
+            "Please also state whether the enquiry relates to agent onboarding, verification, profile visibility, seller access, privacy, or partnerships."
           ]
         },
         {
-          heading: "Pilot operating status",
+          heading: "Operating status",
           paragraphs: [
-            `${site.companyLegalName} is currently running WHOMA as a ${site.betaStatusLabel.toLowerCase()} in the ${site.operatingRegion}.`,
-            "Public access, provider configuration, and rollout boundaries may evolve as the pilot matures, but support continues through the same monitored route."
+            `${site.companyLegalName} operates WHOMA in the ${site.operatingRegion}.`,
+            "Some services are issued by invitation while WHOMA maintains review and support standards through the same monitored route."
           ]
         }
       ]
@@ -314,7 +316,7 @@ export default async function StaticPage({
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <Logo subtitle={site.logoSubtitle} />
           <Link
-            href="/"
+            href={"/" as Route}
             className="text-sm font-medium text-text-muted transition-colors hover:text-brand-ink"
           >
             Back to home
@@ -331,8 +333,8 @@ export default async function StaticPage({
             <h1>{getPageTitle(slug, legalContent)}</h1>
             {slug === "sitemap" ? (
               <p className="text-sm text-text-muted">
-                HTML sitemap for the primary public pages plus the limited
-                collaboration pilot routes.
+                HTML sitemap for WHOMA's public pages and selective seller
+                access routes.
               </p>
             ) : (
               <>
@@ -382,15 +384,14 @@ export default async function StaticPage({
 
               <Card className="space-y-3 bg-surface-1 md:col-span-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-lg">Live pilot request routes</h2>
+                  <h2 className="text-lg">Seller access areas</h2>
                   <span className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted">
                     {locationSummaries.length} areas
                   </span>
                 </div>
                 {locationSummaries.length === 0 ? (
                   <p className="text-sm text-text-muted">
-                    No live request areas are currently listed. That is expected
-                    when the collaboration pilot is kept narrow.
+                    No seller-access areas are currently listed.
                   </p>
                 ) : (
                   <ul className="grid gap-2 text-sm text-text-muted sm:grid-cols-2">
@@ -406,7 +407,7 @@ export default async function StaticPage({
                           className="transition-colors hover:text-brand-ink"
                         >
                           {location.city} · {location.postcodeDistrict} (
-                          {location.instructionsCount} live pilot request
+                          {location.instructionsCount} open instruction
                           {location.instructionsCount === 1 ? "" : "s"})
                         </Link>
                       </li>
@@ -421,7 +422,7 @@ export default async function StaticPage({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      Pilot status
+                      Access
                     </p>
                     <p className="text-sm font-medium text-text-strong">
                       {site.betaStatusLabel}
@@ -494,12 +495,10 @@ export default async function StaticPage({
 
               <Card className="space-y-3 bg-surface-1">
                 <div className="space-y-1">
-                  <h2 className="text-lg">
-                    Current providers and operational stack
-                  </h2>
+                  <h2 className="text-lg">Key service providers</h2>
                   <p className="text-sm text-text-muted">
-                    These are the main providers WHOMA uses or is configured to
-                    use for the current pilot.
+                    These providers support authentication, hosting, storage,
+                    email verification, and related operations.
                   </p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">

@@ -59,7 +59,7 @@ export function getAgentActivationChecklist(
       key: "workEmailVerified",
       title: "Work email verified",
       description:
-        "Use your business inbox and confirm the 6-digit code to unlock the rest of onboarding.",
+        "Use your business inbox and confirm the 6-digit code to continue.",
       done: state.workEmailVerified,
       current: false
     },
@@ -67,7 +67,7 @@ export function getAgentActivationChecklist(
       key: "onboardingCompleted",
       title: "Onboarding completed",
       description:
-        "Save your core WHOMA profile details so your professional baseline is stored server-side.",
+        "Save your core profile details so the essentials are in place.",
       done: state.onboardingCompleted,
       current: false
     },
@@ -82,7 +82,7 @@ export function getAgentActivationChecklist(
       key: "profilePublished",
       title: "Profile published",
       description:
-        "Publish your profile so it becomes eligible for public visibility once verification is approved.",
+        "Publish your profile so it becomes eligible for public visibility.",
       done: state.profilePublished,
       current: false
     },
@@ -90,7 +90,7 @@ export function getAgentActivationChecklist(
       key: "adminVerified",
       title: "Admin verified",
       description:
-        "A manual trust review unlocks your public directory visibility and verification badge.",
+        "Profile review unlocks directory visibility and the verification mark.",
       done: state.adminVerified,
       current: false
     }

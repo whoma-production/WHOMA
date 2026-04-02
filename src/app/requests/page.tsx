@@ -23,9 +23,9 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "WHOMA | Controlled homeowner collaboration pilot",
+  title: "WHOMA | Open instructions",
   description:
-    "Secondary Phase 1 pilot surface for limited homeowner collaboration while WHOMA validates verified estate-agent identity first.",
+    "Selective seller access and open instruction areas on WHOMA.",
   robots: {
     index: false,
     follow: false
@@ -55,7 +55,7 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your verified profile
+              Create your profile
             </Link>
           </div>
         </div>
@@ -64,20 +64,20 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
       <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
         <section className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-            Controlled homeowner pilot
+            Seller access
           </p>
-          <h1>Homeowner collaboration remains a secondary Phase 1 pilot.</h1>
+          <h1>Open instructions appear selectively.</h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            These pages stay live for controlled testing, but WHOMA&apos;s
-            public lead story remains verified estate agent identity, profile
-            quality, and admin-reviewed trust.
+            WHOMA keeps seller access tightly controlled so agent quality and
+            transaction clarity stay high. This page shows where invited
+            instructions are currently visible.
           </p>
         </section>
 
         <Card className="space-y-3 bg-surface-0">
           <p className="text-sm text-text-muted">
-            If you are evaluating WHOMA publicly, start with the verified agent
-            directory. Use this request view only as supporting pilot evidence.
+            Start with verified agent profiles, then use these instruction areas
+            as supporting context once access is in place.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -89,10 +89,10 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
               Browse verified agents
             </Link>
             <Link
-              href={PUBLIC_AGENT_CTA_HREF}
+              href={PUBLIC_COLLABORATION_PILOT_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your verified profile
+              Request seller access
             </Link>
           </div>
         </Card>
@@ -102,12 +102,11 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
             <Card className="border-dashed bg-surface-0 sm:col-span-2 lg:col-span-3">
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold text-text-strong">
-                  No pilot requests are live right now
+                  No open instructions are visible right now
                 </h2>
                 <p className="text-sm text-text-muted">
-                  That is expected during the identity-first rollout. Homeowner
-                  collaboration only opens when a brief, a structured response
-                  window, and agent-side proof are all in place.
+                  New instructions appear here only when seller access is open
+                  and moderation is in place.
                 </p>
                 <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
@@ -138,12 +137,12 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    href={PUBLIC_AGENT_CTA_HREF}
+                    href={PUBLIC_COLLABORATION_PILOT_HREF}
                     className={cn(
                       buttonVariants({ variant: "primary", size: "sm" })
                     )}
                   >
-                    Build your verified profile
+                    Request seller access
                   </Link>
                 </div>
               </div>
@@ -162,18 +161,16 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                 </div>
                 <div className="space-y-1 text-sm text-text-muted">
                   <p>
-                    {location.instructionsCount} live pilot request
+                    {location.instructionsCount} open instruction
                     {location.instructionsCount === 1 ? "" : "s"}
                   </p>
-                  <p>
-                    {location.totalProposalsCount} agent responses submitted
-                  </p>
+                  <p>{location.totalProposalsCount} offers submitted</p>
                 </div>
                 <Link
                   href={`/requests/${location.postcodeDistrict}` as Route}
                   className={cn(buttonVariants({ variant: "secondary" }))}
                 >
-                  View pilot requests in {location.postcodeDistrict}
+                  View instructions in {location.postcodeDistrict}
                 </Link>
               </Card>
             ))
@@ -183,16 +180,16 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl">Live pilot requests</h2>
+              <h2 className="text-xl">Current open instructions</h2>
               <p className="text-sm text-text-muted">
-                Secondary proof surface for controlled homeowner-access testing.
+                A selective view of seller access currently open on WHOMA.
               </p>
             </div>
             <Link
               href={PUBLIC_COLLABORATION_PILOT_HREF}
               className={cn(buttonVariants({ variant: "secondary" }))}
             >
-              Join collaboration pilot
+              Request seller access
             </Link>
           </div>
 
@@ -200,12 +197,11 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
             <Card className="border-dashed bg-surface-0">
               <div className="space-y-2">
                 <h3 className="text-base font-semibold text-text-strong">
-                  No open pilot requests to show yet
+                  No open instructions are visible right now
                 </h3>
                 <p className="text-sm text-text-muted">
-                  WHOMA will widen this surface only after the verified-profile
-                  pilot shows strong agent quality and the collaboration rules
-                  continue to hold up.
+                  New instructions appear here only when seller access is open
+                  and moderation is in place.
                 </p>
                 <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
@@ -238,7 +234,7 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                     buttonVariants({ variant: "primary", size: "sm" })
                   )}
                 >
-                  Join collaboration pilot
+                  Request seller access
                 </Link>
               </div>
             </Card>

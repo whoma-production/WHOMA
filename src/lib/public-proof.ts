@@ -1,7 +1,17 @@
-export interface PublicProofStep {
+export interface PublicFeatureItem {
   title: string;
   description: string;
-  status: "Live now" | "Controlled pilot";
+}
+
+export interface PublicJourneyStep {
+  title: string;
+  description: string;
+  status: "Available now" | "Selective access";
+}
+
+export interface PublicProfileField {
+  label: string;
+  value: string;
 }
 
 export interface PublicSampleOffer {
@@ -11,57 +21,126 @@ export interface PublicSampleOffer {
   badge: string;
 }
 
-export const PUBLIC_AGENT_PROOF_LOOP: readonly PublicProofStep[] = [
+export const PUBLIC_WHY_AGENTS_JOIN: readonly PublicFeatureItem[] = [
   {
-    title: "Verify your business email",
+    title: "Stand on your own",
     description:
-      "Start with a named work inbox so identity and profile claims can be anchored to a real professional account.",
-    status: "Live now"
+      "A WHOMA profile makes your own track record, working style, and local strength easier to share."
   },
   {
-    title: "Publish a structured profile",
+    title: "Show substance, not claims",
     description:
-      "Show service areas, specialties, achievements, and a public profile URL you can share outside your agency site.",
-    status: "Live now"
+      "Bring structured professional detail, service areas, and specialties into one public record."
   },
   {
-    title: "Log accepted outcomes",
+    title: "Open better collaboration",
     description:
-      "Accepted offers, shortlisted decisions, and response timing begin to build the historic activity layer on WHOMA.",
-    status: "Live now"
-  },
-  {
-    title: "Appear in live collaboration opportunities",
-    description:
-      "Structured seller requests and proposal workflows create the next proof layer once active collaboration is under way.",
-    status: "Controlled pilot"
-  },
-  {
-    title: "Share your public proof link",
-    description:
-      "Use your verified public profile in pitches, introductions, and pilot conversations as a portable reputation page.",
-    status: "Live now"
-  },
-  {
-    title: "Receive collaboration interest",
-    description:
-      "Direct access remains tightly controlled, but the pilot is designed to turn verified profile depth into real collaboration enquiry.",
-    status: "Controlled pilot"
+      "Use a stronger profile to support introductions, referrals, and invited opportunities."
   }
 ] as const;
 
-export const PUBLIC_SAMPLE_COMPARISON = {
-  eyebrow: "Sample completed comparison",
-  title:
-    "A seller sees three structured offers, shortlists two, and chooses one.",
+export const PUBLIC_PROOF_MODULES: readonly PublicFeatureItem[] = [
+  {
+    title: "Verified identity",
+    description:
+      "A named work email, verified profile details, and a clear public record establish who is behind the profile."
+  },
+  {
+    title: "Profile depth",
+    description:
+      "Structured specialties, service areas, and professional detail make the profile easier to evaluate."
+  },
+  {
+    title: "Public reputation",
+    description:
+      "A shareable profile makes specialisms, service areas, and professional standing easy to read."
+  },
+  {
+    title: "Structured collaboration",
+    description:
+      "When collaboration opens, responses follow a clear format so quality and fit are easier to judge."
+  }
+] as const;
+
+export const PUBLIC_AGENT_JOURNEY: readonly PublicJourneyStep[] = [
+  {
+    title: "Build profile",
+    description:
+      "Create a professional profile with the details someone needs to understand how you work.",
+    status: "Available now"
+  },
+  {
+    title: "Add profile depth",
+    description:
+      "Bring service detail, specialties, and professional context into the record.",
+    status: "Available now"
+  },
+  {
+    title: "Share profile",
+    description:
+      "Use one public page in introductions, referrals, and agent-side conversations.",
+    status: "Available now"
+  },
+  {
+    title: "Receive interest",
+    description:
+      "Open the right collaboration opportunities once a stronger professional record is in place.",
+    status: "Selective access"
+  }
+] as const;
+
+export const PUBLIC_AGENT_PROOF_LOOP = PUBLIC_AGENT_JOURNEY;
+
+export const PUBLIC_SAMPLE_PROFILE_VIEW = {
+  eyebrow: "Sample completed profile",
+  title: "One profile, ready to share",
   summary:
-    "This is the proof loop the public MVP needs to make tangible before scale: structured comparison, shortlist discipline, and one clear collaboration outcome.",
+    "A WHOMA profile should feel useful in a referral, an introduction, or a collaboration conversation before anything else happens.",
+  fields: [
+    { label: "Service areas", value: "London, SW1A, W1" },
+    { label: "Specialties", value: "Local pricing, chain management, viewings" },
+    { label: "Verification", value: "Admin verified" },
+    { label: "Published", value: "Visible on public directory" },
+    { label: "Profile readiness", value: "92% complete" },
+    { label: "Status", value: "Ready to share" }
+  ] satisfies readonly PublicProfileField[]
+} as const;
+
+export const PUBLIC_COLLABORATION_FLOW = {
+  eyebrow: "How it works",
+  title: "Collaboration becomes clearer once the profile is in place.",
+  summary:
+    "WHOMA keeps the next step structured so introductions, offers, and communication are easier to follow.",
+  steps: [
+    {
+      title: "Profile shared",
+      description:
+        "The agent shares a verified public profile before any collaboration begins."
+    },
+    {
+      title: "Structured response",
+      description:
+        "The homeowner reviews a consistent response format covering fee, timing, and service fit."
+    },
+    {
+      title: "Shortlist opened",
+      description:
+        "Once the shortlist is clear, the conversation can move forward with better context."
+    }
+  ] satisfies readonly PublicFeatureItem[]
+} as const;
+
+export const PUBLIC_SAMPLE_COMPARISON = {
+  eyebrow: "Illustrative workflow",
+  title: "A homeowner reviews three structured responses and opens a shortlist.",
+  summary:
+    "WHOMA keeps response formats consistent so fit, timing, and trust are easier to read.",
   offers: [
     {
       agent: "A. Morgan",
       fee: "1.1% fee",
       timeline: "21 days",
-      badge: "Chosen"
+      badge: "Selected"
     },
     {
       agent: "Reed & Co",
@@ -73,20 +152,7 @@ export const PUBLIC_SAMPLE_COMPARISON = {
       agent: "North Row",
       fee: "Hybrid fee",
       timeline: "30 days",
-      badge: "Compared"
+      badge: "Reviewed"
     }
   ] satisfies readonly PublicSampleOffer[]
-} as const;
-
-export const PUBLIC_FALLBACK_AGENT_PROOF = {
-  label: "Seeded proof example",
-  name: "Featured verified profile",
-  role: "Independent estate agent",
-  agency: "Illustrative pilot example",
-  serviceAreas: ["London", "SW1A", "W1"],
-  specialties: ["Local pricing", "Chain management", "Accompanied viewings"],
-  profileCompleteness: 92,
-  historicTransactionsLogged: 4,
-  liveCollaborationListings: 2,
-  shortlistedOffers: 3
 } as const;
