@@ -134,12 +134,25 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   await expect(adminPage.getByText(/verification status updated/i)).toBeVisible();
 
   await adminPage.goto("/agents?verified=true", { waitUntil: "domcontentloaded" });
-  await expect(adminPage.getByRole("heading", { name: /find verified real estate agents building personal credibility/i })).toBeVisible();
+  await expect(
+    adminPage.getByRole("heading", {
+      name: /browse estate agent profiles before you choose who to trust with your sale/i
+    })
+  ).toBeVisible();
   await expect(adminPage.getByText(fullName)).toBeVisible();
 
   await publicPage.goto(`/agents/${slug}`, { waitUntil: "domcontentloaded" });
   await expect(publicPage.getByRole("heading", { name: new RegExp(fullName, "i") })).toBeVisible();
-  await expect(publicPage.getByText(/^VERIFIED$/)).toBeVisible();
+  await expect(publicPage.getByText(/verified profile/i)).toBeVisible();
+  await expect(
+    publicPage.getByRole("heading", { name: /why this profile is public/i })
+  ).toBeVisible();
+  await expect(
+    publicPage.getByRole("heading", { name: /trust and contact/i })
+  ).toBeVisible();
+  await expect(publicPage.getByText(/profile quality/i)).toBeVisible();
+  await expect(publicPage.getByText(/historic transactions/i)).toBeVisible();
+  await expect(publicPage.getByText(/live collaborations/i)).toBeVisible();
 
   await adminPage.close();
   await publicPage.close();

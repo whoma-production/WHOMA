@@ -239,6 +239,38 @@ function mapAgentProfile(profile: AgentProfileWithUser): AgentProfileWithUser {
   return profile;
 }
 
+export interface PublicAgentTrustSignals {
+  responseTimeMinutes: number | null;
+  responseTimeSource: "measured" | "estimated" | "unavailable";
+  sellerFitSignal: number | null;
+  sellerFitSource: "measured" | "estimated" | "unavailable";
+  historicTransactionsLogged: number;
+  liveCollaborationListings: number;
+  totalOffersLogged: number;
+  shortlistedOffers: number;
+}
+
+function clampValue(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+
+  if (sorted.length % 2 === 0) {
+    const left = sorted[middle - 1] ?? sorted[middle] ?? 0;
+    const right = sorted[middle] ?? left;
+    return (left + right) / 2;
+  }
+
+  return sorted[middle] ?? null;
+}
+
 export async function completeAgentOnboarding(userId: string, input: AgentOnboardingInput): Promise<AgentProfileWithUser> {
   const existingProfile = await prisma.agentProfile.findUnique({
     where: { userId },
@@ -556,6 +588,121 @@ export async function getPublicAgentProfileBySlug(slug: string): Promise<AgentPr
   });
 
   return profile ? mapAgentProfile(profile) : null;
+}
+
+export async function getPublicAgentTrustSignals(input: {
+  userId: string;
+  profileCompleteness: number;
+  verificationStatus: VerificationStatus;
+  responseTimeMinutes: number | null;
+  ratingAggregate: number | null;
+}): Promise<PublicAgentTrustSignals> {
+  const proposalRows = await prisma.proposal.findMany({
+    where: { agentId: input.userId },
+    select: {
+      status: true,
+      createdAt: true,
+      instruction: {
+        select: {
+          createdAt: true,
+          status: true
+        }
+      }
+    }
+  });
+
+  const totalOffersLogged = proposalRows.length;
+  const shortlistedOffers = proposalRows.filter(
+    (proposal) => proposal.status === "SHORTLISTED" || proposal.status === "ACCEPTED"
+  ).length;
+  const historicTransactionsLogged = proposalRows.filter(
+    (proposal) => proposal.status === "ACCEPTED"
+  ).length;
+  const liveCollaborationListings = proposalRows.filter(
+    (proposal) =>
+      (proposal.status === "SUBMITTED" || proposal.status === "SHORTLISTED") &&
+      (proposal.instruction.status === "LIVE" ||
+        proposal.instruction.status === "SHORTLIST")
+  ).length;
+
+  const measuredResponse =
+    input.responseTimeMinutes !== null && input.responseTimeMinutes > 0
+      ? input.responseTimeMinutes
+      : null;
+
+  const inferredResponseDurations = proposalRows
+    .map((proposal) => {
+      const minutes =
+        (proposal.createdAt.getTime() - proposal.instruction.createdAt.getTime()) /
+        (1000 * 60);
+      return Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes) : null;
+    })
+    .filter((value): value is number => value !== null && value <= 60 * 24 * 30);
+
+  const estimatedResponse =
+    inferredResponseDurations.length > 0 ? median(inferredResponseDurations) : null;
+  const normalizedEstimatedResponse =
+    estimatedResponse !== null ? Math.round(estimatedResponse) : null;
+  const resolvedResponseTime =
+    measuredResponse ?? normalizedEstimatedResponse ?? null;
+
+  let responseTimeSource: PublicAgentTrustSignals["responseTimeSource"] = "unavailable";
+  if (measuredResponse !== null) {
+    responseTimeSource = "measured";
+  } else if (normalizedEstimatedResponse !== null) {
+    responseTimeSource = "estimated";
+  }
+
+  const measuredSellerFitSignal =
+    input.ratingAggregate !== null && input.ratingAggregate > 0
+      ? input.ratingAggregate
+      : null;
+
+  let estimatedSellerFitSignal: number | null = null;
+  if (measuredSellerFitSignal === null) {
+    const verificationBonus =
+      input.verificationStatus === "VERIFIED"
+        ? 0.5
+        : input.verificationStatus === "PENDING"
+          ? 0.2
+          : 0;
+    const completenessFactor = input.profileCompleteness / 100;
+    const transactionSignal = Math.min(historicTransactionsLogged, 4) * 0.1;
+    const shortlistSignal = Math.min(shortlistedOffers, 6) * 0.04;
+
+    const rawScore =
+      2.9 +
+      completenessFactor * 1.2 +
+      verificationBonus +
+      transactionSignal +
+      shortlistSignal;
+
+    if (input.profileCompleteness > 0 || totalOffersLogged > 0) {
+      estimatedSellerFitSignal =
+        Math.round(clampValue(rawScore, 1, 5) * 10) / 10;
+    }
+  }
+
+  const sellerFitSignal =
+    measuredSellerFitSignal ?? estimatedSellerFitSignal ?? null;
+
+  let sellerFitSource: PublicAgentTrustSignals["sellerFitSource"] = "unavailable";
+  if (measuredSellerFitSignal !== null) {
+    sellerFitSource = "measured";
+  } else if (estimatedSellerFitSignal !== null) {
+    sellerFitSource = "estimated";
+  }
+
+  return {
+    responseTimeMinutes: resolvedResponseTime,
+    responseTimeSource,
+    sellerFitSignal,
+    sellerFitSource,
+    historicTransactionsLogged,
+    liveCollaborationListings,
+    totalOffersLogged,
+    shortlistedOffers
+  };
 }
 
 export async function listPublicAgentProfiles(filters: {

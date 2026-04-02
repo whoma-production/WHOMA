@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import React, { useState } from "react";
 
@@ -19,18 +18,38 @@ interface GoogleAuthButtonProps {
   betaMessage?: string;
   betaCtaHref?: string;
   betaCtaLabel?: string;
+  nextParam?: string | null;
+  oauthError?: string | null;
 }
 
 type PreviewRole = "HOMEOWNER" | "AGENT" | "ADMIN";
-type PendingAction = "google" | "homeowner" | "agent" | "admin" | "preview" | null;
+type PendingAction =
+  | "google"
+  | "homeowner"
+  | "agent"
+  | "admin"
+  | "preview"
+  | null;
 
 function GoogleMark(): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 18 18" className="h-4 w-4">
-      <path fill="#EA4335" d="M9 7.36v3.53h4.91c-.21 1.14-.86 2.1-1.84 2.74l2.98 2.31c1.73-1.59 2.73-3.93 2.73-6.72 0-.64-.06-1.25-.16-1.86H9Z" />
-      <path fill="#34A853" d="M9 18c2.48 0 4.56-.82 6.08-2.23l-2.98-2.31c-.82.55-1.88.88-3.1.88-2.39 0-4.42-1.61-5.15-3.77H.78v2.38A9 9 0 0 0 9 18Z" />
-      <path fill="#4A90E2" d="M3.85 10.57A5.4 5.4 0 0 1 3.56 9c0-.54.1-1.06.29-1.57V5.05H.78A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.05l2.87-2.48Z" />
-      <path fill="#FBBC05" d="M9 3.58c1.35 0 2.56.46 3.52 1.37l2.64-2.64C13.55.81 11.47 0 9 0 5.48 0 2.43 2.01.78 5.05l3.07 2.38C4.58 5.19 6.61 3.58 9 3.58Z" />
+      <path
+        fill="#EA4335"
+        d="M9 7.36v3.53h4.91c-.21 1.14-.86 2.1-1.84 2.74l2.98 2.31c1.73-1.59 2.73-3.93 2.73-6.72 0-.64-.06-1.25-.16-1.86H9Z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.48 0 4.56-.82 6.08-2.23l-2.98-2.31c-.82.55-1.88.88-3.1.88-2.39 0-4.42-1.61-5.15-3.77H.78v2.38A9 9 0 0 0 9 18Z"
+      />
+      <path
+        fill="#4A90E2"
+        d="M3.85 10.57A5.4 5.4 0 0 1 3.56 9c0-.54.1-1.06.29-1.57V5.05H.78A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.05l2.87-2.48Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M9 3.58c1.35 0 2.56.46 3.52 1.37l2.64-2.64C13.55.81 11.47 0 9 0 5.48 0 2.43 2.01.78 5.05l3.07 2.38C4.58 5.19 6.61 3.58 9 3.58Z"
+      />
     </svg>
   );
 }
@@ -60,17 +79,17 @@ export function GoogleAuthButton({
   betaSupportEmail,
   betaMessage = "Google sign-in is being opened in stages. For now, WHOMA is inviting users into the public beta manually.",
   betaCtaHref,
-  betaCtaLabel
+  betaCtaLabel,
+  nextParam = null,
+  oauthError = null
 }: GoogleAuthButtonProps): JSX.Element {
-  const searchParams = useSearchParams();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [previewEmail, setPreviewEmail] = useState<string>("");
   const [previewRole, setPreviewRole] = useState<PreviewRole>("AGENT");
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [signInError, setSignInError] = useState<string | null>(null);
 
-  const nextParam = searchParams.get("next");
-  const oauthError = searchParams.get("error");
-  const errorMessage = getAuthErrorMessage(oauthError);
+  const errorMessage = signInError ?? getAuthErrorMessage(oauthError);
   const target = nextParam ?? redirectTo;
   const isPending = pendingAction !== null;
   const showPreviewAccess =
@@ -86,6 +105,15 @@ export function GoogleAuthButton({
       redirect: false
     });
 
+    if (response?.error) {
+      setSignInError(
+        getAuthErrorMessage(response.error) ??
+          "We could not complete sign-in. Try again or contact the pilot team."
+      );
+      setPendingAction(null);
+      return;
+    }
+
     const destination = response?.url ?? fallbackUrl;
 
     if (destination) {
@@ -93,6 +121,9 @@ export function GoogleAuthButton({
       return;
     }
 
+    setSignInError(
+      "We could not complete sign-in. Try again or contact the pilot team."
+    );
     setPendingAction(null);
   }
 
@@ -101,9 +132,13 @@ export function GoogleAuthButton({
       return;
     }
 
+    setSignInError(null);
     setPendingAction("google");
 
     void runSignIn("google", { callbackUrl: target }).catch(() => {
+      setSignInError(
+        "Google sign-in failed before the redirect completed. Try again."
+      );
       setPendingAction(null);
     });
   }
@@ -113,6 +148,7 @@ export function GoogleAuthButton({
       return;
     }
 
+    setSignInError(null);
     const resolvedCustomEmail = customEmail?.trim().toLowerCase();
     const resolvedEmail = resolvedCustomEmail?.length
       ? resolvedCustomEmail
@@ -139,6 +175,9 @@ export function GoogleAuthButton({
       },
       destination
     ).catch(() => {
+      setSignInError(
+        "Preview sign-in failed. Check the email and role, then try again."
+      );
       setPendingAction(null);
     });
   }
@@ -149,7 +188,9 @@ export function GoogleAuthButton({
 
     const trimmedEmail = previewEmail.trim().toLowerCase();
     if (trimmedEmail.length > 0 && !isEmailCandidate(trimmedEmail)) {
-      setPreviewError("Enter a valid email address or leave it empty for temporary preview email.");
+      setPreviewError(
+        "Enter a valid email address or leave it empty for temporary preview email."
+      );
       return;
     }
 
@@ -161,14 +202,16 @@ export function GoogleAuthButton({
     return (
       <div className="space-y-2">
         {errorMessage ? (
-          <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
+          <p className="border-state-danger/20 bg-state-danger/10 rounded-md border px-3 py-2 text-sm text-state-danger">
             {errorMessage}
           </p>
         ) : null}
 
         <div className="rounded-md border border-line bg-surface-1 p-4 text-left">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-text-strong">Public beta access</p>
+            <p className="text-sm font-medium text-text-strong">
+              Public pilot access
+            </p>
             <p className="text-sm text-text-muted">{betaMessage}</p>
           </div>
 
@@ -176,15 +219,19 @@ export function GoogleAuthButton({
             {betaSupportEmail ? (
               <a
                 href={`mailto:${betaSupportEmail}`}
-                className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
+                className={cn(
+                  buttonVariants({ variant: "primary", size: "sm" })
+                )}
               >
-                Email pilot team
+                Email support
               </a>
             ) : null}
             {betaCtaHref && betaCtaLabel ? (
               <a
                 href={betaCtaHref}
-                className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+                className={cn(
+                  buttonVariants({ variant: "secondary", size: "sm" })
+                )}
               >
                 {betaCtaLabel}
               </a>
@@ -206,11 +253,13 @@ export function GoogleAuthButton({
         aria-busy={isPending}
       >
         <GoogleMark />
-        {pendingAction === "google" ? "Redirecting to Google..." : "Continue with Google"}
+        {pendingAction === "google"
+          ? "Redirecting to Google..."
+          : "Continue with Google"}
       </Button>
 
       {errorMessage ? (
-        <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
+        <p className="border-state-danger/20 bg-state-danger/10 rounded-md border px-3 py-2 text-sm text-state-danger">
           {errorMessage}
         </p>
       ) : null}
@@ -218,15 +267,22 @@ export function GoogleAuthButton({
       {showPreviewAccess ? (
         <div className="rounded-md border border-line bg-surface-1 p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-strong">Internal preview access</p>
-            <span className="text-xs uppercase tracking-[0.12em] text-text-muted">QA only</span>
+            <p className="text-sm font-medium text-text-strong">
+              Internal preview access
+            </p>
+            <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
+              QA only
+            </span>
           </div>
           <p className="mb-3 text-xs text-text-muted">
-            Use a temporary role session for local QA or automated tests when Google credentials are unavailable.
+            Use a temporary role session for local QA or automated tests when
+            Google credentials are unavailable.
           </p>
           <form onSubmit={handlePreviewSubmit} className="space-y-3">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-text-muted">Email (optional)</span>
+              <span className="text-xs font-medium text-text-muted">
+                Email (optional)
+              </span>
               <Input
                 type="email"
                 inputMode="email"
@@ -275,12 +331,20 @@ export function GoogleAuthButton({
               </Button>
             </div>
 
-            <Button type="submit" variant="secondary" fullWidth disabled={isPending} aria-busy={isPending}>
-              {isPending ? "Entering preview..." : "Continue with Preview Email"}
+            <Button
+              type="submit"
+              variant="secondary"
+              fullWidth
+              disabled={isPending}
+              aria-busy={isPending}
+            >
+              {isPending
+                ? "Entering preview..."
+                : "Continue with Preview Email"}
             </Button>
 
             {previewError ? (
-              <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-xs text-state-danger">
+              <p className="border-state-danger/20 bg-state-danger/10 rounded-md border px-3 py-2 text-xs text-state-danger">
                 {previewError}
               </p>
             ) : null}

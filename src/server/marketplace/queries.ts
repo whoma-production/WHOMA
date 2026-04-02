@@ -17,6 +17,46 @@ export interface LiveInstructionFilters {
   bedrooms?: number;
 }
 
+export interface HomeownerInstructionSummary {
+  id: string;
+  status: "DRAFT" | "LIVE" | "CLOSED" | "SHORTLIST" | "AWARDED";
+  addressLine1: string;
+  city: string;
+  postcode: string;
+  propertyType: string;
+  bedrooms: number;
+  targetTimeline: string;
+  bidWindowStartAtIso: string;
+  bidWindowEndAtIso: string;
+  createdAtIso: string;
+  offersCount: number;
+  shortlistedOffersCount: number;
+  chosenOffersCount: number;
+  contactUnlocked: boolean;
+}
+
+export interface AgentOfferSummary {
+  id: string;
+  status: "SUBMITTED" | "SHORTLISTED" | "REJECTED" | "ACCEPTED";
+  feeModel: "FIXED" | "PERCENT" | "HYBRID" | "SUCCESS_BANDS";
+  feeValue: number;
+  timelineDays: number;
+  createdAtIso: string;
+  instruction: {
+    id: string;
+    status: "DRAFT" | "LIVE" | "CLOSED" | "SHORTLIST" | "AWARDED";
+    addressLine1: string;
+    city: string;
+    postcode: string;
+    propertyType: string;
+    bedrooms: number;
+    targetTimeline: string;
+    bidWindowEndAtIso: string;
+    totalOffersCount: number;
+  };
+  contactThreadStatus: "LOCKED" | "OPEN" | null;
+}
+
 interface LiveInstructionQueryRow {
   id: string;
   bidWindowEndAt: Date;
@@ -232,5 +272,148 @@ export function getLocationDistrictParams(
 ): Array<{ postcodeDistrict: string }> {
   return getLiveInstructionLocationSummaries(instructions).map((summary) => ({
     postcodeDistrict: summary.postcodeDistrict
+  }));
+}
+
+export async function getHomeownerInstructionSummaries(
+  homeownerUserId: string
+): Promise<HomeownerInstructionSummary[]> {
+  if (!process.env.DATABASE_URL) {
+    return [];
+  }
+
+  const rows = await prisma.instruction.findMany({
+    where: {
+      property: {
+        ownerId: homeownerUserId
+      }
+    },
+    orderBy: [{ createdAt: "desc" }],
+    select: {
+      id: true,
+      status: true,
+      targetTimeline: true,
+      bidWindowStartAt: true,
+      bidWindowEndAt: true,
+      createdAt: true,
+      property: {
+        select: {
+          addressLine1: true,
+          city: true,
+          postcode: true,
+          propertyType: true,
+          bedrooms: true
+        }
+      },
+      proposals: {
+        select: {
+          status: true
+        }
+      }
+    }
+  });
+
+  return rows.map((row) => {
+    const offersCount = row.proposals.length;
+    const shortlistedOffersCount = row.proposals.filter((proposal) =>
+      proposal.status === "SHORTLISTED" || proposal.status === "ACCEPTED"
+    ).length;
+    const chosenOffersCount = row.proposals.filter(
+      (proposal) => proposal.status === "ACCEPTED"
+    ).length;
+
+    return {
+      id: row.id,
+      status: row.status,
+      addressLine1: row.property.addressLine1,
+      city: row.property.city,
+      postcode: row.property.postcode,
+      propertyType: propertyTypeLabels[row.property.propertyType],
+      bedrooms: row.property.bedrooms,
+      targetTimeline: targetTimelineLabels[row.targetTimeline],
+      bidWindowStartAtIso: row.bidWindowStartAt.toISOString(),
+      bidWindowEndAtIso: row.bidWindowEndAt.toISOString(),
+      createdAtIso: row.createdAt.toISOString(),
+      offersCount,
+      shortlistedOffersCount,
+      chosenOffersCount,
+      contactUnlocked: shortlistedOffersCount > 0
+    };
+  });
+}
+
+export async function getAgentOfferSummaries(
+  agentUserId: string
+): Promise<AgentOfferSummary[]> {
+  if (!process.env.DATABASE_URL) {
+    return [];
+  }
+
+  const rows = await prisma.proposal.findMany({
+    where: {
+      agentId: agentUserId
+    },
+    orderBy: [{ createdAt: "desc" }],
+    select: {
+      id: true,
+      status: true,
+      feeModel: true,
+      feeValue: true,
+      timelineDays: true,
+      createdAt: true,
+      instruction: {
+        select: {
+          id: true,
+          status: true,
+          targetTimeline: true,
+          bidWindowEndAt: true,
+          property: {
+            select: {
+              addressLine1: true,
+              city: true,
+              postcode: true,
+              propertyType: true,
+              bedrooms: true
+            }
+          },
+          _count: {
+            select: {
+              proposals: true
+            }
+          },
+          threads: {
+            where: {
+              agentId: agentUserId
+            },
+            select: {
+              status: true
+            },
+            take: 1
+          }
+        }
+      }
+    }
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    status: row.status,
+    feeModel: row.feeModel,
+    feeValue: Number(row.feeValue),
+    timelineDays: row.timelineDays,
+    createdAtIso: row.createdAt.toISOString(),
+    instruction: {
+      id: row.instruction.id,
+      status: row.instruction.status,
+      addressLine1: row.instruction.property.addressLine1,
+      city: row.instruction.property.city,
+      postcode: row.instruction.property.postcode,
+      propertyType: propertyTypeLabels[row.instruction.property.propertyType],
+      bedrooms: row.instruction.property.bedrooms,
+      targetTimeline: targetTimelineLabels[row.instruction.targetTimeline],
+      bidWindowEndAtIso: row.instruction.bidWindowEndAt.toISOString(),
+      totalOffersCount: row.instruction._count.proposals
+    },
+    contactThreadStatus: row.instruction.threads[0]?.status ?? null
   }));
 }

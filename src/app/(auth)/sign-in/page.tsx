@@ -1,16 +1,30 @@
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Logo } from "@/components/brand/logo";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { normalizeRedirectPath } from "@/lib/auth/session";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_AGENT_DIRECTORY_HREF
 } from "@/lib/public-site";
 
-export default function SignInPage(): JSX.Element {
+interface PageProps {
+  searchParams?: Promise<{ next?: string; error?: string }>;
+}
+
+export default async function SignInPage({
+  searchParams
+}: PageProps): Promise<JSX.Element> {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const nextParam = normalizeRedirectPath(resolvedSearchParams?.next) ?? null;
   const providerConfigured = Boolean(
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
   );
@@ -27,27 +41,32 @@ export default function SignInPage(): JSX.Element {
           <CardHeader>
             <CardTitle>Sign in to WHOMA</CardTitle>
             <CardDescription>
-              Access your verification, onboarding, profile publishing, and trust-review workflow.
+              Continue into onboarding, profile publishing, or the collaboration
+              pilot with a complete Google sign-in flow and a direct email
+              fallback when access is still being staged.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Suspense fallback={<p className="text-sm text-text-muted">Loading sign-in options...</p>}>
-              <GoogleAuthButton
-                providerConfigured={providerConfigured}
-                uxMode="public"
-                betaSupportEmail={site.supportEmail}
-                betaCtaHref={PUBLIC_AGENT_DIRECTORY_HREF}
-                betaCtaLabel="Browse verified agents"
-                betaMessage="Google sign-in is being rolled out carefully. While public access stays controlled, WHOMA is coordinating pilot entry directly with agents and invited homeowners."
-              />
-            </Suspense>
+            <GoogleAuthButton
+              providerConfigured={providerConfigured}
+              uxMode="public"
+              betaSupportEmail={site.supportEmail}
+              betaCtaHref={PUBLIC_AGENT_DIRECTORY_HREF}
+              betaCtaLabel="Browse verified agents"
+              betaMessage="Google sign-in is available in stages. If your account is not live yet, WHOMA routes pilot access through the monitored support inbox."
+              nextParam={nextParam}
+              oauthError={resolvedSearchParams?.error ?? null}
+            />
           </CardContent>
         </Card>
 
         <p className="text-center text-sm text-text-muted">
-          Need access to the verified-profile pilot?{" "}
-          <Link href={PUBLIC_AGENT_CTA_HREF} className="font-medium text-brand-ink underline">
-            Start the agent path
+          Need a fresh account?{" "}
+          <Link
+            href={PUBLIC_AGENT_CTA_HREF}
+            className="font-medium text-brand-ink underline"
+          >
+            Build your verified profile
           </Link>
         </p>
       </div>

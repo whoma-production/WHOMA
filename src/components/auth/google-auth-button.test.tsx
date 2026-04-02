@@ -12,10 +12,6 @@ vi.mock("next-auth/react", () => ({
   signIn: signInMock
 }));
 
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams()
-}));
-
 describe("GoogleAuthButton", () => {
   afterEach(() => {
     signInMock.mockReset();
@@ -32,13 +28,16 @@ describe("GoogleAuthButton", () => {
       />
     );
 
-    expect(screen.getByText(/public beta access/i)).toBeInTheDocument();
-    expect(screen.queryByText(/internal preview access/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/continue with preview email/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /email pilot team/i })).toHaveAttribute(
-      "href",
-      "mailto:support@whoma.co.uk"
-    );
+    expect(screen.getByText(/public pilot access/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/internal preview access/i)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/continue with preview email/i)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /email support/i })
+    ).toHaveAttribute("href", "mailto:support@whoma.co.uk");
   });
 
   it("keeps preview controls available in internal mode for qa", () => {

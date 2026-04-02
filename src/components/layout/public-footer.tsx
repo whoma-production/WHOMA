@@ -1,20 +1,17 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
-import {
-  getPublicSiteConfig,
-  getSupportMailto
-} from "@/lib/public-site";
+import { getPublicSiteConfig, getSupportMailto } from "@/lib/public-site";
 
 const footerSections = [
   {
     title: "Product",
     links: [
-      { href: "/#how-it-works", label: "How it works" },
-      { href: "/#for-agents", label: "For agents" },
-      { href: "/#phase-sequencing", label: "Phase 1 sequencing" },
-      { href: "/agents", label: "Agent profiles" },
-      { href: "/sign-up?role=AGENT", label: "Build your profile" }
+      { href: "/#what-whoma-is", label: "What WHOMA is" },
+      { href: "/#pilot-proof", label: "Pilot proof" },
+      { href: "/#interaction-demo", label: "Workflow demo" },
+      { href: "/agents", label: "Verified agents" },
+      { href: "/sign-up?role=AGENT", label: "Build your verified profile" }
     ]
   },
   {
@@ -28,7 +25,7 @@ const footerSections = [
     title: "Legal",
     links: [
       { href: "/privacy", label: "Privacy" },
-      { href: "/cookies", label: "Cookies" },
+      { href: "/cookies#manage-consent", label: "Cookies" },
       { href: "/terms", label: "Terms" },
       { href: "/complaints", label: "Complaints" }
     ]
@@ -44,8 +41,9 @@ export function PublicFooter(): JSX.Element {
         <div className="space-y-3">
           <Logo subtitle={site.logoSubtitle} />
           <p className="max-w-sm text-sm text-text-muted">
-            {site.brandName} is running a {site.betaStatusLabel.toLowerCase()} focused on verified estate agent
-            identity, publish-ready profiles, and trust-led pilot visibility.
+            {site.brandName} is operating a {site.betaStatusLabel.toLowerCase()}{" "}
+            focused on verified identity, agent-owned reputation, and structured
+            collaboration infrastructure for estate agents.
           </p>
           <p className="text-sm text-text-muted">
             Support:{" "}
@@ -56,15 +54,24 @@ export function PublicFooter(): JSX.Element {
               {site.supportEmail}
             </a>
           </p>
+          <p className="max-w-sm text-sm text-text-muted">
+            {site.companyLegalName} · {site.operatingRegion} ·{" "}
+            {site.supportResponseWindow} response window.
+          </p>
         </div>
 
         {footerSections.map((section) => (
           <div key={section.title} className="space-y-3">
-            <h2 className="text-sm font-semibold text-text-strong">{section.title}</h2>
+            <h2 className="text-sm font-semibold text-text-strong">
+              {section.title}
+            </h2>
             <ul className="space-y-2 text-sm text-text-muted">
               {section.links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="transition-colors hover:text-brand-ink">
+                  <Link
+                    href={link.href}
+                    className="transition-colors hover:text-brand-ink"
+                  >
                     {link.label}
                   </Link>
                 </li>

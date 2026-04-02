@@ -16,6 +16,10 @@ export const resumeSuggestionFieldKeys = [
 
 export type ResumeSuggestionFieldKey = (typeof resumeSuggestionFieldKeys)[number];
 
+export function isResumeSuggestionFieldKey(value: string): value is ResumeSuggestionFieldKey {
+  return (resumeSuggestionFieldKeys as readonly string[]).includes(value);
+}
+
 const resumePrefillValuesSchema = z
   .object({
     fullName: z.string().trim().min(1).max(120).optional(),

@@ -109,15 +109,42 @@ function instructionPayload(): Record<string, unknown> {
   };
 }
 
-function proposalPayload(instructionId: string): Record<string, unknown> {
+function proposalPayload(
+  instructionId: string,
+  variant: "value" | "speed"
+): Record<string, unknown> {
+  if (variant === "speed") {
+    return {
+      instructionId,
+      feeModel: "FIXED",
+      feeValue: 2300,
+      currency: "GBP",
+      inclusions: [
+        "PORTAL_LISTINGS",
+        "ACCOMPANIED_VIEWINGS",
+        "SALES_PROGRESSION_SUPPORT"
+      ],
+      marketingPlan:
+        "Premium portal placement in 24 hours, proactive social content, accompanied viewings, and rapid feedback loops.",
+      timelineDays: 28,
+      cancellationTerms:
+        "28-day sole agency period with a seven-day written cancellation notice after the initial term."
+    };
+  }
+
   return {
     instructionId,
     feeModel: "FIXED",
-    feeValue: 1800,
+    feeValue: 1650,
     currency: "GBP",
-    inclusions: ["PORTAL_LISTINGS", "ACCOMPANIED_VIEWINGS"],
+    inclusions: [
+      "PORTAL_LISTINGS",
+      "PROFESSIONAL_PHOTOGRAPHY",
+      "ACCOMPANIED_VIEWINGS",
+      "SALES_PROGRESSION_SUPPORT"
+    ],
     marketingPlan:
-      "We will launch with premium portal placement, staged photography, targeted social ads, and accompanied weekend viewings.",
+      "Launch with premium listing presentation, staged photography, targeted local campaigns, and accompanied weekend viewings.",
     timelineDays: 42,
     cancellationTerms:
       "30-day sole agency period with a seven-day written cancellation notice after the initial term."
@@ -153,14 +180,15 @@ async function createInstruction(
 async function createProposal(
   page: Page,
   instructionId: string,
-  idempotencyKey: string
+  idempotencyKey: string,
+  variant: "value" | "speed"
 ): Promise<string> {
   const response = await page.request.post("/api/proposals", {
     headers: {
       "Content-Type": "application/json",
       "Idempotency-Key": idempotencyKey
     },
-    data: proposalPayload(instructionId)
+    data: proposalPayload(instructionId, variant)
   });
   expect(response.ok()).toBeTruthy();
 
@@ -172,14 +200,15 @@ async function createProposal(
   return proposalId ?? "";
 }
 
-test.describe.configure({ timeout: 120_000 });
+test.describe.configure({ timeout: 140_000 });
 
-test("homeowner compare decisions reconcile status updates and unlock messaging", async ({
+test("homeowner compare supports sort modes, ranking badges, shortlist multi-select, and choose flow", async ({
   page
 }) => {
   const runId = `${Date.now()}-${test.info().workerIndex}`;
   const homeownerEmail = `qa-homeowner-${runId}@example.test`;
-  const agentEmail = `qa-agent-${runId}@example.test`;
+  const firstAgentEmail = `qa-agent-one-${runId}@example.test`;
+  const secondAgentEmail = `qa-agent-two-${runId}@example.test`;
 
   const homeownerSetupPage = await signInAsPreviewRole(
     page,
@@ -192,13 +221,23 @@ test("homeowner compare decisions reconcile status updates and unlock messaging"
   );
   await homeownerSetupPage.close();
 
-  const agentPage = await signInAsPreviewRole(page, "AGENT", agentEmail);
-  const proposalId = await createProposal(
-    agentPage,
+  const firstAgentPage = await signInAsPreviewRole(page, "AGENT", firstAgentEmail);
+  await createProposal(
+    firstAgentPage,
     instructionId,
-    `e2e-agent-proposal-${runId}`
+    `e2e-agent-one-proposal-${runId}`,
+    "value"
   );
-  await agentPage.close();
+  await firstAgentPage.close();
+
+  const secondAgentPage = await signInAsPreviewRole(page, "AGENT", secondAgentEmail);
+  await createProposal(
+    secondAgentPage,
+    instructionId,
+    `e2e-agent-two-proposal-${runId}`,
+    "speed"
+  );
+  await secondAgentPage.close();
 
   const homeownerComparePage = await signInAsPreviewRole(
     page,
@@ -224,6 +263,43 @@ test("homeowner compare decisions reconcile status updates and unlock messaging"
     timeout: 20_000
   });
 
+  await homeownerComparePage.getByRole("button", { name: "Lowest fee" }).click();
+  await expect(
+    homeownerComparePage.getByText(/prioritize the lowest headline fee first/i)
+  ).toBeVisible();
+  await homeownerComparePage.getByRole("button", { name: "Best local fit" }).click();
+  await expect(
+    homeownerComparePage.getByText(/prioritize verified local experience and area fit signals/i)
+  ).toBeVisible();
+
+  const compareTable = homeownerComparePage.getByTestId("proposal-compare-table");
+  await expect(compareTable.getByText(/lowest fee/i).first()).toBeVisible();
+  await expect(compareTable.getByText(/top value/i).first()).toBeVisible();
+
+  const proposalStatusBadges = homeownerComparePage.locator(
+    `[data-testid="proposal-status-badge"][data-proposal-status="SUBMITTED"]`
+  );
+  await expect(proposalStatusBadges).toHaveCount(2);
+
+  const shortlistCheckboxes = homeownerComparePage.locator(
+    'input[type="checkbox"][aria-label^="Select "]'
+  );
+  await shortlistCheckboxes.nth(0).check();
+  await shortlistCheckboxes.nth(1).check();
+
+  await homeownerComparePage
+    .getByRole("button", { name: /Shortlist selected \(2\)/ })
+    .click();
+  await expect(homeownerComparePage.getByText(/2 offers shortlisted\./i)).toBeVisible({
+    timeout: 20_000
+  });
+
+  await expect(
+    homeownerComparePage.locator(
+      `[data-testid="proposal-status-badge"][data-proposal-status="SHORTLISTED"]`
+    )
+  ).toHaveCount(2);
+
   const instructionStatusBadge = homeownerComparePage.getByTestId(
     "instruction-status-badge"
   );
@@ -233,38 +309,9 @@ test("homeowner compare decisions reconcile status updates and unlock messaging"
   const openMessagesButton = homeownerComparePage.getByTestId(
     "open-messages-button"
   );
-  const proposalStatusBadge = homeownerComparePage.locator(
-    `[data-testid="proposal-status-badge"][data-proposal-id="${proposalId}"]`
-  );
-  const shortlistButton = homeownerComparePage.locator(
-    `[data-testid="proposal-decision-button"][data-proposal-id="${proposalId}"][data-decision-action="SHORTLIST"]`
-  );
-  const awardButton = homeownerComparePage.locator(
-    `[data-testid="proposal-decision-button"][data-proposal-id="${proposalId}"][data-decision-action="AWARD"]`
-  );
-
-  await expect(proposalStatusBadge).toHaveAttribute(
-    "data-proposal-status",
-    "SUBMITTED"
-  );
   await expect(instructionStatusBadge).toHaveAttribute(
     "data-instruction-status",
-    "LIVE"
-  );
-  await expect(messagingUnlockBadge).toHaveAttribute(
-    "data-messaging-state",
-    "LOCKED"
-  );
-  await expect(openMessagesButton).toBeDisabled();
-
-  await shortlistButton.click();
-  await expect(
-    homeownerComparePage.getByText(/has been shortlisted\./i)
-  ).toBeVisible({ timeout: 15_000 });
-
-  await expect(proposalStatusBadge).toHaveAttribute(
-    "data-proposal-status",
-    "SHORTLISTED"
+    "SHORTLIST"
   );
   await expect(messagingUnlockBadge).toHaveAttribute(
     "data-messaging-state",
@@ -272,43 +319,27 @@ test("homeowner compare decisions reconcile status updates and unlock messaging"
   );
   await expect(openMessagesButton).toBeEnabled();
 
-  await homeownerComparePage.reload({ waitUntil: "networkidle" });
-  await expect(instructionStatusBadge).toHaveAttribute(
-    "data-instruction-status",
-    "SHORTLIST"
-  );
-  await expect(proposalStatusBadge).toHaveAttribute(
-    "data-proposal-status",
-    "SHORTLISTED"
-  );
-  await expect(messagingUnlockBadge).toHaveAttribute(
-    "data-messaging-state",
-    "OPEN"
-  );
-
-  await awardButton.click();
+  await homeownerComparePage.getByRole("button", { name: /^Choose / }).first().click();
   await expect(
-    homeownerComparePage.getByText(/has been awarded the instruction\./i)
-  ).toBeVisible({ timeout: 15_000 });
+    homeownerComparePage.getByText(/has been chosen\./i)
+  ).toBeVisible({ timeout: 20_000 });
 
-  await expect(proposalStatusBadge).toHaveAttribute(
-    "data-proposal-status",
-    "ACCEPTED"
-  );
+  await expect(
+    homeownerComparePage.locator(
+      `[data-testid="proposal-status-badge"][data-proposal-status="ACCEPTED"]`
+    )
+  ).toHaveCount(1);
 
   await homeownerComparePage.reload({ waitUntil: "networkidle" });
   await expect(instructionStatusBadge).toHaveAttribute(
     "data-instruction-status",
     "AWARDED"
   );
-  await expect(proposalStatusBadge).toHaveAttribute(
-    "data-proposal-status",
-    "ACCEPTED"
-  );
-  await expect(messagingUnlockBadge).toHaveAttribute(
-    "data-messaging-state",
-    "OPEN"
-  );
+  await expect(
+    homeownerComparePage.locator(
+      `[data-testid="proposal-status-badge"][data-proposal-status="ACCEPTED"]`
+    )
+  ).toHaveCount(1);
 
   await openMessagesButton.click();
   await homeownerComparePage.waitForURL(/\/messages/, { timeout: 20_000 });

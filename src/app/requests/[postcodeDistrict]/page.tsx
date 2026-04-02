@@ -10,7 +10,8 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
-  PUBLIC_AGENT_DIRECTORY_HREF
+  PUBLIC_AGENT_DIRECTORY_HREF,
+  PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
 import {
   getLiveInstructionCards,
@@ -25,17 +26,21 @@ interface PageProps {
   params: Promise<{ postcodeDistrict: string }>;
 }
 
-export async function generateStaticParams(): Promise<Array<{ postcodeDistrict: string }>> {
+export async function generateStaticParams(): Promise<
+  Array<{ postcodeDistrict: string }>
+> {
   return [];
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params
+}: PageProps): Promise<Metadata> {
   const { postcodeDistrict } = await params;
   const normalizedDistrict = normalizePostcodeDistrictKey(postcodeDistrict);
 
   return {
     title: `WHOMA | Pilot requests in ${normalizedDistrict}`,
-    description: `Controlled Phase 1 pilot request visibility for ${normalizedDistrict}.`,
+    description: `Controlled Phase 1 homeowner collaboration pilot visibility for ${normalizedDistrict}.`,
     robots: {
       index: false,
       follow: false
@@ -43,10 +48,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function LocationPage({ params }: PageProps): Promise<ReactElement> {
+export default async function LocationPage({
+  params
+}: PageProps): Promise<ReactElement> {
   const { postcodeDistrict } = await params;
   const allInstructions = await getLiveInstructionCards();
-  const instructions = getLiveInstructionsByDistrict(allInstructions, postcodeDistrict);
+  const instructions = getLiveInstructionsByDistrict(
+    allInstructions,
+    postcodeDistrict
+  );
   const site = getPublicSiteConfig();
 
   const normalizedDistrict = normalizePostcodeDistrictKey(postcodeDistrict);
@@ -62,14 +72,19 @@ export default async function LocationPage({ params }: PageProps): Promise<React
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <Logo subtitle={site.logoSubtitle} />
           <div className="flex items-center gap-2">
-            <Link href="/requests" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
+            <Link
+              href="/requests"
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "sm" })
+              )}
+            >
               All pilot areas
             </Link>
             <Link
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your profile
+              Build your verified profile
             </Link>
           </div>
         </div>
@@ -84,34 +99,50 @@ export default async function LocationPage({ params }: PageProps): Promise<React
             Live pilot requests in {city} · {normalizedDistrict}
           </h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            This is a secondary request surface for controlled rollout. WHOMA&apos;s primary public proof remains the
-            verified agent directory.
+            This is a secondary request surface for controlled rollout.
+            WHOMA&apos;s primary public proof remains the verified agent
+            directory.
           </p>
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">
           <Card className="space-y-1 bg-surface-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Area</p>
-            <p className="text-lg font-semibold text-text-strong">{normalizedDistrict}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+              Area
+            </p>
+            <p className="text-lg font-semibold text-text-strong">
+              {normalizedDistrict}
+            </p>
           </Card>
           <Card className="space-y-1 bg-surface-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Open pilot requests</p>
-            <p className="text-lg font-semibold text-text-strong">{instructions.length}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+              Open pilot requests
+            </p>
+            <p className="text-lg font-semibold text-text-strong">
+              {instructions.length}
+            </p>
           </Card>
           <Card className="space-y-1 bg-surface-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Responses submitted</p>
-            <p className="text-lg font-semibold text-text-strong">{totalOffers}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+              Responses submitted
+            </p>
+            <p className="text-lg font-semibold text-text-strong">
+              {totalOffers}
+            </p>
           </Card>
         </section>
 
         <Card className="space-y-3 bg-surface-0">
           <p className="text-sm text-text-muted">
-            If you want the main Phase 1 story, go back to verified agent profiles. Use this page as pilot context only.
+            If you want the main Phase 1 story, go back to verified agent
+            profiles. Use this page as pilot context only.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
               href={PUBLIC_AGENT_DIRECTORY_HREF}
-              className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "sm" })
+              )}
             >
               Browse verified agents
             </Link>
@@ -119,7 +150,7 @@ export default async function LocationPage({ params }: PageProps): Promise<React
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Join the agent pilot
+              Build your verified profile
             </Link>
           </div>
         </Card>
@@ -127,8 +158,11 @@ export default async function LocationPage({ params }: PageProps): Promise<React
         <section className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl">Request feed</h2>
-            <Link href="/agent/marketplace" className={cn(buttonVariants({ variant: "secondary" }))}>
-              Open agent workspace
+            <Link
+              href={PUBLIC_COLLABORATION_PILOT_HREF}
+              className={cn(buttonVariants({ variant: "secondary" }))}
+            >
+              Join collaboration pilot
             </Link>
           </div>
           {instructions.length === 0 ? (
@@ -138,14 +172,36 @@ export default async function LocationPage({ params }: PageProps): Promise<React
                   No live pilot requests here right now
                 </h3>
                 <p className="text-sm text-text-muted">
-                  That is normal while WHOMA keeps homeowner tendering controlled and identity-first.
+                  That is normal while WHOMA keeps homeowner collaboration
+                  controlled and identity-first.
                 </p>
+                <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Pilot proof
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    Area pages only light up once the brief, structured offer
+                    format, and shortlist-gated messaging are all ready to run
+                    together.
+                  </p>
+                </div>
+                <Link
+                  href={PUBLIC_COLLABORATION_PILOT_HREF}
+                  className={cn(
+                    buttonVariants({ variant: "primary", size: "sm" })
+                  )}
+                >
+                  Join collaboration pilot
+                </Link>
               </div>
             </Card>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               {instructions.map((instruction) => (
-                <InstructionCard key={instruction.id} instruction={instruction} />
+                <InstructionCard
+                  key={instruction.id}
+                  instruction={instruction}
+                />
               ))}
             </div>
           )}

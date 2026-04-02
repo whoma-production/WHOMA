@@ -1,6 +1,61 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 test.describe.configure({ timeout: 120_000 });
+
+async function ensureAuthCsrfReady(page: Page): Promise<void> {
+  let lastStatus: number | null = null;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const csrfResponse = await page.request.get("/api/auth/csrf");
+    lastStatus = csrfResponse.status();
+
+    if (csrfResponse.ok()) {
+      return;
+    }
+
+    await page.waitForTimeout(400);
+  }
+
+  throw new Error(
+    `Unable to initialize auth csrf endpoint before preview sign-in. Last status: ${lastStatus ?? "unknown"}`
+  );
+}
+
+async function signInAsPreviewRole(
+  page: Page,
+  role: "HOMEOWNER" | "AGENT",
+  email: string
+): Promise<Page> {
+  await ensureAuthCsrfReady(page);
+
+  const csrfResponse = await page.request.get("/api/auth/csrf");
+  expect(csrfResponse.ok()).toBeTruthy();
+
+  const csrfPayload = (await csrfResponse.json()) as { csrfToken?: string };
+  expect(csrfPayload.csrfToken).toBeTruthy();
+
+  const redirectPath =
+    role === "HOMEOWNER" ? "/homeowner/instructions" : "/agent/onboarding";
+
+  const signInResponse = await page.request.post("/api/auth/callback/preview", {
+    headers: {
+      "X-Auth-Return-Redirect": "1"
+    },
+    form: {
+      callbackUrl: redirectPath,
+      csrfToken: csrfPayload.csrfToken ?? "",
+      email,
+      role
+    }
+  });
+
+  expect(signInResponse.ok()).toBeTruthy();
+
+  const authenticatedPage = await page.context().newPage();
+  await authenticatedPage.goto(redirectPath, { waitUntil: "networkidle" });
+
+  return authenticatedPage;
+}
 
 function toDateTimeLocal(value: Date): string {
   const year = value.getFullYear();
@@ -12,47 +67,14 @@ function toDateTimeLocal(value: Date): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-async function signInAsPreviewRole(
-  page: import("@playwright/test").Page,
-  role: "HOMEOWNER" | "AGENT",
-  email: string,
-  callbackUrl: string
-): Promise<import("@playwright/test").Page> {
-  const csrfResponse = await page.request.get("/api/auth/csrf");
-  expect(csrfResponse.ok()).toBeTruthy();
-
-  const csrfPayload = (await csrfResponse.json()) as { csrfToken?: string };
-  expect(csrfPayload.csrfToken).toBeTruthy();
-
-  const signInResponse = await page.request.post("/api/auth/callback/preview", {
-    headers: {
-      "X-Auth-Return-Redirect": "1"
-    },
-    form: {
-      callbackUrl,
-      csrfToken: csrfPayload.csrfToken ?? "",
-      email,
-      role
-    }
-  });
-
-  expect(signInResponse.ok()).toBeTruthy();
-
-  const authenticatedPage = await page.context().newPage();
-  await authenticatedPage.goto(callbackUrl, { waitUntil: "domcontentloaded" });
-  return authenticatedPage;
-}
-
 test("marketplace forms are interactive on first load after preview sign-in", async ({
   page
 }) => {
-  const homeownerPage = await signInAsPreviewRole(
-    page,
-    "HOMEOWNER",
-    `marketplace-homeowner-${Date.now()}@example.test`,
-    "/homeowner/instructions"
-  );
+  const runId = `${Date.now()}-${test.info().workerIndex}`;
+  const homeownerEmail = `qa-homeowner-hydration-${runId}@example.test`;
+  const agentEmail = `qa-agent-hydration-${runId}@example.test`;
 
+  const homeownerPage = await signInAsPreviewRole(page, "HOMEOWNER", homeownerEmail);
   await homeownerPage.goto("/homeowner/instructions/new", {
     waitUntil: "networkidle"
   });
@@ -101,14 +123,9 @@ test("marketplace forms are interactive on first load after preview sign-in", as
   const instructionMatch = instructionSuccessText.match(/Instruction\s+([A-Za-z0-9_-]+)/i);
   const instructionId = instructionMatch?.[1];
   expect(instructionId).toBeTruthy();
+  await homeownerPage.close();
 
-  const agentPage = await signInAsPreviewRole(
-    page,
-    "AGENT",
-    `marketplace-agent-${Date.now()}@example.test`,
-    "/agent/onboarding"
-  );
-
+  const agentPage = await signInAsPreviewRole(page, "AGENT", agentEmail);
   await agentPage.goto(`/agent/marketplace/${instructionId}/proposal`, {
     waitUntil: "networkidle"
   });
@@ -121,4 +138,7 @@ test("marketplace forms are interactive on first load after preview sign-in", as
   await expect(
     agentPage.locator("text=/Proposal sent successfully/i").first()
   ).toBeVisible({ timeout: 20_000 });
+
+  await agentPage.close();
 });
+

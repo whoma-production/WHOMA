@@ -2587,3 +2587,170 @@
 1. Push `codex-phase1-public-release` to GitHub and open the release PR.
 2. If desired, follow with a merge-to-main step once the live deployment and verification notes are reviewed.
 3. Set production Google/Resend credentials when ready to replace the beta-gated public auth path with full production sign-in.
+
+---
+
+## Session: 2026-04-02 / 14:56 (CEST) — Proof-led public trust pass + auth completion hardening
+
+**Author:** Codex  
+**Context:** User asked to turn public-site branding/trust feedback into concrete product changes: stronger UK-consistent brand language, agent-first CTA hierarchy, more operationally credible trust pages, better auth completion, and proof-led empty states.  
+**Branch/PR:** current working tree (dirty tree contained unrelated in-progress files outside this pass)
+
+### Goal
+
+- Tighten the public story around verified identity, agent-owned reputation, and structured collaboration; remove public auth/loading dead ends; and make legal/contact/zero-state surfaces feel pilot-credible instead of generic.
+
+### Changes Made
+
+- Reworked public-site shared config to support stronger public positioning and operational trust detail:
+  - stronger subtitle (`Identity and reputation infrastructure for estate agents`)
+  - pilot summary / operating region / support coverage
+  - new public CTA constants for agent transaction logging and collaboration-pilot entry
+- Updated root metadata, footer copy, and public CTA language so the site no longer drifts toward generic marketplace framing.
+- Rebuilt the homepage around evidence instead of explanation:
+  - agent-first CTA hierarchy (`Build your verified profile`, `Log your first transactions`, limited collaboration pilot)
+  - featured verified-agent proof block
+  - sample pilot case study
+  - workflow demo (`Instruction -> structured proposals -> shortlist -> messaging`)
+  - live pilot counters sourced from public profiles + live request summaries when DB is configured
+- Strengthened legal/support pages:
+  - concrete support inbox and response-window presentation
+  - operating entity / region / pilot-status summary
+  - named provider stack (Auth.js/Google, Railway/Postgres/Prisma, Resend, optional Upstash, optional OpenAI resume intake)
+  - sitemap now derives live request-area summaries from marketplace queries instead of mock data
+- Hardened public auth completion:
+  - `/sign-in` and `/sign-up` now resolve `next` / `error` on the server and pass them into `GoogleAuthButton`
+  - removed the public Suspense-only loading fallback from auth entry
+  - added inline failure handling for sign-in attempts
+- Upgraded public zero states on `/agents` and `/requests*` to include rollout explanation, one strong CTA, and one proof/example block.
+
+### Verification
+
+- `npm run typecheck` — passes.
+- `npm run test -- src/components/auth/google-auth-button.test.tsx` — passes.
+- `npm run lint` — passes.
+- Public-copy verification grep confirms the targeted public surfaces no longer contain:
+  - `Build your profile`
+  - `Open agent workspace`
+  - auth placeholder-loading strings
+  - `real estate` phrasing on UK-facing public pages
+
+### Files / Modules Touched (high signal only)
+
+- `.env.example`
+- `src/lib/public-site.ts`
+- `src/app/layout.tsx`
+- `src/app/page.tsx`
+- `src/app/[slug]/page.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/components/auth/google-auth-button.tsx`
+- `src/components/auth/google-auth-button.test.tsx`
+- `src/components/layout/public-footer.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/agents/[slug]/page.tsx`
+- `src/app/requests/page.tsx`
+- `src/app/requests/[postcodeDistrict]/page.tsx`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Keep the homepage agent-first and treat homeowner entry as explicitly limited pilot access.
+  - **Why:** Matches the current Phase 1 thesis and avoids re-sliding into a public lead-gen identity.
+- **Decision:** Keep auth architecture unchanged (`NextAuth` + existing backend) while moving public query-state resolution server-side.
+  - **Why:** Fixes the public sign-in UX without reopening auth scope.
+- **Decision:** Show operational provider detail on trust pages using only providers the repo actually supports today.
+  - **Why:** Increases credibility without inventing unsupported company/process claims.
+
+### Data / Schema Notes
+
+- No Prisma schema changes.
+- No migrations.
+- No domain-model changes.
+
+### Next Steps
+
+1. Replace remaining internal `real estate agent` wording where we want full UK consistency beyond public pages.
+2. Decide whether the homepage should keep the `Log your first transactions` CTA or relabel it once transaction-proof UX is more explicit inside the product.
+3. Set production-facing company/support env values for a broader public push so the legal/trust pages can show final entity details instead of pilot defaults.
+
+---
+
+## Session: 2026-04-02 / 14:55 (CEST) — Proof-led public branding pass + auth completion hardening
+
+**Author:** Codex  
+**Context:** User asked to address branding/trust feedback directly in-product: fix homepage CTAs, tighten UK-consistent public language, strengthen trust/contact/privacy pages, remove unfinished auth loading states, and improve public zero states with proof.  
+**Branch/PR:** `main` (dirty working tree; unrelated user changes present)
+
+### Goal
+
+- Bring the public WHOMA surface closer to the actual Phase 1 thesis: verified identity, agent-owned reputation, structured collaboration, operationally credible trust pages, and a finished public auth entry flow.
+
+### Changes Made
+
+- Reworked the public homepage around the current thesis:
+  - agent-first CTAs (`Build your verified profile`, `Log your first transactions`, `Join collaboration pilot`)
+  - stronger infrastructure framing
+  - featured verified-agent proof block
+  - sample case-study block
+  - workflow demo showing instruction -> structured proposals -> shortlist -> messaging
+- Tightened public auth completion by removing the Suspense-only loading path from `/sign-in` and `/sign-up`; both pages now resolve `next` / `error` server-side and pass them into `GoogleAuthButton`.
+- Added inline Google/preview sign-in failure handling in `GoogleAuthButton` so auth no longer silently falls back to idle.
+- Strengthened public trust/support pages with concrete operational detail:
+  - named support inbox
+  - operating entity/region
+  - response-window language
+  - current provider stack / processor detail
+  - firmer complaints and privacy wording
+- Improved public zero states on `/agents` and `/requests*` so each now explains the rollout stage, shows a proof/example block, and presents one strong next-step CTA.
+- During verification, removed an unrelated duplicated closing block in `src/app/(app)/homeowner/instructions/page.tsx` that was breaking TypeScript parsing.
+
+### Verification
+
+- `npm run typecheck` — passes.
+- `npx vitest run src/components/auth/google-auth-button.test.tsx` — passes.
+
+### Files / Modules Touched (high signal only)
+
+- `.env.example`
+- `src/lib/public-site.ts`
+- `src/app/layout.tsx`
+- `src/components/layout/public-footer.tsx`
+- `src/app/page.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/requests/page.tsx`
+- `src/app/requests/[postcodeDistrict]/page.tsx`
+- `src/app/[slug]/page.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/components/auth/google-auth-button.tsx`
+- `src/components/auth/google-auth-button.test.tsx`
+- `src/app/(app)/homeowner/instructions/page.tsx`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Fix public auth completion by server-passing `next`/`error` into the existing button component instead of changing NextAuth architecture.
+  - **Why:** Removes the public loading dead end in a small, low-risk patch.
+- **Decision:** Keep homeowner-facing collaboration visible only as a clearly labeled limited pilot.
+  - **Why:** Preserves the current operational thesis and avoids sliding back into generic homeowner-marketplace positioning.
+- **Decision:** Use both live proof (featured verified profile when available) and sample proof (case study / workflow demo) on the homepage.
+  - **Why:** Improves trust immediately without fabricating metrics or waiting for higher pilot density.
+
+### Data / Schema Notes
+
+- No Prisma schema changes.
+- No migration changes.
+- No backend auth architecture changes.
+
+### Next Steps
+
+1. Replace the sample homepage case study with a live pilot story once enough verified activity exists to do that truthfully.
+2. Set final production company/support values in env before pushing beyond pilot-grade public distribution.
+3. Apply the same finished-state/error-state standard to remaining logged-in product screens beyond public auth.

@@ -136,13 +136,24 @@ Phase 1 delivery focus:
 - `/agents/[slug]` now exposes deeper public trust/proof modules using existing profile data (`responseTimeMinutes`, `ratingAggregate`, `profileCompleteness`, `serviceAreas`, `specialties`, `achievements`, `languages`, and profile timestamps) without inventing new metrics.
 - Public browse IA now anchors on `/requests` while `/locations*` remains compatibility redirects to avoid breaking shared links.
 
+20. Proof-led public pilot layer + auth completion hardening (new)
+
+- Homepage CTAs now lead with the current Phase 1 priorities: `Build your verified profile`, `Log your first transactions`, and a clearly labeled limited collaboration-pilot route.
+- Homepage proof now includes a featured verified-agent block sourced from public profiles when available, a sample case-study narrative, and a workflow demo showing instruction -> structured proposals -> shortlist -> messaging.
+- Public directory and `/requests*` empty states now explain rollout stage, show one concrete proof/example element, and offer one strong next-step CTA instead of placeholder emptiness.
+- Public sign-in and sign-up now resolve `next` and `error` on the server and pass them into `GoogleAuthButton`, removing the Suspense-only loading fallback from the auth entry flow while keeping the same NextAuth backend architecture.
+- `GoogleAuthButton` now surfaces inline sign-in failure states for both Google and preview paths instead of silently resetting to idle.
+- Static trust/support routes now expose the concrete support inbox, operating entity/region, response-window expectations, and named operational provider stack (Auth.js/Google, Railway/Postgres/Prisma, Resend, optional Upstash, optional OpenAI resume intake).
+- `/sitemap` now derives live pilot request-area summaries from the marketplace query layer at request time instead of reading mock data.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
 
 - Public: `/`, `/agents`, `/agents/[slug]`, trust/legal pages
-- Public seller-request browse: `/requests`, `/requests/[postcodeDistrict]` as a secondary noindex pilot surface (with `/locations*` compatibility redirects)
-- Auth: `/sign-in`, `/onboarding/role`
+- Public landing now includes proof-led modules (featured verified profile, pilot case-study narrative, workflow demo) instead of relying on strategy copy alone.
+- Public homeowner-collaboration browse: `/requests`, `/requests/[postcodeDistrict]` as a secondary noindex pilot surface (with `/locations*` compatibility redirects)
+- Auth: `/sign-in`, `/sign-up`, `/onboarding/role` with server-resolved public auth state and backend-only preview controls reserved for QA/E2E
 - Agent app: `/agent/onboarding`, `/agent/profile/edit`, proposals, marketplace
 - Homeowner app: `/homeowner/instructions/new` client-side instruction form with structured payload assembly and bid-window sync
 - Admin app: `/admin/agents` verification queue + expanded activation counters

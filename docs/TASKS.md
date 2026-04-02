@@ -49,6 +49,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
 - [x] A013 — Public Phase 1 positioning + auth hardening
       **Acceptance:** Public landing, directory/profile, auth, and trust pages present WHOMA first as a verified estate agent identity platform; `/requests*` stays live as a clearly labeled secondary pilot and is `noindex`; public auth never exposes preview or admin access; agent onboarding/CV surfaces show a visible activation checklist aligned to Phase 1 behaviors.
       **Progress (2026-03-31):** Redeployed and re-verified live production: homepage now leads with verified-profile messaging and Phase 1 sequencing, `/requests` is publicly framed as a secondary pilot with `noindex`, and public sign-in resolves to the beta-gated auth path without exposing preview-role controls.
+      **Progress (2026-04-02):** Tightened the public Phase 1 thesis around verified identity, agent-owned reputation, and structured collaboration: homepage CTAs now lead with agent-profile build / transaction logging / limited collaboration-pilot entry, homepage proof now includes a featured verified agent block plus case-study/demo material, and public auth now resolves `next`/`error` server-side so sign-in no longer depends on a client Suspense loading fallback.
 
 ## Phase 1 Milestones (working plan)
 
@@ -95,12 +96,14 @@ Target date for onboarding start: Monday, **2026-03-30**.
 
 - [ ] T012 — Loading/empty/error states polish across key flows
       **Acceptance:** All primary MVP screens have non-empty empty states, skeletons for loading, and user-visible error messages with recovery actions.
+      **Progress (2026-04-02):** Public auth now resolves sign-in `next`/`error` state server-side so the page no longer depends on a Suspense placeholder; public directory/request zero states now include rollout explanation, proof/example content, and one clear CTA instead of placeholder emptiness. App-wide skeleton/loading polish is still pending on the logged-in surfaces.
 
 - [x] T013 — Trust pages + HTML sitemap + browse LIVE Instructions by location (public)
       **Acceptance:** Public routes exist for `/privacy`, `/cookies`, `/terms`, `/complaints`, `/contact`, `/sitemap`, `/locations`, and `/locations/[postcodeDistrict]`; footer links expose trust/support pages; sitemap lists key pages and location routes; location pages list LIVE Instructions (not property listings).
       **Progress (2026-03-21):** Marketplace and location browse pages now read Prisma-backed LIVE instructions, include proposal counts from the database, and render empty states when `DATABASE_URL` is missing.
       **Progress (2026-03-23):** Public-facing IA/copy was aligned to outcome-first positioning (`Agents compete for your listing. You choose the deal.`) across homepage, `/agents`, `/locations*`, auth entry pages, footer, and legal/support pages; user-facing labels now prefer `sale request`/`offer` language and remove placeholder/trust-friction messaging on public pages.
       **Progress (2026-03-23):** Public IA now uses `/requests` as the primary seller-request browse route (`/requests`, `/requests/[postcodeDistrict]`), while `/locations*` remains as compatibility redirects to preserve existing external links.
+      **Progress (2026-04-02):** Legal/support pages now surface a concrete support inbox, operating entity/region, response-window language, and named operational providers; public zero states now include rollout-stage explanation plus a proof/example block and one strong CTA instead of empty placeholder copy.
 
 - [ ] T014 — Cookie consent mechanism + preferences control (MVP)
       **Acceptance:** Non-essential cookies remain off until consent; user can review/change preferences; cookies page links to live consent controls and accurately reflects behavior.

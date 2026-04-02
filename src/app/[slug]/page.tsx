@@ -3,13 +3,16 @@ import { notFound } from "next/navigation";
 import type { Metadata, Route } from "next";
 
 import { Logo } from "@/components/brand/logo";
+import { CookieConsentPanel } from "@/components/layout/cookie-consent-panel";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getPublicSiteConfig, getSupportMailto } from "@/lib/public-site";
+import { cn } from "@/lib/utils";
 import {
-  getPublicSiteConfig,
-  getSupportMailto
-} from "@/lib/public-site";
-import { getLiveInstructionLocationSummaries } from "@/lib/mock/live-instructions";
+  getLiveInstructionCards,
+  getLiveInstructionLocationSummaries
+} from "@/server/marketplace/queries";
 
 type LegalSlug = "privacy" | "cookies" | "terms" | "complaints" | "contact";
 type StaticPageSlug = LegalSlug | "sitemap";
@@ -25,6 +28,14 @@ interface LegalPageContent {
   sections: LegalSection[];
 }
 
+interface OperationalProcessor {
+  name: string;
+  purpose: string;
+  status: string;
+}
+
+const LAST_UPDATED_LABEL = "April 2, 2026";
+
 const legalSlugs: readonly LegalSlug[] = [
   "privacy",
   "cookies",
@@ -32,40 +43,90 @@ const legalSlugs: readonly LegalSlug[] = [
   "complaints",
   "contact"
 ] as const;
-const staticPageSlugs: readonly StaticPageSlug[] = [...legalSlugs, "sitemap"] as const;
+const staticPageSlugs: readonly StaticPageSlug[] = [
+  ...legalSlugs,
+  "sitemap"
+] as const;
 const sitemapPublicPages: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/", label: "Home" },
   { href: "/sign-in", label: "Sign in" },
   { href: "/sign-up", label: "Sign up" },
-  { href: "/agents", label: "Verified agent profiles" }
+  { href: "/agents", label: "Verified agent profiles" },
+  { href: "/requests", label: "Limited collaboration pilot" }
 ];
 
-function getLegalContent(site: ReturnType<typeof getPublicSiteConfig>): Record<LegalSlug, LegalPageContent> {
+function getOperationalProcessors(): OperationalProcessor[] {
+  return [
+    {
+      name: "Auth.js + Google OAuth",
+      purpose:
+        "public sign-in, session handling, and role-aware access control",
+      status:
+        process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+          ? "Enabled for live Google sign-in"
+          : "Configured as the primary auth path when credentials are available"
+    },
+    {
+      name: "Railway + Postgres + Prisma",
+      purpose:
+        "application hosting, persistence, and structured workflow records",
+      status: "Current operational stack"
+    },
+    {
+      name: "Resend",
+      purpose: "business work-email verification delivery for agents",
+      status:
+        process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL
+          ? "Configured for production delivery"
+          : "Used when production email credentials are configured"
+    },
+    {
+      name: "Upstash Redis",
+      purpose: "shared rate limiting and idempotency storage when enabled",
+      status:
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+          ? "Enabled as shared API safety infrastructure"
+          : "Optional shared infrastructure"
+    },
+    {
+      name: "OpenAI resume intake",
+      purpose: "optional resume suggestion extraction during agent onboarding",
+      status:
+        process.env.ENABLE_RESUME_AI_PREFILL === "true"
+          ? "Enabled for opted-in resume processing"
+          : "Disabled by default"
+    }
+  ];
+}
+
+function getLegalContent(
+  site: ReturnType<typeof getPublicSiteConfig>
+): Record<LegalSlug, LegalPageContent> {
   return {
     privacy: {
       title: "Privacy Policy",
-      intro:
-        `${site.companyLegalName} runs WHOMA as a ${site.betaStatusLabel.toLowerCase()}. This policy explains how pilot account, profile, request, and messaging data is handled.`,
+      intro: `${site.companyLegalName} operates WHOMA as a ${site.betaStatusLabel.toLowerCase()} in the ${site.operatingRegion}. This page explains what pilot data is handled, why it is handled, and which operational providers are involved.`,
       sections: [
         {
-          heading: "What data we collect",
+          heading: "What data WHOMA handles",
           paragraphs: [
-            "We collect the account and profile information needed to verify identity, operate the pilot, review profiles, and maintain a secure audit trail.",
-            "Where homeowner pilot access is active, we also collect request details, structured agent responses, and message-thread records needed to run the controlled workflow."
+            "We handle account identity details, role selection, business work-email verification data, public profile information, and support or complaints correspondence needed to operate the pilot responsibly.",
+            "Where the collaboration pilot is active, we also handle homeowner-request data, structured proposals, shortlist or award decisions, and message-thread records tied to the relevant participants."
           ]
         },
         {
-          heading: "How we use data",
+          heading: "Why it is handled",
           paragraphs: [
-            "Data is used to provide sign-in, route users into the correct role flow, evaluate profile completeness, support admin verification, and respond to support or complaints queries.",
-            "WHOMA prefers privacy-conscious operational metrics over unnecessary personal analytics."
+            "Pilot data is used to verify identity, publish and review professional profiles, protect the product from abuse, operate the structured collaboration flow, and respond to support, privacy, or complaints requests.",
+            "WHOMA prefers low-PII operational metrics and audit trails over broad behavioural profiling."
           ]
         },
         {
-          heading: "Sharing and retention",
+          heading: "Sharing, retention, and contact",
           paragraphs: [
-            "We do not sell personal data. Infrastructure, auth, email delivery, and hosting partners only receive the minimum information required to operate the pilot.",
-            `If you have a privacy question, contact ${site.supportEmail}.`
+            "We do not sell personal data. Operational providers only receive the minimum information required to run authentication, hosting, storage, email verification, or optional AI resume processing.",
+            `Privacy requests should be sent to ${site.supportEmail}. Include the account email, profile slug, or request reference so the team can locate the relevant record quickly.`
           ]
         }
       ]
@@ -73,20 +134,20 @@ function getLegalContent(site: ReturnType<typeof getPublicSiteConfig>): Record<L
     cookies: {
       title: "Cookies Policy",
       intro:
-        "WHOMA currently uses cookies and similar storage only where needed to support secure sign-in, sessions, and product controls.",
+        "WHOMA currently uses cookies and similar storage only where needed for secure sign-in, session continuity, and product controls that keep pilot access reliable.",
       sections: [
         {
           heading: "Essential cookies",
           paragraphs: [
-            "Essential cookies support authentication, session continuity, CSRF protection, and other security-sensitive application behaviors.",
-            "These cookies are required for pilot access and protected app routes."
+            "Essential cookies support authentication, session continuity, CSRF protection, and other security-sensitive platform behaviour.",
+            "These cookies are required for protected app routes and cannot be disabled while using signed-in WHOMA surfaces."
           ]
         },
         {
-          heading: "Preferences and analytics",
+          heading: "Non-essential cookies",
           paragraphs: [
-            "If non-essential analytics are enabled later, WHOMA will continue to favor low-PII aggregate instrumentation over profiling.",
-            "Cookie preferences will be updated as the public beta expands."
+            "WHOMA does not currently run broad public marketing analytics as part of this pilot. If non-essential analytics are added later, this page and the consent controls will be updated before rollout.",
+            "Until then, the consent panel is limited to essential-cookie clarity and future preference readiness."
           ]
         },
         {
@@ -100,27 +161,27 @@ function getLegalContent(site: ReturnType<typeof getPublicSiteConfig>): Record<L
     terms: {
       title: "Terms of Use",
       intro:
-        "These terms describe how WHOMA's current pilot should be used and what the platform does at this stage.",
+        "These terms describe the current product boundary: WHOMA is running a controlled pilot for verified identity, reputation, and structured collaboration infrastructure.",
       sections: [
         {
-          heading: "Current pilot scope",
+          heading: "Current service scope",
           paragraphs: [
-            "WHOMA is currently focused on verified estate agent identity, structured public profiles, and admin-reviewed trust. Homeowner tendering remains a controlled secondary pilot path.",
-            "WHOMA is not acting as an estate agent, broker, valuation provider, or legal adviser unless a separate service agreement explicitly states otherwise."
+            "WHOMA currently leads with verified estate-agent identity, structured public profiles, and admin-reviewed trust. Collaboration tooling remains a limited pilot rather than a broad public comparison marketplace.",
+            "WHOMA is not acting as an estate agent, broker, valuation provider, conveyancer, or legal adviser unless a separate signed service agreement states otherwise."
           ]
         },
         {
           heading: "User responsibilities",
           paragraphs: [
-            "Users must provide accurate information, respect platform rules, and avoid misuse of other users' data or identity claims.",
-            "Agents are responsible for the truthfulness of profile information and any structured responses submitted through the pilot."
+            "Users must provide accurate information, avoid impersonation or misuse of another party's data, and only submit profile or collaboration information they are entitled to share.",
+            "Agents are responsible for the truthfulness of profile claims and structured proposal content submitted through the pilot."
           ]
         },
         {
-          heading: "Limits",
+          heading: "Platform limits",
           paragraphs: [
-            "WHOMA does not process transaction payments in-platform during this phase.",
-            "Verification markers are trust signals for the pilot, not guarantees or substitutes for independent due diligence."
+            "WHOMA does not process transaction payments in-platform during this stage, and pilot visibility or verification markers should not be treated as guarantees of outcome.",
+            "Independent due diligence still matters before instructing, shortlisting, awarding, or transacting with another party."
           ]
         }
       ]
@@ -128,55 +189,55 @@ function getLegalContent(site: ReturnType<typeof getPublicSiteConfig>): Record<L
     complaints: {
       title: "Complaints and Support",
       intro:
-        "WHOMA aims to handle pilot issues quickly and clearly, especially where verification, access, or data concerns are involved.",
+        "WHOMA handles pilot complaints through a named support route so verification, access, data, and collaboration issues can be reviewed against the actual operational record.",
       sections: [
         {
           heading: "How to raise a complaint",
           paragraphs: [
-            `Send complaints to ${site.supportEmail} and include the relevant account email, profile slug, or pilot request reference where possible.`,
-            `We aim to acknowledge complaints within ${site.supportResponseWindow}.`
+            `Send complaints to ${site.supportEmail} and include the account email, public profile slug, or request reference wherever possible.`,
+            `WHOMA aims to acknowledge complaints within ${site.supportResponseWindow.toLowerCase()} and will explain if a case needs a longer review.`
           ]
         },
         {
-          heading: "How we review issues",
+          heading: "How cases are reviewed",
           paragraphs: [
-            "Where a complaint relates to platform behavior, profile verification, or a pilot request interaction, WHOMA may review internal records and audit history needed to resolve it fairly.",
-            "We keep case notes so repeated issues can be handled consistently."
+            "Where a complaint relates to verification, profile visibility, shortlist decisions, or collaboration records, WHOMA may review the relevant audit history and structured workflow data needed to resolve the case fairly.",
+            "Repeated or safety-related issues are handled with higher priority than general product feedback."
           ]
         },
         {
-          heading: "Escalation",
+          heading: "Escalation path",
           paragraphs: [
-            "If an issue cannot be resolved in the first response, we will explain the next review step and who is handling it.",
-            "Safety or account-access issues are prioritized ahead of general product feedback."
+            "If the first response does not resolve the issue, WHOMA will confirm the next review step, who is handling it, and whether any additional evidence is needed.",
+            "If you are reporting an urgent access or misuse issue, say that clearly in the subject line so the case can be triaged faster."
           ]
         }
       ]
     },
     contact: {
-      title: "Contact",
+      title: "Contact and Pilot Access",
       intro:
-        "Use this page for pilot access, verification questions, support requests, and partnership conversations.",
+        "This is the operational contact route for pilot access, verification questions, profile support, privacy queries, complaints, and partnership conversations.",
       sections: [
         {
-          heading: "Pilot support",
+          heading: "Primary support route",
           paragraphs: [
-            `Email ${site.supportEmail} for account access, verification questions, profile issues, or pilot request support.`,
-            `Typical response window: ${site.supportResponseWindow}.`
+            `Email ${site.supportEmail}. This inbox is the named support channel for WHOMA's current pilot.`,
+            `Typical response window: ${site.supportResponseWindow}. ${site.supportCoverage}`
           ]
         },
         {
-          heading: "Partnerships and beta access",
+          heading: "What to include",
           paragraphs: [
-            "Use the same support channel for agency partnerships, founder conversations, or manual beta access requests.",
-            "Please mention whether you are an estate agent, homeowner, or partner so the team can route the enquiry correctly."
+            "Include your account email, public profile slug, or request reference where relevant so the team can locate the right operational record quickly.",
+            "Please also state whether the enquiry relates to agent onboarding, verification, profile visibility, collaboration pilot access, privacy, or partnerships."
           ]
         },
         {
-          heading: "Operating status",
+          heading: "Pilot operating status",
           paragraphs: [
-            `${site.companyLegalName} is currently running WHOMA as a ${site.betaStatusLabel.toLowerCase()}.`,
-            "Public visibility and access rules may evolve as the pilot expands."
+            `${site.companyLegalName} is currently running WHOMA as a ${site.betaStatusLabel.toLowerCase()} in the ${site.operatingRegion}.`,
+            "Public access, provider configuration, and rollout boundaries may evolve as the pilot matures, but support continues through the same monitored route."
           ]
         }
       ]
@@ -192,7 +253,10 @@ function isStaticPageSlug(value: string): value is StaticPageSlug {
   return (staticPageSlugs as readonly string[]).includes(value);
 }
 
-function getPageTitle(slug: StaticPageSlug, legalContent: Record<LegalSlug, LegalPageContent>): string {
+function getPageTitle(
+  slug: StaticPageSlug,
+  legalContent: Record<LegalSlug, LegalPageContent>
+): string {
   if (slug === "sitemap") {
     return "Sitemap";
   }
@@ -200,13 +264,16 @@ function getPageTitle(slug: StaticPageSlug, legalContent: Record<LegalSlug, Lega
   return legalContent[slug].title;
 }
 
+export const dynamic = "force-dynamic";
 export const dynamicParams = false;
 
 export function generateStaticParams(): Array<{ slug: StaticPageSlug }> {
   return staticPageSlugs.map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const site = getPublicSiteConfig();
   const legalContent = getLegalContent(site);
@@ -220,23 +287,36 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function StaticPage({ params }: PageProps): Promise<JSX.Element> {
+export default async function StaticPage({
+  params
+}: PageProps): Promise<JSX.Element> {
   const { slug } = await params;
   const site = getPublicSiteConfig();
   const legalContent = getLegalContent(site);
+  const operationalProcessors = getOperationalProcessors();
 
   if (!isStaticPageSlug(slug)) {
     notFound();
   }
 
-  const locationSummaries = slug === "sitemap" ? getLiveInstructionLocationSummaries() : [];
+  const liveInstructions =
+    slug === "sitemap" && process.env.DATABASE_URL
+      ? await getLiveInstructionCards()
+      : [];
+  const locationSummaries =
+    slug === "sitemap"
+      ? getLiveInstructionLocationSummaries(liveInstructions)
+      : [];
 
   return (
     <div className="min-h-screen bg-surface-1">
       <header className="border-b border-line bg-surface-0">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <Logo subtitle={site.logoSubtitle} />
-          <Link href="/" className="text-sm font-medium text-text-muted transition-colors hover:text-brand-ink">
+          <Link
+            href="/"
+            className="text-sm font-medium text-text-muted transition-colors hover:text-brand-ink"
+          >
             Back to home
           </Link>
         </div>
@@ -245,17 +325,22 @@ export default async function StaticPage({ params }: PageProps): Promise<JSX.Ele
       <main className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
         <Card className="space-y-6">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Whoma</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+              WHOMA
+            </p>
             <h1>{getPageTitle(slug, legalContent)}</h1>
             {slug === "sitemap" ? (
               <p className="text-sm text-text-muted">
-                HTML sitemap for the primary public pages plus secondary pilot request routes.
+                HTML sitemap for the primary public pages plus the limited
+                collaboration pilot routes.
               </p>
             ) : (
               <>
-                <p className="text-sm text-text-muted">{legalContent[slug].intro}</p>
+                <p className="text-sm text-text-muted">
+                  {legalContent[slug].intro}
+                </p>
                 <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted">
-                  Last updated: March 31, 2026
+                  Last updated: {LAST_UPDATED_LABEL}
                 </p>
               </>
             )}
@@ -268,7 +353,10 @@ export default async function StaticPage({ params }: PageProps): Promise<JSX.Ele
                 <ul className="space-y-2 text-sm text-text-muted">
                   {sitemapPublicPages.map((page) => (
                     <li key={page.href}>
-                      <Link href={page.href as Route} className="transition-colors hover:text-brand-ink">
+                      <Link
+                        href={page.href as Route}
+                        className="transition-colors hover:text-brand-ink"
+                      >
                         {page.label}
                       </Link>
                     </li>
@@ -281,7 +369,10 @@ export default async function StaticPage({ params }: PageProps): Promise<JSX.Ele
                 <ul className="space-y-2 text-sm text-text-muted">
                   {legalSlugs.map((legalSlug) => (
                     <li key={legalSlug}>
-                      <Link href={`/${legalSlug}` as Route} className="transition-colors hover:text-brand-ink">
+                      <Link
+                        href={`/${legalSlug}` as Route}
+                        className="transition-colors hover:text-brand-ink"
+                      >
                         {legalContent[legalSlug].title}
                       </Link>
                     </li>
@@ -291,37 +382,63 @@ export default async function StaticPage({ params }: PageProps): Promise<JSX.Ele
 
               <Card className="space-y-3 bg-surface-1 md:col-span-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-lg">Pilot request area routes</h2>
+                  <h2 className="text-lg">Live pilot request routes</h2>
                   <span className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted">
                     {locationSummaries.length} areas
                   </span>
                 </div>
-                <ul className="grid gap-2 text-sm text-text-muted sm:grid-cols-2">
-                  {locationSummaries.map((location) => (
-                    <li key={location.postcodeDistrict} className="rounded-md border border-line bg-surface-0 px-3 py-2">
-                      <Link href={`/requests/${location.postcodeDistrict}` as Route} className="transition-colors hover:text-brand-ink">
-                        {location.city} · {location.postcodeDistrict} ({location.instructionsCount} live pilot request
-                        {location.instructionsCount === 1 ? "" : "s"})
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                {locationSummaries.length === 0 ? (
+                  <p className="text-sm text-text-muted">
+                    No live request areas are currently listed. That is expected
+                    when the collaboration pilot is kept narrow.
+                  </p>
+                ) : (
+                  <ul className="grid gap-2 text-sm text-text-muted sm:grid-cols-2">
+                    {locationSummaries.map((location) => (
+                      <li
+                        key={location.postcodeDistrict}
+                        className="rounded-md border border-line bg-surface-0 px-3 py-2"
+                      >
+                        <Link
+                          href={
+                            `/requests/${location.postcodeDistrict}` as Route
+                          }
+                          className="transition-colors hover:text-brand-ink"
+                        >
+                          {location.city} · {location.postcodeDistrict} (
+                          {location.instructionsCount} live pilot request
+                          {location.instructionsCount === 1 ? "" : "s"})
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </Card>
             </div>
           ) : (
             <div className="space-y-6">
-              <Card className="space-y-3 bg-surface-1">
+              <Card className="space-y-4 bg-surface-1">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Pilot status</p>
-                    <p className="text-sm font-medium text-text-strong">{site.betaStatusLabel}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                      Pilot status
+                    </p>
+                    <p className="text-sm font-medium text-text-strong">
+                      {site.betaStatusLabel}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Operating entity</p>
-                    <p className="text-sm font-medium text-text-strong">{site.companyLegalName}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                      Operating entity
+                    </p>
+                    <p className="text-sm font-medium text-text-strong">
+                      {site.companyLegalName}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Support email</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                      Primary support route
+                    </p>
                     <a
                       href={getSupportMailto(site.supportEmail)}
                       className="text-sm font-medium text-brand-ink underline"
@@ -330,9 +447,78 @@ export default async function StaticPage({ params }: PageProps): Promise<JSX.Ele
                     </a>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Typical response window</p>
-                    <p className="text-sm font-medium text-text-strong">{site.supportResponseWindow}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                      Typical response window
+                    </p>
+                    <p className="text-sm font-medium text-text-strong">
+                      {site.supportResponseWindow}
+                    </p>
                   </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                      Operating region
+                    </p>
+                    <p className="text-sm font-medium text-text-strong">
+                      {site.operatingRegion}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                      Support handling
+                    </p>
+                    <p className="text-sm font-medium text-text-strong">
+                      {site.supportCoverage}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href={getSupportMailto(site.supportEmail)}
+                    className={cn(
+                      buttonVariants({ variant: "primary", size: "sm" })
+                    )}
+                  >
+                    Email support
+                  </a>
+                  <Link
+                    href="/complaints"
+                    className={cn(
+                      buttonVariants({ variant: "secondary", size: "sm" })
+                    )}
+                  >
+                    Complaints route
+                  </Link>
+                </div>
+              </Card>
+
+              <Card className="space-y-3 bg-surface-1">
+                <div className="space-y-1">
+                  <h2 className="text-lg">
+                    Current providers and operational stack
+                  </h2>
+                  <p className="text-sm text-text-muted">
+                    These are the main providers WHOMA uses or is configured to
+                    use for the current pilot.
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {operationalProcessors.map((processor) => (
+                    <div
+                      key={processor.name}
+                      className="rounded-md border border-line bg-surface-0 px-3 py-3"
+                    >
+                      <p className="text-sm font-medium text-text-strong">
+                        {processor.name}
+                      </p>
+                      <p className="mt-1 text-sm text-text-muted">
+                        {processor.purpose}
+                      </p>
+                      <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-text-muted">
+                        {processor.status}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </Card>
 
@@ -346,6 +532,8 @@ export default async function StaticPage({ params }: PageProps): Promise<JSX.Ele
                   </div>
                 </section>
               ))}
+
+              {slug === "cookies" ? <CookieConsentPanel /> : null}
             </div>
           )}
         </Card>

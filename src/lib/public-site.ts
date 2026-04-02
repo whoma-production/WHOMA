@@ -9,12 +9,17 @@ export interface PublicSiteConfig {
   logoSubtitle: string;
   supportEmail: string;
   supportResponseWindow: string;
+  supportCoverage: string;
   betaStatusLabel: string;
+  pilotSummary: string;
+  operatingRegion: string;
 }
 
 export const PUBLIC_AGENT_CTA_HREF = "/sign-up?role=AGENT";
 export const PUBLIC_AGENT_DIRECTORY_HREF = "/agents";
 export const PUBLIC_REQUESTS_PILOT_HREF = "/requests";
+export const PUBLIC_AGENT_TRANSACTIONS_HREF = "/sign-in?next=/agent/marketplace";
+export const PUBLIC_COLLABORATION_PILOT_HREF = "/contact";
 
 export function getPublicSiteConfig(): PublicSiteConfig {
   return {
@@ -25,7 +30,7 @@ export function getPublicSiteConfig(): PublicSiteConfig {
     ),
     logoSubtitle: readEnvValue(
       process.env.NEXT_PUBLIC_LOGO_SUBTITLE,
-      "Verified identity for estate agents"
+      "Identity and reputation infrastructure for estate agents"
     ),
     supportEmail: readEnvValue(
       process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
@@ -35,9 +40,21 @@ export function getPublicSiteConfig(): PublicSiteConfig {
       process.env.NEXT_PUBLIC_SUPPORT_RESPONSE_WINDOW,
       "3 business days"
     ),
+    supportCoverage: readEnvValue(
+      process.env.NEXT_PUBLIC_SUPPORT_COVERAGE,
+      "Support is coordinated through a monitored email route during the pilot."
+    ),
     betaStatusLabel: readEnvValue(
       process.env.NEXT_PUBLIC_BETA_STATUS_LABEL,
-      "Phase 1 verified-profile pilot"
+      "Phase 1 controlled pilot"
+    ),
+    pilotSummary: readEnvValue(
+      process.env.NEXT_PUBLIC_PILOT_SUMMARY,
+      "WHOMA is validating verified estate-agent identity, agent-owned reputation, and structured collaboration before any broader public launch."
+    ),
+    operatingRegion: readEnvValue(
+      process.env.NEXT_PUBLIC_OPERATING_REGION,
+      "United Kingdom"
     )
   };
 }

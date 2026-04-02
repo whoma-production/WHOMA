@@ -14,7 +14,10 @@ import {
   PUBLIC_REQUESTS_PILOT_HREF
 } from "@/lib/public-site";
 import { cn } from "@/lib/utils";
-import { getPublicAgentProfileBySlug } from "@/server/agent-profile/service";
+import {
+  getPublicAgentProfileBySlug,
+  getPublicAgentTrustSignals
+} from "@/server/agent-profile/service";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -49,27 +52,39 @@ const londonDateFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/London"
 });
 
-function formatResponseTime(minutes: number | null): string {
+function formatResponseTime(
+  minutes: number | null,
+  source: "measured" | "estimated" | "unavailable"
+): string {
   if (!minutes || minutes <= 0) {
-    return "";
+    return "Building baseline";
   }
 
   if (minutes < 60) {
-    return `${minutes} mins`;
+    return source === "estimated" ? `~${minutes} mins` : `${minutes} mins`;
   }
 
   const roundedHours = Math.round((minutes / 60) * 10) / 10;
-  return `${roundedHours} hrs`;
+  return source === "estimated" ? `~${roundedHours} hrs` : `${roundedHours} hrs`;
 }
 
-function formatRating(rating: number | null): string {
+function formatSellerFitSignal(
+  rating: number | null,
+  source: "measured" | "estimated" | "unavailable"
+): string {
   if (!rating || rating <= 0) {
-    return "";
+    return "Building baseline";
   }
 
-  return `${new Intl.NumberFormat("en-GB", {
+  const formatted = `${new Intl.NumberFormat("en-GB", {
     maximumFractionDigits: 1
   }).format(rating)} / 5`;
+
+  if (source === "estimated") {
+    return `${formatted} (estimated)`;
+  }
+
+  return formatted;
 }
 
 function buildPublicProofBullets(profile: {
@@ -77,7 +92,10 @@ function buildPublicProofBullets(profile: {
   serviceAreas: string[];
   specialties: string[];
   responseTimeMinutes: number | null;
+  responseTimeSource: "measured" | "estimated" | "unavailable";
   achievements: string[];
+  historicTransactionsLogged: number;
+  liveCollaborationListings: number;
 }): string[] {
   const bullets: string[] = [];
 
@@ -97,8 +115,19 @@ function buildPublicProofBullets(profile: {
 
   if (profile.responseTimeMinutes !== null && profile.responseTimeMinutes > 0) {
     bullets.push(
-      `Typical response speed currently published as ${formatResponseTime(profile.responseTimeMinutes)}.`
+      `Typical response speed currently ${profile.responseTimeSource === "estimated" ? "estimated at" : "tracked at"} ${formatResponseTime(
+        profile.responseTimeMinutes,
+        profile.responseTimeSource
+      )}.`
     );
+  }
+
+  if (profile.historicTransactionsLogged > 0) {
+    bullets.push(`${profile.historicTransactionsLogged} historic transaction${profile.historicTransactionsLogged === 1 ? "" : "s"} logged.`);
+  }
+
+  if (profile.liveCollaborationListings > 0) {
+    bullets.push(`${profile.liveCollaborationListings} live collaboration listing${profile.liveCollaborationListings === 1 ? "" : "s"} currently active.`);
   }
 
   if (profile.achievements.length > 0) {
@@ -127,44 +156,82 @@ export default async function PublicAgentProfilePage({
     notFound();
   }
 
+  const trustSignals = await getPublicAgentTrustSignals({
+    userId: profile.userId,
+    profileCompleteness: profile.profileCompleteness,
+    verificationStatus: profile.verificationStatus,
+    responseTimeMinutes: profile.responseTimeMinutes,
+    ratingAggregate: profile.ratingAggregate
+  });
+
   const proofBullets = buildPublicProofBullets({
     yearsExperience: profile.yearsExperience,
     serviceAreas: profile.serviceAreas,
     specialties: profile.specialties,
-    responseTimeMinutes: profile.responseTimeMinutes,
-    achievements: profile.achievements
+    responseTimeMinutes: trustSignals.responseTimeMinutes,
+    responseTimeSource: trustSignals.responseTimeSource,
+    achievements: profile.achievements,
+    historicTransactionsLogged: trustSignals.historicTransactionsLogged,
+    liveCollaborationListings: trustSignals.liveCollaborationListings
   });
 
   const proofStats = [
     profile.yearsExperience !== null
       ? {
           label: "Experience",
-          value: `${profile.yearsExperience} ${profile.yearsExperience === 1 ? "year" : "years"}`
-        }
-      : null,
-    profile.responseTimeMinutes
-      ? {
-          label: "Response speed",
-          value: formatResponseTime(profile.responseTimeMinutes)
-        }
-      : null,
-    profile.ratingAggregate
-      ? {
-          label: "Seller rating",
-          value: formatRating(profile.ratingAggregate)
+          value: `${profile.yearsExperience} ${profile.yearsExperience === 1 ? "year" : "years"}`,
+          note: "Self-reported"
         }
       : null,
     {
+      label: "Response speed",
+      value: formatResponseTime(
+        trustSignals.responseTimeMinutes,
+        trustSignals.responseTimeSource
+      ),
+      note:
+        trustSignals.responseTimeSource === "measured"
+          ? "Measured from platform activity"
+          : trustSignals.responseTimeSource === "estimated"
+            ? "Estimated from proposal timing"
+            : "Appears after enough platform activity"
+    },
+    {
+      label: "Seller fit signal",
+      value: formatSellerFitSignal(
+        trustSignals.sellerFitSignal,
+        trustSignals.sellerFitSource
+      ),
+      note:
+        trustSignals.sellerFitSource === "measured"
+          ? "Measured from live ratings"
+          : trustSignals.sellerFitSource === "estimated"
+            ? "Estimated from trust profile + activity"
+            : "Appears after enough platform activity"
+    },
+    {
+      label: "Historic transactions",
+      value: String(trustSignals.historicTransactionsLogged),
+      note: "Accepted offers logged on WHOMA"
+    },
+    {
+      label: "Live collaborations",
+      value: String(trustSignals.liveCollaborationListings),
+      note: "Active offers in LIVE/SHORTLIST requests"
+    },
+    {
       label: "Profile quality",
-      value: `${profile.profileCompleteness}% complete`
+      value: `${profile.profileCompleteness}% complete`,
+      note: "Structured profile completeness"
     },
     profile.publishedAt
       ? {
           label: "Published",
-          value: londonDateFormatter.format(profile.publishedAt)
+          value: londonDateFormatter.format(profile.publishedAt),
+          note: "Public profile visibility date"
         }
       : null
-  ].filter(Boolean) as Array<{ label: string; value: string }>;
+  ].filter(Boolean) as Array<{ label: string; value: string; note?: string }>;
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -182,7 +249,7 @@ export default async function PublicAgentProfilePage({
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your profile
+              Build your verified profile
             </Link>
           </div>
         </div>
@@ -228,6 +295,9 @@ export default async function PublicAgentProfilePage({
                     <p className="text-sm font-medium text-text-strong">
                       {stat.value}
                     </p>
+                    {stat.note ? (
+                      <p className="mt-1 text-xs text-text-muted">{stat.note}</p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -285,6 +355,8 @@ export default async function PublicAgentProfilePage({
               <li>Verification: Admin verified</li>
               <li>Work email: {profile.workEmail ?? "Not listed"}</li>
               <li>Phone: {profile.phone ?? "Not listed"}</li>
+              <li>Total offers logged: {trustSignals.totalOffersLogged}</li>
+              <li>Shortlisted offers: {trustSignals.shortlistedOffers}</li>
               <li>
                 Last profile update:{" "}
                 {profile.updatedAt

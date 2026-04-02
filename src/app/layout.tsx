@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 
 import { Providers } from "@/app/providers";
+import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
 import { getPublicSiteConfig } from "@/lib/public-site";
 
 import "@/app/globals.css";
@@ -13,9 +14,9 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "WHOMA | Verified identity for estate agents",
+  title: "WHOMA | Identity and reputation infrastructure for estate agents",
   description:
-    "WHOMA is validating verified estate agent identity first: business email verification, structured public profiles, and trust-led pilot visibility before broader marketplace expansion."
+    "WHOMA is a UK-first pilot for verified estate-agent identity, agent-owned reputation, and structured collaboration infrastructure."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {
@@ -27,7 +28,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <a className="sr-only" href={`mailto:${site.supportEmail}`}>
           Contact {site.brandName} support
         </a>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CookieConsentBanner />
+        </Providers>
       </body>
     </html>
   );

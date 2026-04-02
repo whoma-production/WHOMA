@@ -10,7 +10,8 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
-  PUBLIC_AGENT_DIRECTORY_HREF
+  PUBLIC_AGENT_DIRECTORY_HREF,
+  PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
 import {
   getLiveInstructionCards,
@@ -21,9 +22,9 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "WHOMA | Controlled seller-request pilot",
+  title: "WHOMA | Controlled homeowner collaboration pilot",
   description:
-    "Secondary Phase 1 pilot surface for controlled homeowner request visibility while WHOMA validates verified agent identity first.",
+    "Secondary Phase 1 pilot surface for limited homeowner collaboration while WHOMA validates verified estate-agent identity first.",
   robots: {
     index: false,
     follow: false
@@ -43,7 +44,9 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
           <div className="flex items-center gap-2">
             <Link
               href={PUBLIC_AGENT_DIRECTORY_HREF}
-              className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "sm" })
+              )}
             >
               Verified agents
             </Link>
@@ -51,7 +54,7 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
               href={PUBLIC_AGENT_CTA_HREF}
               className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
-              Build your profile
+              Build your verified profile
             </Link>
           </div>
         </div>
@@ -62,24 +65,33 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
             Controlled homeowner pilot
           </p>
-          <h1>Seller-request visibility remains a secondary Phase 1 pilot.</h1>
+          <h1>Homeowner collaboration remains a secondary Phase 1 pilot.</h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            These pages stay live for controlled testing, but WHOMA&apos;s current public focus is verified estate agent
-            identity, profile quality, and admin-reviewed trust.
+            These pages stay live for controlled testing, but WHOMA&apos;s
+            public lead story remains verified estate agent identity, profile
+            quality, and admin-reviewed trust.
           </p>
         </section>
 
         <Card className="space-y-3 bg-surface-0">
           <p className="text-sm text-text-muted">
-            If you are evaluating WHOMA publicly, start with the verified agent directory. Use this request view only as
-            supporting pilot evidence.
+            If you are evaluating WHOMA publicly, start with the verified agent
+            directory. Use this request view only as supporting pilot evidence.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link href={PUBLIC_AGENT_DIRECTORY_HREF} className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
+            <Link
+              href={PUBLIC_AGENT_DIRECTORY_HREF}
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "sm" })
+              )}
+            >
               Browse verified agents
             </Link>
-            <Link href={PUBLIC_AGENT_CTA_HREF} className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
-              Join the agent pilot
+            <Link
+              href={PUBLIC_AGENT_CTA_HREF}
+              className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
+            >
+              Build your verified profile
             </Link>
           </div>
         </Card>
@@ -92,28 +104,38 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                   No pilot requests are live right now
                 </h2>
                 <p className="text-sm text-text-muted">
-                  That is expected during the identity-first rollout. Browse verified profiles or build your own WHOMA
-                  presence while request access stays controlled.
+                  That is expected during the identity-first rollout. Homeowner
+                  collaboration only opens when a brief, a structured response
+                  window, and agent-side proof are all in place.
                 </p>
+                <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Pilot proof
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    This surface only appears when structured offers, shortlist
+                    rules, and gated messaging are ready to run as one
+                    controlled loop.
+                  </p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    href={PUBLIC_AGENT_DIRECTORY_HREF}
-                    className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
-                  >
-                    Browse verified agents
-                  </Link>
-                  <Link
                     href={PUBLIC_AGENT_CTA_HREF}
-                    className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
+                    className={cn(
+                      buttonVariants({ variant: "primary", size: "sm" })
+                    )}
                   >
-                    Build your profile
+                    Build your verified profile
                   </Link>
                 </div>
               </div>
             </Card>
           ) : (
             locations.map((location) => (
-              <Card key={location.postcodeDistrict} className="interactive-lift space-y-3">
+              <Card
+                key={location.postcodeDistrict}
+                className="interactive-lift space-y-3"
+              >
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
                     {location.city}
@@ -125,7 +147,9 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                     {location.instructionsCount} live pilot request
                     {location.instructionsCount === 1 ? "" : "s"}
                   </p>
-                  <p>{location.totalProposalsCount} agent responses submitted</p>
+                  <p>
+                    {location.totalProposalsCount} agent responses submitted
+                  </p>
                 </div>
                 <Link
                   href={`/requests/${location.postcodeDistrict}` as Route}
@@ -146,8 +170,11 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                 Secondary proof surface for controlled homeowner-access testing.
               </p>
             </div>
-            <Link href="/agent/marketplace" className={cn(buttonVariants({ variant: "secondary" }))}>
-              Open agent workspace
+            <Link
+              href={PUBLIC_COLLABORATION_PILOT_HREF}
+              className={cn(buttonVariants({ variant: "secondary" }))}
+            >
+              Join collaboration pilot
             </Link>
           </div>
 
@@ -158,15 +185,36 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                   No open pilot requests to show yet
                 </h3>
                 <p className="text-sm text-text-muted">
-                  WHOMA will widen this surface only after the verified-profile pilot shows strong agent quality and
-                  engagement.
+                  WHOMA will widen this surface only after the verified-profile
+                  pilot shows strong agent quality and the collaboration rules
+                  continue to hold up.
                 </p>
+                <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Example flow
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    Verified agent profile → structured response → shortlist
+                    signal → unlocked collaboration thread.
+                  </p>
+                </div>
+                <Link
+                  href={PUBLIC_COLLABORATION_PILOT_HREF}
+                  className={cn(
+                    buttonVariants({ variant: "primary", size: "sm" })
+                  )}
+                >
+                  Join collaboration pilot
+                </Link>
               </div>
             </Card>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               {instructions.map((instruction) => (
-                <InstructionCard key={instruction.id} instruction={instruction} />
+                <InstructionCard
+                  key={instruction.id}
+                  instruction={instruction}
+                />
               ))}
             </div>
           )}

@@ -951,5 +951,40 @@
       "Merge to main when the branch-level release record is approved.",
       "Set production Google/Resend credentials when ready to replace the beta-gated auth path with full public sign-in."
     ]
+  },
+  {
+    "session_id": "2026-04-02-1455-proof-led-public-branding-auth-hardening",
+    "timestamp": "2026-04-02T14:55:08+02:00",
+    "summary": "Shifted the public site toward proof-led identity/reputation positioning, strengthened trust/support pages, removed the public auth loading dead end, and upgraded public zero states with clearer pilot-stage guidance.",
+    "files_changed": [
+      ".env.example",
+      "src/lib/public-site.ts",
+      "src/app/layout.tsx",
+      "src/components/layout/public-footer.tsx",
+      "src/app/page.tsx",
+      "src/app/agents/page.tsx",
+      "src/app/requests/page.tsx",
+      "src/app/requests/[postcodeDistrict]/page.tsx",
+      "src/app/[slug]/page.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/components/auth/google-auth-button.tsx",
+      "src/components/auth/google-auth-button.test.tsx",
+      "src/app/(app)/homeowner/instructions/page.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept the NextAuth backend architecture intact and fixed auth completion by passing public `next`/`error` values from the server into the existing button component.",
+      "Held homeowner-facing collaboration behind explicitly labeled pilot CTAs so the public brand remains agent-identity-first.",
+      "Mixed live proof (featured verified profile) with sample proof (case study and workflow demo) to improve credibility without inventing unsupported metrics."
+    ],
+    "next_steps": [
+      "Replace the sample homepage case study with a live pilot story once enough verified activity exists to do that truthfully.",
+      "Set final production company/support env values before widening public distribution beyond the pilot.",
+      "Apply the same finished-state/error-state standard to remaining logged-in flows beyond public auth."
+    ]
   }
 ]
