@@ -13,7 +13,10 @@ type PageRoutePolicy = (typeof pageRoutePolicies)[number]["policy"];
 
 export function getPageRoutePolicy(pathname: string): PageRoutePolicy | null {
   for (const routePolicy of pageRoutePolicies) {
-    if (pathname === routePolicy.prefix || pathname.startsWith(`${routePolicy.prefix}/`)) {
+    if (
+      pathname === routePolicy.prefix ||
+      pathname.startsWith(`${routePolicy.prefix}/`)
+    ) {
       return routePolicy.policy;
     }
   }
@@ -41,7 +44,9 @@ export function defaultRouteForRole(role: UserRole): Route {
   return defaultRouteByRole[role];
 }
 
-export function normalizeRedirectPath(candidate: string | undefined | null): string | null {
+export function normalizeRedirectPath(
+  candidate: string | undefined | null
+): string | null {
   if (!candidate) {
     return null;
   }
@@ -57,7 +62,9 @@ export function normalizeRedirectPath(candidate: string | undefined | null): str
   return candidate;
 }
 
-export function getAuthErrorMessage(code: string | null | undefined): string | null {
+export function getAuthErrorMessage(
+  code: string | null | undefined
+): string | null {
   switch (code) {
     case undefined:
     case null:
@@ -70,7 +77,7 @@ export function getAuthErrorMessage(code: string | null | undefined): string | n
     case "AccessDenied":
       return "Sign-in was denied. Please try again or use a different Google account.";
     case "Configuration":
-      return "Google sign-in is not configured yet. Add OAuth credentials to continue.";
+      return "Google sign-in is not available on this pilot environment yet. Use the support route for access help.";
     case "Callback":
       return "Google sign-in failed during callback. Please try again.";
     default:

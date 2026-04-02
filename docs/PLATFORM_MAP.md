@@ -13,6 +13,16 @@ Phase 1 delivery focus:
 - Public agent directory ✅
 - Public Phase 1 positioning + activation checklist ✅
 
+## Current Validation Risk (Audit 2026-04-02)
+
+- Public story is mostly identity-first, but several live surfaces still leak the earlier tender-marketplace thesis:
+  - homepage transaction CTA routes to the agent marketplace,
+  - `/requests*` reuses internal marketplace cards/CTAs,
+  - public profile transaction/collaboration proof is still derived from proposal states rather than first-class logging models.
+- Phase 1 can currently measure profile activation only; it cannot yet cleanly measure qualified agents, verified historic transaction logging, live transaction logging, interaction velocity, or monthly active engagement.
+- Preview/seed/demo traffic still shares the main runtime data path, so current counters and proof surfaces are vulnerable to synthetic-data contamination unless source tagging/exclusion is added.
+- Backend preview auth remains a trust-sensitive control point because hidden public UI is not the same thing as hardened backend access.
+
 ## Feature Relationship Map
 
 1. Identity and access
@@ -100,6 +110,7 @@ Phase 1 delivery focus:
 - Middleware now reads Auth.js v5 cookie names (`__Secure-authjs.session-token` in production) so authenticated sessions resolve correctly on protected routes.
 - Location district pre-generation now avoids build-time database dependency (`generateStaticParams` returns `[]`), preventing remote build failures when DB private networking is unavailable at build time.
 - Production build now passes with strict type checks and `next.config.ts` no longer uses `typescript.ignoreBuildErrors`.
+- Latest production deploy (`2026-04-02`) includes logged-in lifecycle dashboards (`/homeowner/instructions`, `/agent/proposals`), signed cookie-consent controls, and trust-signal fallback labeling on public profiles; live smoke writes remain green.
 
 15. Public-facing copy and empty-state polish
 
@@ -166,6 +177,13 @@ Phase 1 delivery focus:
   - seller-fit signal estimated from profile completeness + verification + platform activity.
 - Trust metrics are explicitly labeled as measured vs estimated vs unavailable; no fabricated precision is shown.
 - Additional profile trust counters now surface historic transactions logged, live collaboration listings, total offers logged, and shortlisted offers.
+
+24. Behavioural-validation audit delta (new)
+
+- The current product is strongest on verified identity onboarding and public trust gating, but still lacks explicit domain primitives for historic/live transaction logging and engagement reporting.
+- Public-facing copy now outruns the modeled backend in a few places (`Log your first transactions`, `Historic transactions`, `Live collaborations`), so execution must bring product truth and measurement truth back into sync before calling Phase 1 aligned.
+- `/admin/agents` is an activation dashboard, not yet a true behavioural-validation dashboard; it does not report the six client Phase 1 objectives or exclude preview/seed/test actors.
+- The highest-sensitivity trust blocker remains preview-auth posture when `ENABLE_PREVIEW_AUTH=true`, because the backend preview callback can remain reachable even when public pages hide preview controls.
 
 ## Frontend/Backend Map
 

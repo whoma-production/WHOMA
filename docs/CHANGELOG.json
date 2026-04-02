@@ -986,5 +986,85 @@
       "Set final production company/support env values before widening public distribution beyond the pilot.",
       "Apply the same finished-state/error-state standard to remaining logged-in flows beyond public auth."
     ]
+  },
+  {
+    "session_id": "2026-04-02-1508-lifecycle-consent-trust-hardening",
+    "timestamp": "2026-04-02T15:08:00+02:00",
+    "summary": "Completed remaining Phase 1 product hardening gaps: real logged-in lifecycle dashboards, signed cookie-consent controls, trust-signal fallback labeling on public profiles, auth-entry cleanup, and expanded E2E specs for compare/redirect/trust paths.",
+    "files_changed": [
+      "src/server/marketplace/queries.ts",
+      "src/app/(app)/homeowner/instructions/page.tsx",
+      "src/app/(app)/agent/proposals/page.tsx",
+      "src/server/consent/cookie-consent.ts",
+      "src/server/consent/cookie-consent.test.ts",
+      "src/app/api/consent/route.ts",
+      "src/components/layout/cookie-consent-banner.tsx",
+      "src/components/layout/cookie-consent-panel.tsx",
+      "src/app/layout.tsx",
+      "src/components/layout/public-footer.tsx",
+      "src/app/[slug]/page.tsx",
+      "src/server/agent-profile/service.ts",
+      "src/app/agents/[slug]/page.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/components/auth/google-auth-button.tsx",
+      "src/server/agent-profile/resume-suggestions-cookie.ts",
+      "tests/e2e/homeowner-compare-decision.spec.ts",
+      "tests/e2e/marketplace-hydration.spec.ts",
+      "tests/e2e/phase1-agent-flow.spec.ts",
+      "tests/e2e/public-routing.spec.ts",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Replaced placeholder logged-in pages with DB-backed lifecycle views instead of adding more static copy so Phase 1 behavior can be measured in-product.",
+      "Implemented cookie consent as signed cookie + API controls (no DB migration) to satisfy MVP trust/compliance needs with low rollout risk.",
+      "Introduced clearly labeled measured/estimated/unavailable trust signals so sparse pilot data no longer renders empty trust cards."
+    ],
+    "next_steps": [
+      "Run updated Playwright suites in CI or unrestricted local runtime (sandbox blocks local server bind on 127.0.0.1:3012).",
+      "Set production Google and Resend credentials and decide strict auth posture (`ENABLE_PREVIEW_AUTH=false`) for public production sign-in.",
+      "Backfill true measured trust pipelines so estimated trust signals can be phased down."
+    ]
+  },
+  {
+    "session_id": "2026-04-02-1512-railway-redeploy-live-validation",
+    "timestamp": "2026-04-02T15:12:00+02:00",
+    "summary": "Redeployed Railway production after lifecycle/consent/trust updates and verified live health, /locations compatibility redirect, cookies consent controls, and end-to-end marketplace smoke write flow.",
+    "files_changed": [
+      "docs/TASKS.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Validated production with both route-level checks and a full persisted smoke write path to confirm deployment integrity.",
+      "Kept deployment verification aligned to backend preview callback flow so QA smoke remains reliable while public auth stays beta-gated."
+    ],
+    "next_steps": [
+      "Run updated Playwright specs in CI or unrestricted runtime for full runtime UX evidence.",
+      "Configure production Google and Resend credentials to close strict-auth and A010 verification-delivery readiness."
+    ]
+  },
+  {
+    "session_id": "2026-04-02-1524-behavioural-validation-audit",
+    "timestamp": "2026-04-02T15:24:00+02:00",
+    "summary": "Ran a structured behavioural-validation audit across narrative, activation, measurement, and trust domains; verified that identity-first positioning is ahead of measurement truth; and added explicit remediation tasks for measurement, transaction logging, narrative truthfulness, and auth posture hardening.",
+    "files_changed": [
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Treat Phase 1 measurement integrity as a core product requirement rather than a later analytics concern.",
+      "Treat backend preview auth posture as a trust blocker until production access is explicitly hardened or disabled.",
+      "Record the audit findings directly in repo docs so the next execution pass starts from the same source-of-truth constraints."
+    ],
+    "next_steps": [
+      "Fix public narrative truthfulness and production auth posture if backend preview auth is still reachable on the live service.",
+      "Add a durable event spine plus explicit behavioural-validation metric definitions and source exclusion.",
+      "Model historic and live transaction logging explicitly before expanding public proof claims."
+    ]
   }
 ]

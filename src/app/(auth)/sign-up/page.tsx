@@ -4,6 +4,7 @@ import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Logo } from "@/components/brand/logo";
 import { Card } from "@/components/ui/card";
 import { normalizeRedirectPath } from "@/lib/auth/session";
+import { PUBLIC_AGENT_PROOF_LOOP } from "@/lib/public-proof";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
@@ -78,6 +79,20 @@ export default async function SignUpPage({
     role === "HOMEOWNER"
       ? "View pilot request areas"
       : "Browse verified agents";
+  const entryTitle = providerConfigured
+    ? role === "HOMEOWNER"
+      ? "Request pilot access"
+      : "Start your account"
+    : role === "HOMEOWNER"
+      ? "Request pilot access"
+      : "Request agent access";
+  const entryDescription = providerConfigured
+    ? role === "HOMEOWNER"
+      ? "If you already have pilot approval, continue with Google. Otherwise use the direct support route below."
+      : "Continue with Google to enter the verified-profile workflow without placeholder steps or dead-end loaders."
+    : role === "HOMEOWNER"
+      ? "Collaboration access is coordinated manually. Use the monitored support route below and include the area or request context if you have one."
+      : "Agent access is currently coordinated manually. Use the support route below to request entry into the verified-profile pilot.";
 
   return (
     <main className="min-h-screen bg-surface-1 px-4 py-10">
@@ -155,18 +170,49 @@ export default async function SignUpPage({
           </div>
         ) : null}
 
+        {role !== "HOMEOWNER" ? (
+          <Card className="space-y-4 bg-surface-0">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                Agent proof loop
+              </p>
+              <h2 className="text-xl">
+                The public pilot is validating a specific sequence of agent
+                behaviours.
+              </h2>
+              <p className="text-sm text-text-muted">
+                WHOMA is not just testing sign-up. It is testing whether agents
+                will build profile depth, log activity, share a public proof
+                page, and turn that trust into collaboration.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {PUBLIC_AGENT_PROOF_LOOP.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-md border border-line bg-surface-1 px-4 py-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-text-strong">
+                      {step.title}
+                    </p>
+                    <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                      {step.status}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-text-muted">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : null}
+
         <Card className="mx-auto w-full max-w-xl space-y-4 text-center">
           <div className="space-y-1">
-            <h2 className="text-xl">
-              {role === "HOMEOWNER"
-                ? "Request pilot access"
-                : "Start your account"}
-            </h2>
-            <p className="text-sm text-text-muted">
-              {role === "HOMEOWNER"
-                ? "If you already have pilot approval, continue with Google. Otherwise use the direct support route below."
-                : "Continue with Google to enter the verified-profile workflow without placeholder steps or dead-end loaders."}
-            </p>
+            <h2 className="text-xl">{entryTitle}</h2>
+            <p className="text-sm text-text-muted">{entryDescription}</p>
           </div>
           <GoogleAuthButton
             providerConfigured={providerConfigured}
@@ -177,7 +223,7 @@ export default async function SignUpPage({
             betaMessage={
               role === "HOMEOWNER"
                 ? "Homeowner access is coordinated manually while WHOMA keeps its public focus on verified estate-agent identity first."
-                : "Google sign-in is opened in stages. If your access is not live yet, use the monitored support route."
+                : "Agent access is coordinated through the monitored support route until your pilot account is live."
             }
             nextParam={nextParam}
             oauthError={resolvedSearchParams?.error ?? null}

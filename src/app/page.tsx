@@ -15,8 +15,16 @@ import {
   PUBLIC_COLLABORATION_PILOT_HREF,
   PUBLIC_REQUESTS_PILOT_HREF
 } from "@/lib/public-site";
+import {
+  PUBLIC_AGENT_PROOF_LOOP,
+  PUBLIC_FALLBACK_AGENT_PROOF,
+  PUBLIC_SAMPLE_COMPARISON
+} from "@/lib/public-proof";
 import { cn } from "@/lib/utils";
-import { listPublicAgentProfiles } from "@/server/agent-profile/service";
+import {
+  getPublicAgentTrustSignals,
+  listPublicAgentProfiles
+} from "@/server/agent-profile/service";
 import {
   getLiveInstructionCards,
   getLiveInstructionLocationSummaries
@@ -65,16 +73,6 @@ const sampleCaseStudy = {
   ]
 } as const;
 
-const fallbackFeaturedAgent = {
-  name: "Featured verified profile",
-  role: "Pilot example",
-  agency: "Structured proof before scale",
-  serviceAreas: ["London", "SW1A", "W1"],
-  specialties: ["Local pricing", "Accompanied viewings", "Chain management"],
-  profileCompleteness: 92,
-  href: PUBLIC_AGENT_CTA_HREF
-} as const;
-
 export default async function LandingPage(): Promise<JSX.Element> {
   const site = getPublicSiteConfig();
 
@@ -91,6 +89,15 @@ export default async function LandingPage(): Promise<JSX.Element> {
   }
 
   const featuredAgent = publicAgents[0] ?? null;
+  const featuredTrustSignals = featuredAgent
+    ? await getPublicAgentTrustSignals({
+        userId: featuredAgent.userId,
+        profileCompleteness: featuredAgent.profileCompleteness,
+        verificationStatus: featuredAgent.verificationStatus,
+        responseTimeMinutes: featuredAgent.responseTimeMinutes,
+        ratingAggregate: featuredAgent.ratingAggregate
+      })
+    : null;
   const locationSummaries =
     getLiveInstructionLocationSummaries(liveInstructions);
   const submittedResponses = liveInstructions.reduce(
@@ -100,19 +107,45 @@ export default async function LandingPage(): Promise<JSX.Element> {
   const proofStats = [
     {
       label: "Verified public profiles",
-      value: publicAgents.length.toString()
+      value:
+        publicAgents.length > 0
+          ? publicAgents.length.toString()
+          : "Seeding now",
+      note:
+        publicAgents.length > 0
+          ? "Currently visible in the public directory"
+          : "Seeded proof stays visible while the directory fills"
     },
     {
       label: "Live pilot areas",
-      value: locationSummaries.length.toString()
+      value:
+        locationSummaries.length > 0
+          ? locationSummaries.length.toString()
+          : "Invite-led",
+      note:
+        locationSummaries.length > 0
+          ? "Current public pilot coverage"
+          : "New areas open only when collaboration supply is ready"
     },
     {
-      label: "Open pilot requests",
-      value: liveInstructions.length.toString()
+      label: "Open collaboration requests",
+      value:
+        liveInstructions.length > 0
+          ? liveInstructions.length.toString()
+          : "On demand",
+      note:
+        liveInstructions.length > 0
+          ? "Current live requests"
+          : "Public demand stays tightly controlled during the pilot"
     },
     {
       label: "Structured responses",
-      value: submittedResponses.toString()
+      value:
+        submittedResponses > 0 ? submittedResponses.toString() : "Proof-led",
+      note:
+        submittedResponses > 0
+          ? "Recorded against current live requests"
+          : "Case studies and seeded examples fill the cold-start gap"
     }
   ];
 
@@ -124,11 +157,20 @@ export default async function LandingPage(): Promise<JSX.Element> {
         serviceAreas: featuredAgent.serviceAreas,
         specialties: featuredAgent.specialties,
         profileCompleteness: featuredAgent.profileCompleteness,
+        historicTransactionsLogged:
+          featuredTrustSignals?.historicTransactionsLogged ?? 0,
+        liveCollaborationListings:
+          featuredTrustSignals?.liveCollaborationListings ?? 0,
+        shortlistedOffers: featuredTrustSignals?.shortlistedOffers ?? 0,
+        label: "Featured verified agent",
         href: featuredAgent.profileSlug
           ? (`/agents/${featuredAgent.profileSlug}` as Route)
           : PUBLIC_AGENT_DIRECTORY_HREF
       }
-    : fallbackFeaturedAgent;
+    : {
+        ...PUBLIC_FALLBACK_AGENT_PROOF,
+        href: PUBLIC_AGENT_CTA_HREF
+      };
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -281,6 +323,9 @@ export default async function LandingPage(): Promise<JSX.Element> {
                       <p className="mt-1 text-2xl font-semibold text-text-strong">
                         {stat.value}
                       </p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {stat.note}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -306,6 +351,40 @@ export default async function LandingPage(): Promise<JSX.Element> {
                 </div>
               </div>
             </Card>
+          </div>
+        </section>
+
+        <section
+          id="agent-proof-loop"
+          className="border-y border-line bg-surface-0"
+        >
+          <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+            <div className="mb-8 max-w-3xl space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+                Agent proof loop
+              </p>
+              <h2>
+                The pilot is validating a sequence, not just a sign-up event.
+              </h2>
+              <p className="text-sm text-text-muted sm:text-base">
+                This is the agent journey WHOMA needs to prove: profile depth
+                first, verified activity next, then portable reputation and
+                collaboration interest.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {PUBLIC_AGENT_PROOF_LOOP.map((step) => (
+                <Card key={step.title} className="interactive-lift space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base">{step.title}</h3>
+                    <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                      {step.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-text-muted">{step.description}</p>
+                </Card>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -337,7 +416,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
             <Card className="space-y-4">
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                  Featured agent proof
+                  {featuredProof.label}
                 </p>
                 <h2 className="text-2xl">
                   A verified profile is meant to carry the agent, not just the
@@ -381,10 +460,26 @@ export default async function LandingPage(): Promise<JSX.Element> {
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Public gate
+                      Historic transactions
                     </p>
                     <p className="mt-1 text-sm text-text-muted">
-                      Work email verified, publish ready, admin reviewed
+                      {featuredProof.historicTransactionsLogged}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Live collaborations
+                    </p>
+                    <p className="mt-1 text-sm text-text-muted">
+                      {featuredProof.liveCollaborationListings}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Shortlisted offers
+                    </p>
+                    <p className="mt-1 text-sm text-text-muted">
+                      {featuredProof.shortlistedOffers}
                     </p>
                   </div>
                 </div>
@@ -445,15 +540,11 @@ export default async function LandingPage(): Promise<JSX.Element> {
         >
           <div className="mb-8 max-w-3xl space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-              Workflow demo
+              {PUBLIC_SAMPLE_COMPARISON.eyebrow}
             </p>
-            <h2>
-              Meaningful collaboration only opens after structured proof exists.
-            </h2>
+            <h2>{PUBLIC_SAMPLE_COMPARISON.title}</h2>
             <p className="text-sm text-text-muted sm:text-base">
-              This preview shows the interaction WHOMA is designed to make
-              legible: a verified agent, a structured proposal, a shortlist
-              signal, then an unlocked collaboration thread.
+              {PUBLIC_SAMPLE_COMPARISON.summary}
             </p>
           </div>
 
@@ -512,24 +603,22 @@ export default async function LandingPage(): Promise<JSX.Element> {
                   </span>
                 </div>
                 <div className="mt-4 space-y-3">
-                  {[
-                    ["Agent A", "1.1% fee · 21 days", "Shortlisted"],
-                    ["Agent B", "£2,250 fixed · 28 days", "Best local fit"],
-                    ["Agent C", "Hybrid fee · 30 days", "Under review"]
-                  ].map(([name, detail, status]) => (
+                  {PUBLIC_SAMPLE_COMPARISON.offers.map((offer) => (
                     <div
-                      key={name}
+                      key={offer.agent}
                       className="rounded-md border border-line bg-surface-0 px-3 py-3"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-text-strong">
-                          {name}
+                          {offer.agent}
                         </p>
                         <span className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted">
-                          {status}
+                          {offer.badge}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-text-muted">{detail}</p>
+                      <p className="mt-1 text-sm text-text-muted">
+                        {offer.fee} · {offer.timeline}
+                      </p>
                     </div>
                   ))}
                 </div>

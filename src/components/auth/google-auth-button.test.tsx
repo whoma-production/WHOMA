@@ -28,7 +28,7 @@ describe("GoogleAuthButton", () => {
       />
     );
 
-    expect(screen.getByText(/public pilot access/i)).toBeInTheDocument();
+    expect(screen.getByText(/pilot access/i)).toBeInTheDocument();
     expect(
       screen.queryByText(/internal preview access/i)
     ).not.toBeInTheDocument();

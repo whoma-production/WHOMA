@@ -2754,3 +2754,187 @@
 1. Replace the sample homepage case study with a live pilot story once enough verified activity exists to do that truthfully.
 2. Set final production company/support values in env before pushing beyond pilot-grade public distribution.
 3. Apply the same finished-state/error-state standard to remaining logged-in product screens beyond public auth.
+
+---
+
+## Session: 2026-04-02 / 15:08 (CEST) — Logged-in lifecycle completion + cookie consent + trust fallback hardening
+
+**Author:** Codex  
+**Context:** User requested production-grade completion of remaining Phase 1-aligned gaps: finish logged-in flow surfaces beyond compare, improve agent-offer lifecycle UX, ship cookie consent controls, harden trust data gaps, and extend regression coverage.  
+**Branch/PR:** current working tree (existing dirty tree preserved; no unrelated reverts)
+
+### Goal
+
+- Replace remaining placeholder logged-in pages with real DB-backed lifecycle views, add live cookie-consent controls, fill trust-signal data gaps safely, and strengthen E2E coverage for decision UX and route compatibility.
+
+### Changes Made
+
+- Replaced homeowner placeholder index (`/homeowner/instructions`) with owner-scoped lifecycle dashboard cards and status-aware request list entries from Prisma.
+- Replaced agent placeholder offers page (`/agent/proposals`) with grouped lifecycle sections (`Submitted`, `Shortlisted`, `Chosen`, `Not selected`) plus per-offer context and contact-thread state.
+- Added new marketplace read helpers in `src/server/marketplace/queries.ts`:
+  - `getHomeownerInstructionSummaries`
+  - `getAgentOfferSummaries`
+- Implemented cookie-consent mechanism (T014):
+  - signed consent cookie helper (`src/server/consent/cookie-consent.ts`)
+  - consent API contract (`GET/POST/DELETE /api/consent`)
+  - global site banner (`CookieConsentBanner`) mounted in root layout
+  - live cookie preferences panel on `/cookies#manage-consent` (`CookieConsentPanel`)
+  - footer deep-link update to consent controls.
+- Hardened public agent trust metrics when source fields are sparse:
+  - added `getPublicAgentTrustSignals` in agent-profile service
+  - response speed and seller-fit now expose measured/estimated/unavailable labeling
+  - surfaced additional trust counters (historic transactions, live collaborations, total offers logged, shortlisted offers).
+- Removed remaining auth-entry loading dead-end risk by making `/sign-in` resolve `next/error` server-side and passing those values directly into `GoogleAuthButton` (no client-only search-param dependency).
+- Updated E2E coverage:
+  - expanded homeowner compare decision test to include sort modes, ranking badges, shortlist multi-select, and choose-agent path
+  - added `/locations* -> /requests*` redirect spec
+  - upgraded phase1 profile test assertions for trust modules on `/agents/[slug]`
+  - updated hydration flow to use backend preview callback auth instead of public preview buttons.
+- Fixed the remaining lint warning in `src/server/agent-profile/resume-suggestions-cookie.ts` by adding runtime key-guard usage.
+
+### Verification
+
+- `node ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit` — passes.
+- `node ./node_modules/next/dist/bin/next lint` — passes with no warnings/errors.
+- `node ./node_modules/vitest/vitest.mjs run src/server/marketplace/queries.test.ts src/server/consent/cookie-consent.test.ts --passWithNoTests` — passes.
+- `node ./node_modules/vitest/vitest.mjs run src/components/auth/google-auth-button.test.tsx --passWithNoTests` — passes.
+- Playwright execution note: local app-server boot for E2E run is blocked in sandbox (`listen EPERM 127.0.0.1:3012`), so updated E2E specs were validated statically and left ready for CI/local unrestricted runtime.
+
+### Files / Modules Touched (high signal only)
+
+- `src/server/marketplace/queries.ts`
+- `src/app/(app)/homeowner/instructions/page.tsx`
+- `src/app/(app)/agent/proposals/page.tsx`
+- `src/server/consent/cookie-consent.ts`
+- `src/server/consent/cookie-consent.test.ts`
+- `src/app/api/consent/route.ts`
+- `src/components/layout/cookie-consent-banner.tsx`
+- `src/components/layout/cookie-consent-panel.tsx`
+- `src/app/layout.tsx`
+- `src/components/layout/public-footer.tsx`
+- `src/app/[slug]/page.tsx`
+- `src/server/agent-profile/service.ts`
+- `src/app/agents/[slug]/page.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/components/auth/google-auth-button.tsx`
+- `src/server/agent-profile/resume-suggestions-cookie.ts`
+- `tests/e2e/homeowner-compare-decision.spec.ts`
+- `tests/e2e/marketplace-hydration.spec.ts`
+- `tests/e2e/phase1-agent-flow.spec.ts`
+- `tests/e2e/public-routing.spec.ts`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions (and why)
+
+- **Decision:** Add trust fallback as clearly labeled estimates instead of leaving critical profile trust blocks blank.
+  - **Why:** Supports early Phase 1 usability while avoiding fabricated precision and preserving user trust.
+- **Decision:** Ship consent controls through signed cookie storage + API first (no DB table).
+  - **Why:** Meets MVP compliance/trust requirement with low migration risk and reversible rollout.
+- **Decision:** Keep preview auth backend path intact for QA/E2E while maintaining public beta-gated sign-in UX.
+  - **Why:** Preserves operational testability without exposing internal/demo entry points publicly.
+
+### Next Steps
+
+1. Run the updated Playwright specs in CI or an unrestricted local runtime to complete runtime E2E evidence for this pass.
+2. Set production Google + Resend credentials and choose strict production auth posture (`ENABLE_PREVIEW_AUTH=false`) when ready.
+3. Backfill true measured trust metrics pipelines so estimated seller-fit/response signals can gradually phase out.
+
+---
+
+## Session: 2026-04-02 / 15:12 (CEST) — Railway redeploy + live verification for lifecycle/consent/trust pass
+
+**Author:** Codex  
+**Context:** After completing the lifecycle + consent + trust hardening code pass, user requested production readiness and live verification.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Deploy the latest build to Railway production and verify core runtime behavior on the live URL.
+
+### Changes Made
+
+- Deployed current workspace to Railway production service `whoma-web`.
+- Verified live operational health endpoint (`/api/health`) reports `database=up`.
+- Verified compatibility routing remains intact: `/locations/SW1A` returns `307` to `/requests/SW1A`.
+- Verified live cookie-consent controls are rendered on `/cookies#manage-consent` and footer deep-links to that control anchor.
+- Ran live marketplace smoke flow against production and confirmed successful persisted write path:
+  - instruction created: `cmnhht3f70004ta2mg8svtl15`
+  - proposal submitted: `cmnhht57c0009ta2mw4qr98js`
+
+### Verification
+
+- `railway up --ci -p f022373e-a9ea-4a4f-a651-efe34201f09c -e production -s whoma-web` — deploy complete.
+- `curl -sS https://whoma-web-production.up.railway.app/api/health` — `{"status":"ok",...,"checks":{"database":"up"}}`.
+- `curl -sS -o /dev/null -D - https://whoma-web-production.up.railway.app/locations/SW1A` — `HTTP/2 307`, `location: /requests/SW1A`.
+- `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs` — passes.
+
+### Next Steps
+
+1. Run updated Playwright E2E specs in CI/unrestricted runtime to capture runtime evidence for the new compare/redirect/trust assertions.
+2. Decide strict production auth posture and configure Google production credentials before disabling preview auth in production.
+3. Configure production Resend credentials to close A010 end-to-end verification delivery acceptance.
+
+---
+
+## Session: 2026-04-02 / 15:24 (CEST) — Behavioural-validation convergence audit
+
+**Author:** Codex  
+**Context:** User requested a rigorous control-style audit against current client feedback and WHOMA Phase 1 behavioural validation, with emphasis on strategic alignment, measurement integrity, and trust readiness.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Verify what the current product truly supports versus what public/internal copy implies, identify contradictions across active workstreams, and convert the audit into execution-ready remediation priorities.
+
+### Changes Made
+
+- Completed a repo-grounded audit of the four control domains:
+  - public narrative and strategic positioning
+  - agent activation and behaviour loop
+  - measurement and internal truth
+  - trust, polish, and platform stability
+- Verified key code paths across landing/auth/public pages, onboarding/profile/verification flows, admin metrics, analytics/event code, marketplace services, and supporting scripts/tests.
+- Confirmed the strongest aligned area is identity-first onboarding + verified public profile gating.
+- Confirmed the biggest convergence gap is measurement integrity:
+  - no qualified-agent definition
+  - no historic/live transaction-log model
+  - no monthly active engagement model
+  - no durable event spine
+- Confirmed the biggest trust blocker is auth posture risk when backend preview auth remains enabled in production behind hidden public UI.
+- Added explicit follow-up tasks (`BV001`-`BV005`) and recorded the current validation-risk delta in `docs/PLATFORM_MAP.md`.
+
+### Verification
+
+- Static verification covered:
+  - `src/app/page.tsx`
+  - `src/lib/public-site.ts`
+  - `src/components/instruction-card.tsx`
+  - `src/app/(app)/agent/onboarding/page.tsx`
+  - `src/app/(app)/agent/profile/edit/page.tsx`
+  - `src/app/(app)/admin/agents/page.tsx`
+  - `src/server/agent-profile/service.ts`
+  - `src/server/marketplace/service.ts`
+  - `src/server/marketplace/queries.ts`
+  - `src/server/analytics.ts`
+  - `src/auth.ts`
+  - `prisma/schema.prisma`
+- Targeted unit verification:
+  - `npm run test -- src/lib/agent-activation.test.ts src/server/http/rate-limit.test.ts src/server/http/idempotency.test.ts src/server/marketplace/service.test.ts src/components/auth/google-auth-button.test.tsx` — passed (`19` tests across `5` files).
+
+### Decisions (and why)
+
+- **Decision:** Treat measurement integrity as the next core product gap, not a secondary analytics task.
+  - **Why:** Phase 1 behavioural validation fails if qualified agents, transaction depth, interaction velocity, and MAE cannot be measured cleanly.
+- **Decision:** Treat backend preview auth posture as a trust blocker until production use is explicitly hardened or disabled.
+  - **Why:** Hiding preview UI publicly does not remove the backend callback access path.
+- **Decision:** Record the audit as additive repo documentation instead of keeping it only in chat.
+  - **Why:** The next implementation pass needs the same source-of-truth constraints without repeating discovery.
+
+### Next Steps
+
+1. Ship `BV004` + `BV005` first if public production still exposes backend preview auth or misleading narrative/CTA surfaces.
+2. Ship `BV001` + `BV002` next to create a real Phase 1 measurement contract and durable event/reporting spine.
+3. Ship `BV003` after that so transaction/collaboration proof is supported by first-class domain models rather than proposal-derived heuristics.

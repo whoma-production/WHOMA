@@ -13,6 +13,7 @@ import {
   PUBLIC_AGENT_DIRECTORY_HREF,
   PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
+import { PUBLIC_SAMPLE_COMPARISON } from "@/lib/public-proof";
 import {
   getLiveInstructionCards,
   getLiveInstructionsByDistrict,
@@ -177,13 +178,30 @@ export default async function LocationPage({
                 </p>
                 <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                    Pilot proof
+                    {PUBLIC_SAMPLE_COMPARISON.eyebrow}
                   </p>
-                  <p className="mt-1 text-sm text-text-muted">
-                    Area pages only light up once the brief, structured offer
-                    format, and shortlist-gated messaging are all ready to run
-                    together.
-                  </p>
+                  <div className="mt-2 space-y-2">
+                    {PUBLIC_SAMPLE_COMPARISON.offers
+                      .slice(0, 2)
+                      .map((offer) => (
+                        <div
+                          key={offer.agent}
+                          className="rounded-md border border-line bg-surface-0 px-3 py-3"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium text-text-strong">
+                              {offer.agent}
+                            </p>
+                            <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                              {offer.badge}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-text-muted">
+                            {offer.fee} · {offer.timeline}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
                 </div>
                 <Link
                   href={PUBLIC_COLLABORATION_PILOT_HREF}

@@ -29,6 +29,12 @@ export default async function SignInPage({
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
   );
   const site = getPublicSiteConfig();
+  const title = providerConfigured
+    ? "Sign in to WHOMA"
+    : "Request access to WHOMA";
+  const description = providerConfigured
+    ? "Continue into onboarding, profile publishing, or the collaboration pilot with a complete Google sign-in flow and a direct email fallback when access is still being staged."
+    : "Pilot access is currently coordinated manually. Use the monitored support route to request access, confirm rollout status, or get help with an existing pilot account.";
 
   return (
     <main className="grid min-h-screen place-items-center bg-surface-1 px-4 py-10">
@@ -39,12 +45,8 @@ export default async function SignInPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Sign in to WHOMA</CardTitle>
-            <CardDescription>
-              Continue into onboarding, profile publishing, or the collaboration
-              pilot with a complete Google sign-in flow and a direct email
-              fallback when access is still being staged.
-            </CardDescription>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <GoogleAuthButton
@@ -53,7 +55,7 @@ export default async function SignInPage({
               betaSupportEmail={site.supportEmail}
               betaCtaHref={PUBLIC_AGENT_DIRECTORY_HREF}
               betaCtaLabel="Browse verified agents"
-              betaMessage="Google sign-in is available in stages. If your account is not live yet, WHOMA routes pilot access through the monitored support inbox."
+              betaMessage="Pilot accounts are currently opened through the monitored support inbox. Include whether you are an estate agent, homeowner, or partner so the request can be routed quickly."
               nextParam={nextParam}
               oauthError={resolvedSearchParams?.error ?? null}
             />

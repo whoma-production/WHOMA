@@ -41,6 +41,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
 - [x] A011 — Web deployment baseline (shareable staging URL)
       **Acceptance:** App is deployed to a public Railway URL with managed Postgres, startup migrations run automatically, `/api/health` reports `database=up`, and live smoke flow (`sign-in -> create LIVE instruction -> submit proposal`) passes on the deployed URL.
       **Progress (2026-03-31):** Redeployed Railway production after the Phase 1 public repositioning pass; live `/api/health` returned `database=up`, landing smoke passed against the public URL, and `npm run smoke:marketplace` now verifies the live homeowner-create + agent-submit flow through the backend preview callback instead of public preview buttons.
+      **Progress (2026-04-02):** Redeployed production with logged-in lifecycle dashboards, consent controls, and trust-signal fallback improvements; verified `/api/health` (`database=up`), `/locations/[district]` compatibility redirect (`307 -> /requests/[district]`), and successful live smoke write flow (`instructionId=cmnhht3f70004ta2mg8svtl15`, `proposalId=cmnhht57c0009ta2mw4qr98js`).
 
 - [x] A012 — AI resume intake (OCR + LLM hybrid) for agent onboarding prefill
       **Acceptance:** `/api/agent/onboarding/resume-suggestions` supports `POST/GET/DELETE` with auth, idempotency, and rate-limit envelopes; scanned/text resumes both produce safe suggestion-only prefill (no auto-save), with heuristic fallback on provider failure and env-flag rollout controls.
@@ -50,6 +51,24 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Acceptance:** Public landing, directory/profile, auth, and trust pages present WHOMA first as a verified estate agent identity platform; `/requests*` stays live as a clearly labeled secondary pilot and is `noindex`; public auth never exposes preview or admin access; agent onboarding/CV surfaces show a visible activation checklist aligned to Phase 1 behaviors.
       **Progress (2026-03-31):** Redeployed and re-verified live production: homepage now leads with verified-profile messaging and Phase 1 sequencing, `/requests` is publicly framed as a secondary pilot with `noindex`, and public sign-in resolves to the beta-gated auth path without exposing preview-role controls.
       **Progress (2026-04-02):** Tightened the public Phase 1 thesis around verified identity, agent-owned reputation, and structured collaboration: homepage CTAs now lead with agent-profile build / transaction logging / limited collaboration-pilot entry, homepage proof now includes a featured verified agent block plus case-study/demo material, and public auth now resolves `next`/`error` server-side so sign-in no longer depends on a client Suspense loading fallback.
+      **Progress (2026-04-02):** Live production now also avoids developer-facing OAuth env copy on public sign-in and keeps beta-gated auth messaging trust-safe while preview-role auth remains backend-only for QA and smoke automation.
+
+## Behavioural Validation Gap Closures (Audit 2026-04-02)
+
+- [ ] BV001 — Phase 1 measurement contract + synthetic-data exclusion
+      **Acceptance:** WHOMA defines `qualified agent`, `historic transaction logged`, `historic transaction verified`, `live transaction logged`, `active collaboration listing`, `interaction velocity`, and `monthly active engaged agent` in code/docs; official Phase 1 reporting excludes preview, seed, test, and other synthetic records.
+
+- [ ] BV002 — Durable event spine + Phase 1 ops dashboard
+      **Acceptance:** Service-boundary events persist to a durable store with actor/source metadata; admin reporting exposes all six Phase 1 objectives plus key drop-offs and recent-window metrics without relying on console logs.
+
+- [ ] BV003 — Historic/live transaction logging domain
+      **Acceptance:** Historic and live transaction logging are modeled explicitly with verification state/evidence, surfaced in agent workflows, and no public trust copy implies transaction proof that the schema does not actually store.
+
+- [ ] BV004 — Public narrative truthfulness cleanup
+      **Acceptance:** Public CTA routing, homepage proof modules, `/requests*` cards, and public profile trust labels reflect real Phase 1 capabilities only; no public route reuses internal tender-marketplace CTAs or metrics that overstate current transaction depth.
+
+- [ ] BV005 — Production auth posture hardening
+      **Acceptance:** Backend preview auth is disabled in public production or protected by a strict internal-only control plane; hidden callback access can no longer create arbitrary homeowner/agent/admin sessions on the live service.
 
 ## Phase 1 Milestones (working plan)
 

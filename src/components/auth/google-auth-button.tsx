@@ -209,9 +209,7 @@ export function GoogleAuthButton({
 
         <div className="rounded-md border border-line bg-surface-1 p-4 text-left">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-text-strong">
-              Public pilot access
-            </p>
+            <p className="text-sm font-medium text-text-strong">Pilot access</p>
             <p className="text-sm text-text-muted">{betaMessage}</p>
           </div>
 

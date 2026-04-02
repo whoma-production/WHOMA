@@ -10,8 +10,15 @@ import {
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_REQUESTS_PILOT_HREF
 } from "@/lib/public-site";
+import {
+  PUBLIC_AGENT_PROOF_LOOP,
+  PUBLIC_FALLBACK_AGENT_PROOF
+} from "@/lib/public-proof";
 import { cn } from "@/lib/utils";
-import { listPublicAgentProfiles } from "@/server/agent-profile/service";
+import {
+  getPublicAgentTrustSignals,
+  listPublicAgentProfiles
+} from "@/server/agent-profile/service";
 
 interface PageProps {
   searchParams?: Promise<{ area?: string; specialty?: string }>;
@@ -29,6 +36,20 @@ export default async function AgentDirectoryPage({
     ...(serviceArea ? { serviceArea } : {}),
     ...(specialty ? { specialty } : {})
   });
+  const fallbackFeaturedAgent =
+    agents[0] ??
+    (serviceArea || specialty
+      ? ((await listPublicAgentProfiles({ limit: 1 }))[0] ?? null)
+      : null);
+  const fallbackTrustSignals = fallbackFeaturedAgent
+    ? await getPublicAgentTrustSignals({
+        userId: fallbackFeaturedAgent.userId,
+        profileCompleteness: fallbackFeaturedAgent.profileCompleteness,
+        verificationStatus: fallbackFeaturedAgent.verificationStatus,
+        responseTimeMinutes: fallbackFeaturedAgent.responseTimeMinutes,
+        ratingAggregate: fallbackFeaturedAgent.ratingAggregate
+      })
+    : null;
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -59,11 +80,14 @@ export default async function AgentDirectoryPage({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
             Verified agent directory
           </p>
-          <h1>Browse admin-verified estate agent profiles on WHOMA.</h1>
+          <h1>
+            Browse verified estate-agent profiles and see how public proof is
+            earned.
+          </h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
             This directory only shows profiles that are both published and admin
-            verified. It is the public proof layer for WHOMA&apos;s Phase 1
-            identity pilot.
+            verified. Public cards are designed to make profile depth, historic
+            activity, and collaboration credibility legible at a glance.
           </p>
         </div>
 
@@ -133,13 +157,62 @@ export default async function AgentDirectoryPage({
               rollout.
             </p>
             <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Proof standard
-              </p>
-              <p className="mt-1 text-sm text-text-muted">
-                Public profiles on WHOMA expose service areas, specialties, and
-                a verified trust state before they appear here.
-              </p>
+              {fallbackFeaturedAgent ? (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Featured live example
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    {fallbackFeaturedAgent.user.name ?? "Estate agent"} ·{" "}
+                    {fallbackFeaturedAgent.agencyName ?? "Independent"} ·{" "}
+                    {fallbackTrustSignals?.historicTransactionsLogged ?? 0}{" "}
+                    historic transaction
+                    {(fallbackTrustSignals?.historicTransactionsLogged ?? 0) ===
+                    1
+                      ? ""
+                      : "s"}{" "}
+                    logged ·{" "}
+                    {fallbackTrustSignals?.liveCollaborationListings ?? 0} live
+                    collaboration
+                    {(fallbackTrustSignals?.liveCollaborationListings ?? 0) ===
+                    1
+                      ? ""
+                      : "s"}
+                    .
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Seeded proof loop
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    {PUBLIC_FALLBACK_AGENT_PROOF.name} ·{" "}
+                    {PUBLIC_FALLBACK_AGENT_PROOF.historicTransactionsLogged}{" "}
+                    historic transactions logged ·{" "}
+                    {PUBLIC_FALLBACK_AGENT_PROOF.liveCollaborationListings} live
+                    collaborations · shareable public profile.
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              {PUBLIC_AGENT_PROOF_LOOP.slice(0, 4).map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-md border border-line bg-surface-1 px-3 py-3"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    {step.status}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-text-strong">
+                    {step.title}
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Link
