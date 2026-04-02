@@ -82,6 +82,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Acceptance:** Homeowner can view standardized proposal comparison, shortlist/reject proposals, award exactly one proposal, and statuses update consistently (`SUBMITTED` -> `SHORTLISTED`/`REJECTED` -> one `ACCEPTED`).
       **Progress (2026-03-21):** Compare page now loads owner-scoped persisted instruction/proposal data from Prisma, and homeowners can trigger `SHORTLIST`, `REJECT`, and `AWARD` decisions through `PATCH /api/proposals/[proposalId]/decision` with idempotency + rate limiting. Service-layer transactional guards now enforce valid transitions, shortlist-before-award, and exactly one accepted proposal per instruction.
       **Progress (2026-03-23):** Logged-in compare UX now includes homeowner decision ergonomics requested in the redesign pass: sort modes (`best value`, `lowest fee`, `most complete service`, `best local fit`, `fastest timeline`), per-offer ranking badges, decision-highlight strip, shortlist multi-select helper (up to 3 submitted offers), expanded side-by-side rows (areas covered + experience), and updated action language (`Choose agent`, `Chosen`).
+      **Progress (2026-04-02):** Extended homeowner decision E2E coverage to validate sort-mode interactions, ranking-badge visibility, shortlist multi-select behavior, and choose-agent path persistence on reload.
 
 - [x] T005 — Gated messaging threads (shortlist/award unlock rule)
       **Acceptance:** Thread exists in `LOCKED` state before unlock; becomes `OPEN` when rule triggers; only homeowner and the relevant agent can read/write messages; unauthorized access is denied.
@@ -97,6 +98,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
 - [ ] T012 — Loading/empty/error states polish across key flows
       **Acceptance:** All primary MVP screens have non-empty empty states, skeletons for loading, and user-visible error messages with recovery actions.
       **Progress (2026-04-02):** Public auth now resolves sign-in `next`/`error` state server-side so the page no longer depends on a Suspense placeholder; public directory/request zero states now include rollout explanation, proof/example content, and one clear CTA instead of placeholder emptiness. App-wide skeleton/loading polish is still pending on the logged-in surfaces.
+      **Progress (2026-04-02):** Replaced logged-in placeholder pages with DB-backed lifecycle surfaces for homeowners (`/homeowner/instructions`) and agents (`/agent/proposals`) including non-empty empty states, status cards, and direct recovery actions.
 
 - [x] T013 — Trust pages + HTML sitemap + browse LIVE Instructions by location (public)
       **Acceptance:** Public routes exist for `/privacy`, `/cookies`, `/terms`, `/complaints`, `/contact`, `/sitemap`, `/locations`, and `/locations/[postcodeDistrict]`; footer links expose trust/support pages; sitemap lists key pages and location routes; location pages list LIVE Instructions (not property listings).
@@ -105,8 +107,9 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Progress (2026-03-23):** Public IA now uses `/requests` as the primary seller-request browse route (`/requests`, `/requests/[postcodeDistrict]`), while `/locations*` remains as compatibility redirects to preserve existing external links.
       **Progress (2026-04-02):** Legal/support pages now surface a concrete support inbox, operating entity/region, response-window language, and named operational providers; public zero states now include rollout-stage explanation plus a proof/example block and one strong CTA instead of empty placeholder copy.
 
-- [ ] T014 — Cookie consent mechanism + preferences control (MVP)
+- [x] T014 — Cookie consent mechanism + preferences control (MVP)
       **Acceptance:** Non-essential cookies remain off until consent; user can review/change preferences; cookies page links to live consent controls and accurately reflects behavior.
+      **Progress (2026-04-02):** Added signed consent preference cookie handling (`/api/consent` GET/POST/DELETE), global consent banner with essential-only/accept-all/custom paths, and live `/cookies#manage-consent` controls for review/change/reset; footer now links directly to consent controls.
 
 ## Later
 

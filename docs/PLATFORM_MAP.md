@@ -146,11 +146,33 @@ Phase 1 delivery focus:
 - Static trust/support routes now expose the concrete support inbox, operating entity/region, response-window expectations, and named operational provider stack (Auth.js/Google, Railway/Postgres/Prisma, Resend, optional Upstash, optional OpenAI resume intake).
 - `/sitemap` now derives live pilot request-area summaries from the marketplace query layer at request time instead of reading mock data.
 
+21. Logged-in lifecycle dashboards beyond compare (new)
+
+- `/homeowner/instructions` now loads owner-scoped DB summaries (status, offers count, shortlist/chosen counts, offer-window timing) instead of placeholder content.
+- `/agent/proposals` now renders a real offer lifecycle board grouped by status (`SUBMITTED`, `SHORTLISTED`, `ACCEPTED`, `REJECTED`) with per-offer context and contact-thread state.
+- Both pages degrade safely when `DATABASE_URL` is unavailable and provide non-empty action-driven empty states.
+
+22. Cookie consent controls (T014) (new)
+
+- Added signed cookie consent storage and parsing (`src/server/consent/cookie-consent.ts`) with tamper detection and fixed schema.
+- Added `GET/POST/DELETE /api/consent` for reading/updating/resetting non-essential consent preferences.
+- Root layout now mounts a global consent banner (`CookieConsentBanner`) that appears until a consent decision is stored.
+- `/cookies` now includes live preference controls (`CookieConsentPanel`) and footer links deep-link to `/cookies#manage-consent`.
+
+23. Trust signal data-quality fallback layer (new)
+
+- Public agent profile now computes trust-signal fallbacks when first-party metrics are missing:
+  - response speed estimated from instruction-to-offer timing,
+  - seller-fit signal estimated from profile completeness + verification + platform activity.
+- Trust metrics are explicitly labeled as measured vs estimated vs unavailable; no fabricated precision is shown.
+- Additional profile trust counters now surface historic transactions logged, live collaboration listings, total offers logged, and shortlisted offers.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
 
 - Public: `/`, `/agents`, `/agents/[slug]`, trust/legal pages
+- Public trust page `/cookies` now includes live consent controls (`#manage-consent`) backed by `/api/consent`.
 - Public landing now includes proof-led modules (featured verified profile, pilot case-study narrative, workflow demo) instead of relying on strategy copy alone.
 - Public homeowner-collaboration browse: `/requests`, `/requests/[postcodeDistrict]` as a secondary noindex pilot surface (with `/locations*` compatibility redirects)
 - Auth: `/sign-in`, `/sign-up`, `/onboarding/role` with server-resolved public auth state and backend-only preview controls reserved for QA/E2E
@@ -165,6 +187,7 @@ Phase 1 delivery focus:
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)
 - Service layer: `src/server/marketplace/service.ts` for instruction/proposal persistence, bid-window domain guards, duplicate handling, and event emission
+- Consent layer: `src/server/consent/cookie-consent.ts` for signed preference cookies + `/api/consent` route for user-managed non-essential cookie consent
 - Security helpers: `src/server/http/idempotency.ts` and `src/server/http/rate-limit.ts` for replay-safe writes and request throttling, now backed by optional Upstash Redis shared storage with fallback to Prisma/in-memory when unconfigured
 - Persistence: Prisma + Postgres
 - Authorization: role-based access checks for all writes
