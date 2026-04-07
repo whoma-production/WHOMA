@@ -19,6 +19,11 @@ export interface PublicAuthProviderAvailability {
   any: boolean;
 }
 
+export interface EmailMagicLinkProviderConfig {
+  fromEmail: string;
+  apiKey: string;
+}
+
 export function getGoogleAuthProviderConfig():
   | {
       clientId: string;
@@ -69,14 +74,30 @@ export function getAppleAuthProviderConfig():
   };
 }
 
-export function isEmailPasswordAuthEnabled(): boolean {
-  return Boolean(readFirstNonEmpty(process.env.DATABASE_URL));
+export function getEmailMagicLinkProviderConfig():
+  | EmailMagicLinkProviderConfig
+  | null {
+  const fromEmail = readFirstNonEmpty(process.env.RESEND_FROM_EMAIL);
+  const apiKey = readFirstNonEmpty(process.env.RESEND_API_KEY);
+
+  if (!fromEmail || !apiKey || !process.env.DATABASE_URL) {
+    return null;
+  }
+
+  return {
+    fromEmail,
+    apiKey
+  };
+}
+
+export function isEmailMagicLinkAuthEnabled(): boolean {
+  return Boolean(getEmailMagicLinkProviderConfig());
 }
 
 export function getPublicAuthProviderAvailability(): PublicAuthProviderAvailability {
   const google = Boolean(getGoogleAuthProviderConfig());
   const apple = Boolean(getAppleAuthProviderConfig());
-  const email = isEmailPasswordAuthEnabled();
+  const email = isEmailMagicLinkAuthEnabled();
 
   return {
     google,

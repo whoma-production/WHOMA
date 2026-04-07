@@ -4,7 +4,7 @@ import { formatGBP } from "@/lib/currency";
 
 export interface ProposalCardModel {
   agentName: string;
-  verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED";
+  verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
   feeModel: string;
   feeValue: number;
   timelineDays: number;
@@ -13,9 +13,12 @@ export interface ProposalCardModel {
   cancellationTerms: string;
 }
 
-function badgeVariant(status: ProposalCardModel["verificationStatus"]): "default" | "warning" | "success" {
+function badgeVariant(
+  status: ProposalCardModel["verificationStatus"]
+): "default" | "warning" | "success" | "danger" {
   if (status === "VERIFIED") return "success";
   if (status === "PENDING") return "warning";
+  if (status === "REJECTED") return "danger";
   return "default";
 }
 

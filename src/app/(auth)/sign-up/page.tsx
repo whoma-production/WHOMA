@@ -24,7 +24,7 @@ const roleContent = {
     headline: "Request seller access.",
     body: "WHOMA currently opens seller access selectively to maintain a high-quality collaboration standard.",
     reassurance: [
-      "Access by invitation",
+      "Selective access",
       "Structured collaboration route",
       "Messaging opens after shortlist"
     ]
@@ -75,13 +75,13 @@ export default async function SignUpPage({
       ? "Request seller access"
       : providerAvailability.any
         ? "Create your account"
-        : "Contact support to create your account";
+        : "Access support";
   const entryDescription =
     role === "HOMEOWNER"
       ? "Seller access is still handled through support. Tell us which area or brief you are asking about and we will route you correctly."
       : providerAvailability.any
         ? "Choose Google, Apple, or email to create your account, then continue to role selection and onboarding."
-        : "Self-serve account creation is not configured right now. Contact support and we will help directly.";
+        : "Sign-in is temporarily unavailable. Contact support and we will help you regain access quickly.";
 
   return (
     <div className="min-h-screen bg-surface-1">

@@ -1,18 +1,22 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata, Route } from "next";
+import { z } from "zod";
 
 import { CookieConsentPanel } from "@/components/layout/cookie-consent-panel";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicHeader } from "@/components/layout/public-header";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { getPublicSiteConfig, getSupportMailto } from "@/lib/public-site";
 import { cn } from "@/lib/utils";
 import {
   getLiveInstructionCards,
   getLiveInstructionLocationSummaries
 } from "@/server/marketplace/queries";
+import { createSupportInquiry } from "@/server/support/inquiries";
 
 type LegalSlug = "privacy" | "cookies" | "terms" | "complaints" | "contact";
 type StaticPageSlug = LegalSlug | "sitemap";
@@ -47,6 +51,53 @@ const sitemapPublicPages: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/contact", label: "Contact" }
 ];
 
+const contactFormSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().toLowerCase().email().max(320),
+  role: z.string().trim().max(80).optional(),
+  category: z.enum([
+    "ACCOUNT_ACCESS",
+    "ONBOARDING",
+    "VERIFICATION",
+    "PARTNERSHIP",
+    "COMPLAINT",
+    "GENERAL"
+  ]),
+  message: z.string().trim().min(12).max(4000)
+});
+
+async function submitContactInquiryAction(formData: FormData): Promise<void> {
+  "use server";
+
+  const parsed = contactFormSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    role: formData.get("role"),
+    category: formData.get("category"),
+    message: formData.get("message")
+  });
+
+  if (!parsed.success) {
+    redirect("/contact?contact=invalid");
+  }
+
+  try {
+    await createSupportInquiry({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      role: parsed.data.role,
+      category: parsed.data.category,
+      message: parsed.data.message,
+      pagePath: "/contact",
+      source: "/contact"
+    });
+  } catch {
+    redirect("/contact?contact=error");
+  }
+
+  redirect("/contact?contact=sent");
+}
+
 function getLegalContent(
   site: ReturnType<typeof getPublicSiteConfig>
 ): Record<LegalSlug, LegalPageContent> {
@@ -59,7 +110,7 @@ function getLegalContent(
         {
           heading: "What data WHOMA handles",
           paragraphs: [
-            "We handle account identity details, role selection, work-email verification data, public profile information, and support or complaints correspondence needed to operate WHOMA.",
+            "We handle account identity details, role selection, email verification data, public profile information, and support or complaints correspondence needed to operate WHOMA.",
             "Where seller access is active, we also handle instruction data, structured offers, shortlist or award decisions, and message records tied to the relevant participants."
           ]
         },
@@ -73,8 +124,8 @@ function getLegalContent(
         {
           heading: "Sharing, retention, and contact",
           paragraphs: [
-            "We do not sell personal data. Operational providers only receive the minimum information required to run authentication, hosting, storage, work-email verification, or optional resume processing.",
-            "Current operational providers include Auth.js for authentication, Railway/Postgres/Prisma for hosting and persistence, Resend for work-email delivery when enabled, and optional Upstash or OpenAI services where those features are turned on.",
+            "We do not sell personal data. Operational providers only receive the minimum information required to run authentication, hosting, storage, email verification, or optional resume processing.",
+            "Current operational providers include Auth.js for authentication, Railway/Postgres/Prisma for hosting and persistence, Resend for email delivery when enabled, and optional Upstash or OpenAI services where those features are turned on.",
             `Privacy requests should be sent to ${site.supportEmail}. Include the account email, profile slug, or request reference so the team can locate the relevant record quickly.`
           ]
         }
@@ -149,6 +200,13 @@ function getLegalContent(
           ]
         },
         {
+          heading: "Response windows",
+          paragraphs: [
+            "We acknowledge complaint submissions within 1 business day.",
+            "We aim to provide a substantive response within 5 business days. If a case needs deeper investigation, we send an interim update and next review date."
+          ]
+        },
+        {
           heading: "How cases are reviewed",
           paragraphs: [
             "Where a complaint relates to verification, profile visibility, shortlist decisions, or collaboration records, WHOMA may review the relevant audit history and structured workflow data needed to resolve the case fairly.",
@@ -179,7 +237,7 @@ function getLegalContent(
         {
           heading: "Account access",
           paragraphs: [
-            "Estate agents can sign in with Google, Apple, or email when those methods are enabled on the live service.",
+            "Estate agents can sign in with Google, Apple, or secure email link when those methods are available.",
             "If a sign-in method fails, or an email is already linked to a different provider, contact support and include the account email you tried to use."
           ]
         },
@@ -197,6 +255,7 @@ function getLegalContent(
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ contact?: string }>;
 }
 
 function isStaticPageSlug(value: string): value is StaticPageSlug {
@@ -238,9 +297,11 @@ export async function generateMetadata({
 }
 
 export default async function StaticPage({
-  params
+  params,
+  searchParams
 }: PageProps): Promise<JSX.Element> {
   const { slug } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const site = getPublicSiteConfig();
   const legalContent = getLegalContent(site);
 
@@ -256,6 +317,7 @@ export default async function StaticPage({
     slug === "sitemap"
       ? getLiveInstructionLocationSummaries(liveInstructions)
       : [];
+  const contactStatus = slug === "contact" ? resolvedSearchParams?.contact : null;
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -387,7 +449,7 @@ export default async function StaticPage({
                         Account access
                       </p>
                       <p className="text-sm font-medium text-text-strong">
-                        Google, Apple, or email (when enabled)
+                        Google, Apple, or secure email link
                       </p>
                     </div>
                     <div>
@@ -396,6 +458,100 @@ export default async function StaticPage({
                       </p>
                       <p className="text-sm font-medium text-text-strong">
                         {site.supportCoverage}
+                      </p>
+                    </div>
+                  </div>
+
+                  {contactStatus === "invalid" ? (
+                    <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
+                      Please provide your name, a valid email, category, and a clear message.
+                    </p>
+                  ) : null}
+                  {contactStatus === "error" ? (
+                    <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
+                      We could not submit your enquiry right now. Please retry or email support directly.
+                    </p>
+                  ) : null}
+                  {contactStatus === "sent" ? (
+                    <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+                      Thanks, your enquiry has been received. We will respond through the support route.
+                    </p>
+                  ) : null}
+
+                  <form action={submitContactInquiryAction} className="grid gap-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="space-y-1">
+                        <span className="text-sm text-text-muted">Name</span>
+                        <Input name="name" required placeholder="Your full name" />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-sm text-text-muted">Email</span>
+                        <Input
+                          name="email"
+                          type="email"
+                          required
+                          placeholder="you@example.com"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="space-y-1">
+                        <span className="text-sm text-text-muted">Role (optional)</span>
+                        <Input
+                          name="role"
+                          placeholder="Independent estate agent, partner, homeowner..."
+                        />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-sm text-text-muted">Category</span>
+                        <select
+                          name="category"
+                          required
+                          className="h-11 rounded-md border border-line bg-surface-0 px-3 text-sm text-text-strong"
+                          defaultValue="GENERAL"
+                        >
+                          <option value="GENERAL">General enquiry</option>
+                          <option value="ACCOUNT_ACCESS">Account access</option>
+                          <option value="ONBOARDING">Agent onboarding</option>
+                          <option value="VERIFICATION">Verification</option>
+                          <option value="PARTNERSHIP">Partnership</option>
+                          <option value="COMPLAINT">Complaint</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label className="space-y-1">
+                      <span className="text-sm text-text-muted">Message</span>
+                      <Textarea
+                        name="message"
+                        required
+                        placeholder="Tell us what you need help with and include any profile slug or reference if available."
+                      />
+                    </label>
+                    <Button type="submit" className="w-full sm:w-auto">
+                      Send enquiry
+                    </Button>
+                  </form>
+
+                  <div className="space-y-2 rounded-md border border-line bg-surface-0 px-4 py-3">
+                    <p className="text-sm font-semibold text-text-strong">Quick FAQ</p>
+                    <div className="space-y-2 text-sm text-text-muted">
+                      <p>
+                        <span className="font-medium text-text-strong">
+                          Which sign-in methods are live?
+                        </span>{" "}
+                        Google, Apple, and secure email-link sign-in are available as soon as each route is live.
+                      </p>
+                      <p>
+                        <span className="font-medium text-text-strong">
+                          Can I onboard before directory launch?
+                        </span>{" "}
+                        Yes. You can complete profile, verification, and sharing steps before broader collaboration expansion.
+                      </p>
+                      <p>
+                        <span className="font-medium text-text-strong">
+                          Where should complaints go?
+                        </span>{" "}
+                        Use this form with category `Complaint` or visit the complaints route for response windows.
                       </p>
                     </div>
                   </div>

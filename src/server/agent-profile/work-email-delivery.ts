@@ -27,7 +27,7 @@ function getResendConfig(): { apiKey: string; fromEmail: string } {
   if (!apiKey || !fromEmail) {
     throw new WorkEmailDeliveryError(
       "DELIVERY_NOT_CONFIGURED",
-      "Work-email verification delivery is not configured."
+      "Email verification delivery is not configured."
     );
   }
 
@@ -49,7 +49,7 @@ export async function sendWorkEmailVerificationCodeEmail(
     body: JSON.stringify({
       from: fromEmail,
       to: [input.workEmail],
-      subject: "WHOMA work email verification code",
+      subject: "WHOMA email verification code",
       text: `Your WHOMA verification code is ${input.verificationCode}. It expires at ${expiresAtText}.`,
       html: `<p>Your WHOMA verification code is <strong>${input.verificationCode}</strong>.</p><p>It expires at <strong>${expiresAtText}</strong>.</p>`
     })
@@ -68,7 +68,7 @@ export async function sendWorkEmailVerificationCodeEmail(
 
   throw new WorkEmailDeliveryError(
     "DELIVERY_FAILED",
-    "Work-email verification delivery failed.",
+    "Email verification delivery failed.",
     { status: response.status, details }
   );
 }

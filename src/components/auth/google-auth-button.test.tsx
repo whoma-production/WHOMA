@@ -38,35 +38,42 @@ describe("GoogleAuthButton", () => {
       screen.getByRole("button", { name: /continue with apple/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /sign in with email/i })
+      screen.getByRole("button", { name: /continue with email/i })
     ).toBeInTheDocument();
-    expect(screen.queryByText(/pilot access/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/sign-in is temporarily unavailable/i)
+    ).not.toBeInTheDocument();
   });
 
-  it("falls back to direct support when no public auth method is configured", () => {
+  it("shows clean unavailable states when social providers are down", () => {
     render(
       <GoogleAuthButton
         providerAvailability={{
           google: false,
           apple: false,
-          email: false,
-          any: false
+          email: true,
+          any: true
         }}
         uxMode="public"
         supportEmail="support@whoma.co.uk"
       />
     );
 
-    expect(screen.getByText(/account access/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /email support/i })
-    ).toHaveAttribute("href", "mailto:support@whoma.co.uk");
+      screen.getByRole("button", { name: /continue with google/i })
+    ).toBeDisabled();
     expect(
-      screen.queryByText(/internal preview access/i)
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /continue with apple/i })
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/google sign-in is currently unavailable/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/apple sign-in is currently unavailable/i)
+    ).toBeInTheDocument();
   });
 
-  it("shows the extra name field during email sign-up", () => {
+  it("uses magic-link email flow copy for both sign-in and sign-up contexts", () => {
     render(
       <GoogleAuthButton
         providerAvailability={{
@@ -80,10 +87,10 @@ describe("GoogleAuthButton", () => {
       />
     );
 
-    expect(screen.getByText(/create your account with email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/continue with email/i).length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /create account with email/i })
+      screen.getByRole("button", { name: /continue with email/i })
     ).toBeInTheDocument();
   });
 

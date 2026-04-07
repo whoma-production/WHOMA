@@ -258,6 +258,18 @@ Phase 1 delivery focus:
 - Added an explicit Phase 1 evidence statement on homepage and changed featured-profile fallback content to a realistic sample completed profile so public surfaces feel inhabited before full live profile density.
 - Sign-in now clarifies provider readiness by showing that Google/Apple options appear when live OAuth credentials are configured, reducing ambiguity when email is the only available method.
 
+31. Production auth readiness pass: method-first sign-in + post-auth access states (2026-04-07) (new)
+
+- Public sign-in now prioritizes real authentication methods first: Google OAuth, Apple OAuth, and secure email magic-link sign-in (`next-auth` Email provider).
+- `src/auth.ts` replaced public password-credentials sign-in with magic-link delivery via Resend (`sendVerificationRequest`) and enables safe same-email account linking on Google/Apple providers.
+- Public auth UI (`src/components/auth/google-auth-button.tsx`, `/sign-in`, `/sign-up`) now presents all methods in one polished layout with intentional unavailable/error states; support/request-access is secondary only.
+- Auth/session tokens now carry an explicit post-auth access state (`APPROVED` / `PENDING` / `DENIED`) so approval logic happens after successful authentication.
+- Added dedicated authenticated review routes for agents:
+  - `/access/pending`
+  - `/access/denied`
+- Middleware now enforces post-auth access-state routing for agent surfaces while keeping preview-role auth internal only.
+- Added `VerificationStatus.REJECTED` to support explicit denied-state workflows and admin controls (`Mark denied`) without exposing internal roles publicly.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
@@ -273,7 +285,7 @@ Phase 1 delivery focus:
 
 ## Backend
 
-- Auth/session: `next-auth` + middleware route guards + public Google/Apple/email-password auth for agents when configured, with preview credentials (`HOMEOWNER` / `AGENT` / `ADMIN`) reserved for local QA/E2E only; Railway production no longer exposes preview providers and rejects preview callback sign-in attempts with `error=Configuration`
+- Auth/session: `next-auth` + middleware route guards + public Google/Apple/email magic-link auth for agents, with preview credentials (`HOMEOWNER` / `AGENT` / `ADMIN`) reserved for local QA/E2E only; Railway production no longer exposes preview providers and rejects preview callback sign-in attempts with `error=Configuration`
 - Dev host consistency: middleware redirects sign-in/app route traffic to the canonical `AUTH_URL` host in development
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)
@@ -294,6 +306,8 @@ Phase 1 delivery focus:
 - Migration: `prisma/migrations/20260322130500_agent_work_email_anti_abuse/migration.sql`
 - Migration: `prisma/migrations/20260402124000_gate1_trust_data_origin/migration.sql`
 - Migration: `prisma/migrations/20260406183000_email_password_auth/migration.sql`
+- Migration: `prisma/migrations/20260407170500_phase1_event_spine_support_inquiries/migration.sql`
+- Migration: `prisma/migrations/20260407183500_agent_verification_rejected_state/migration.sql`
 - DB-backed service test: `src/server/agent-profile/phase1-flow.test.ts`
 - API safety tests: `src/server/http/idempotency.test.ts`, `src/server/http/rate-limit.test.ts`
 - Gate 1 auth contract test: `src/lib/auth/preview-access.test.ts`

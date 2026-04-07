@@ -127,7 +127,7 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
                   <div>
                     <h2 className="text-lg">I&apos;m an estate agent</h2>
                     <p className="mt-2 text-sm text-text-muted">
-                      Verify your work email, complete your structured profile,
+                      Verify your email, complete your structured profile,
                       and build a stronger public presence.
                     </p>
                   </div>

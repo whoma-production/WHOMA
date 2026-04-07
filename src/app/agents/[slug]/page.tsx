@@ -252,7 +252,7 @@ export default async function PublicAgentProfilePage({
             </h2>
             <ul className="space-y-2 text-sm text-text-muted">
               <li>Verification: Admin verified</li>
-              <li>Work email: {profile.workEmail ?? "Not listed"}</li>
+              <li>Email: {profile.workEmail ?? "Not listed"}</li>
               <li>Phone: {profile.phone ?? "Not listed"}</li>
               <li>
                 Last profile update:{" "}

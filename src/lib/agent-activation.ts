@@ -57,7 +57,7 @@ export function getAgentActivationChecklist(
   const items: AgentActivationChecklistItem[] = [
     {
       key: "workEmailVerified",
-      title: "Work email verified",
+      title: "Email verified",
       description:
         "Use your preferred email address and confirm the 6-digit code to continue.",
       done: state.workEmailVerified,

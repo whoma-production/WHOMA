@@ -59,17 +59,21 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Progress (2026-04-06):** Estate-agent account access is now self-serve when the live service is configured for it: public auth supports Google, Apple, and email/password account creation/sign-in for agents, a new `/api/auth/register` path creates DB-backed email/password users, preview-only role access remains hidden from public pages, and contact/privacy pages no longer present end users with an exposed service-provider grid.
       **Progress (2026-04-07):** Completed a site-wide visual-system realignment to the current neutral/clean WHOMA style: introduced a shared `PublicHeader` across landing, directory, profile, requests, auth, and trust pages; replaced fragmented route-level headers; and updated global tokens/components (surfaces, borders, buttons, cards, form controls, and toast/table chrome) so beige/editorial fallback styling no longer reappears on public surfaces.
       **Progress (2026-04-07):** Follow-up Phase 1 copy and onboarding pass: removed business-domain email restrictions from agent onboarding/profile validation, removed `Typical response window` and internal `Operating status` style language from public contact/trust surfaces and footer, updated the public brand line to `Where Home Owners Meet Agents`, added a Phase 1 evidence signal block and inhabited sample-profile fallback on homepage/directory, and made sign-in explicitly state that Google/Apple options appear only when live credentials are configured.
+      **Progress (2026-04-07):** Public auth now ships method-first with Google, Apple, and email magic-link sign-in on `/sign-in`; invitation/request-access is secondary only; preview controls remain internal-only; post-auth gating is separated from authentication via explicit `APPROVED/PENDING/DENIED` session access states with dedicated `/access/pending` and `/access/denied` UX for agent review outcomes.
 
 ## Behavioural Validation Gap Closures (Audit 2026-04-02)
 
 - [ ] BV001 — Phase 1 measurement contract + synthetic-data exclusion
       **Acceptance:** WHOMA defines `qualified agent`, `historic transaction logged`, `historic transaction verified`, `live transaction logged`, `active collaboration listing`, `interaction velocity`, and `monthly active engaged agent` in code/docs; official Phase 1 reporting excludes preview, seed, test, and other synthetic records.
+      **Progress (2026-04-07):** Added explicit Phase 1 heartbeat milestone definitions in code (`profile complete %`, `historic deals logged`, `live deal added`, `profile link shared`, `first enquiry received`) and wired event naming around those objectives; final formal metric contract and synthetic-data exclusion docs/reporting are still pending.
 
 - [ ] BV002 — Durable event spine + Phase 1 ops dashboard
       **Acceptance:** Service-boundary events persist to a durable store with actor/source metadata; admin reporting exposes all six Phase 1 objectives plus key drop-offs and recent-window metrics without relying on console logs.
+      **Progress (2026-04-07):** Durable `ProductEvent` persistence is now live with actor/source metadata, PII-safe payload sanitization, and event writes at onboarding/profile/auth-support/marketplace boundaries; dashboard/reporting for full Phase 1 objective rollups remains pending.
 
 - [ ] BV003 — Historic/live transaction logging domain
       **Acceptance:** Historic and live transaction logging are modeled explicitly with verification state/evidence, surfaced in agent workflows, and no public trust copy implies transaction proof that the schema does not actually store.
+      **Progress (2026-04-07):** Added surfaced agent workflow actions to log historic transactions and live collaboration activity, with those writes feeding the Phase 1 heartbeat and durable event spine; first-class transaction entities with verification evidence state are still pending.
 
 - [x] BV004 — Public narrative truthfulness cleanup
       **Acceptance:** Public CTA routing, homepage proof modules, `/requests*` cards, and public profile trust labels reflect real Phase 1 capabilities only; no public route reuses internal tender-marketplace CTAs or metrics that overstate current transaction depth.
@@ -144,6 +148,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Progress (2026-04-02):** Legal/support pages now surface a concrete support inbox, operating entity/region, response-window language, and named operational providers; public zero states now include rollout-stage explanation plus a proof/example block and one strong CTA instead of empty placeholder copy.
       **Progress (2026-04-02):** Public brand language was reset around profile-first positioning for independent estate agents: homepage now leads with featured profiles and proof modules, footer/support scaffolding uses calmer descriptors, and `/requests*` now reads as a secondary homeowner collaboration pilot rather than the product's main category story.
       **Progress (2026-04-02):** `/requests*` and static trust pages now use launch-ready instruction/support language (`open instructions`, `seller access`, `Contact`, `Access by invitation`) instead of fee-comparison or rollout-heavy framing; sitemap emphasis now sits on core pages rather than seller-access merchandising.
+      **Progress (2026-04-07):** Contact/trust pages now include a real support enquiry form backed by `SupportInquiry` persistence, cleaner account-access language, a concise FAQ block, and explicit complaints response-window commitments while removing internal `Last updated` / `Operating status` style copy.
 
 - [x] T014 — Cookie consent mechanism + preferences control (MVP)
       **Acceptance:** Non-essential cookies remain off until consent; user can review/change preferences; cookies page links to live consent controls and accurately reflects behavior.
@@ -151,9 +156,10 @@ Target date for onboarding start: Monday, **2026-03-30**.
 
 ## Later
 
-- [ ] T100 — Event tracking (privacy-conscious counts only; no analytics dashboard)
+- [x] T100 — Event tracking (privacy-conscious counts only; no analytics dashboard)
       **Acceptance:** Core events are emitted without storing PII payloads; feature can be disabled via env flag; no dashboard UI added in MVP.
       **Progress (2026-03-21):** Instruction/proposal write boundaries now emit privacy-sanitized events from service-layer persistence paths.
+      **Progress (2026-04-07):** Event tracking is now durable via `ProductEvent` storage with PII-key redaction, env kill-switch support (`PRODUCT_EVENT_TRACKING_DISABLED`), and extended coverage for onboarding/profile milestones (`profile_started`, `profile_completed`, `transaction_logged`, `verification_sent`, `verification_completed`, `listing_created`, `profile_link_shared`, `interaction_received`) plus support enquiries.
 
 - [ ] T101 — File upload integration for property photos and supporting docs (S3-compatible)
       **Acceptance:** Homeowner can upload optional photos via signed upload flow; URLs persist to `Property.photos`; upload auth/authorization enforced.

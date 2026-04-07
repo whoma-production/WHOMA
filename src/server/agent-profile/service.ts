@@ -278,7 +278,7 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
   if (!hasVerifiedWorkEmail) {
     throw new WorkEmailVerificationError(
       "EMAIL_NOT_VERIFIED",
-      "Verify your work email before completing onboarding."
+      "Verify your email before completing onboarding."
     );
   }
 
@@ -542,7 +542,7 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
   if (!hasVerifiedWorkEmail) {
     throw new WorkEmailVerificationError(
       "EMAIL_NOT_VERIFIED",
-      "Verify your work email before publishing your profile."
+      "Verify your email before publishing your profile."
     );
   }
 
@@ -868,14 +868,14 @@ export async function confirmAgentWorkEmailVerificationCode(
   ) {
     throw new WorkEmailVerificationError(
       "CODE_NOT_REQUESTED",
-      "Request a verification code before verifying your work email."
+      "Request a verification code before verifying your email."
     );
   }
 
   if (normalizeEmail(profile.workEmail ?? "") !== normalizedWorkEmail) {
     throw new WorkEmailVerificationError(
       "EMAIL_MISMATCH",
-      "The verification code was requested for a different work email address."
+      "The verification code was requested for a different email address."
     );
   }
 
@@ -972,6 +972,84 @@ export async function isAgentWorkEmailVerified(
   return normalizeEmail(profile.workEmail) === normalizedWorkEmail;
 }
 
+function normalizeOptionalMetadataValue(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : null;
+}
+
+export async function logAgentHistoricTransaction(
+  userId: string,
+  input: {
+    postcodeDistrict?: string;
+    propertyType?: string;
+    completionMonth?: string;
+  }
+): Promise<void> {
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.transactionLogged,
+    {
+      userId,
+      transactionKind: "historic",
+      postcodeDistrict: normalizeOptionalMetadataValue(input.postcodeDistrict),
+      propertyType: normalizeOptionalMetadataValue(input.propertyType),
+      completionMonth: normalizeOptionalMetadataValue(input.completionMonth)
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/profile/edit"
+    }
+  );
+}
+
+export async function logAgentLiveCollaboration(
+  userId: string,
+  input: {
+    postcodeDistrict?: string;
+    collaborationType?: string;
+  }
+): Promise<void> {
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.listingCreated,
+    {
+      userId,
+      listingType: "agent_live_collaboration",
+      postcodeDistrict: normalizeOptionalMetadataValue(input.postcodeDistrict),
+      collaborationType: normalizeOptionalMetadataValue(input.collaborationType)
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/profile/edit"
+    }
+  );
+}
+
+export async function logAgentProfileLinkShared(
+  userId: string,
+  input: {
+    profileSlug?: string;
+    channel?: string;
+  } = {}
+): Promise<void> {
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.profileLinkShared,
+    {
+      userId,
+      profileSlug: normalizeOptionalMetadataValue(input.profileSlug),
+      channel: normalizeOptionalMetadataValue(input.channel) ?? "direct"
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/api/agent/profile/share"
+    }
+  );
+}
+
 export async function setAgentVerificationStatus(userId: string, status: VerificationStatus): Promise<void> {
   if (status === "VERIFIED") {
     const profile = await prisma.agentProfile.findUnique({
@@ -1017,6 +1095,7 @@ export interface AgentActivationMetrics {
   published: number;
   pendingVerification: number;
   verified: number;
+  denied: number;
 }
 
 export async function getAgentActivationMetrics(): Promise<AgentActivationMetrics> {
@@ -1028,7 +1107,8 @@ export async function getAgentActivationMetrics(): Promise<AgentActivationMetric
     publishReady,
     published,
     pendingVerification,
-    verified
+    verified,
+    denied
   ] = await Promise.all([
     prisma.agentProfile.count({
       where: officialAgentProfileFilter
@@ -1069,6 +1149,12 @@ export async function getAgentActivationMetrics(): Promise<AgentActivationMetric
         ...officialAgentProfileFilter,
         verificationStatus: "VERIFIED"
       }
+    }),
+    prisma.agentProfile.count({
+      where: {
+        ...officialAgentProfileFilter,
+        verificationStatus: "REJECTED"
+      }
     })
   ]);
 
@@ -1079,7 +1165,8 @@ export async function getAgentActivationMetrics(): Promise<AgentActivationMetric
     publishReady,
     published,
     pendingVerification,
-    verified
+    verified,
+    denied
   };
 }
 

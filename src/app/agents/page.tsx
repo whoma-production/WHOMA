@@ -9,7 +9,10 @@ import {
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
-import { PUBLIC_AGENT_PROOF_LOOP } from "@/lib/public-proof";
+import {
+  PUBLIC_AGENT_PROOF_LOOP,
+  PUBLIC_EXAMPLE_AGENT_PROFILES
+} from "@/lib/public-proof";
 import { cn } from "@/lib/utils";
 import { listPublicAgentProfiles } from "@/server/agent-profile/service";
 
@@ -71,6 +74,37 @@ export default async function AgentDirectoryPage({
             >
               Request seller access
             </Link>
+          </div>
+        </Card>
+
+        <Card className="mt-6 space-y-4 bg-surface-0">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+              Example profile benchmarks
+            </p>
+            <p className="text-sm text-text-muted">
+              We are publishing real verified profiles progressively. These
+              examples show the expected profile quality standard.
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {PUBLIC_EXAMPLE_AGENT_PROFILES.map((profile) => (
+              <div
+                key={`${profile.name}-${profile.agency}`}
+                className="rounded-md border border-line bg-surface-1 px-3 py-3"
+              >
+                <p className="text-sm font-medium text-text-strong">
+                  {profile.name}
+                </p>
+                <p className="text-sm text-text-muted">{profile.agency}</p>
+                <p className="mt-1 text-xs text-text-muted">
+                  {profile.areas} · {profile.specialties}
+                </p>
+                <p className="mt-1 text-xs uppercase tracking-[0.12em] text-text-muted">
+                  {profile.verification} · {profile.readiness} readiness
+                </p>
+              </div>
+            ))}
           </div>
         </Card>
 

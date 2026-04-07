@@ -14,6 +14,9 @@ import {
 } from "@/lib/public-site";
 import {
   PUBLIC_COLLABORATION_FLOW,
+  PUBLIC_EXAMPLE_AGENT_PROFILES,
+  PUBLIC_EXAMPLE_TRANSACTION_HISTORIES,
+  PUBLIC_PHASE_SEQUENCE,
   PUBLIC_PROOF_MODULES,
   PUBLIC_SAMPLE_COMPARISON,
   PUBLIC_SAMPLE_PROFILE_VIEW,
@@ -203,6 +206,33 @@ export default async function LandingPage(): Promise<JSX.Element> {
           </div>
         </section>
 
+        <section className="border-b border-line bg-surface-0 py-10">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-2">
+              <p className="public-kicker">Roadmap and positioning</p>
+              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                WHOMA sequence: verified identity first, collaboration
+                liquidity second, and structured tendering after proof.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {PUBLIC_PHASE_SEQUENCE.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-md border border-line bg-surface-1 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold text-text-strong">
+                    {step.title}
+                  </p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section id="platform" className="public-section bg-surface-0">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl space-y-3">
@@ -273,6 +303,61 @@ export default async function LandingPage(): Promise<JSX.Element> {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="public-section border-y border-line bg-surface-1">
+          <div className="mx-auto w-full max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-3">
+              <p className="public-kicker">Seeded proof</p>
+              <h2>Example profile quality and transaction proof.</h2>
+              <p className="max-w-3xl text-sm text-text-muted sm:text-base">
+                These examples show the quality bar we expect as we onboard the
+                first independent agent cohort.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {PUBLIC_EXAMPLE_AGENT_PROFILES.map((profile) => (
+                <div
+                  key={`${profile.name}-${profile.agency}`}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold text-text-strong">
+                    {profile.name}
+                  </p>
+                  <p className="text-sm text-text-muted">{profile.agency}</p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    Areas: {profile.areas}
+                  </p>
+                  <p className="text-sm text-text-muted">
+                    Specialties: {profile.specialties}
+                  </p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.12em] text-text-muted">
+                    {profile.verification} · {profile.readiness} readiness
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {PUBLIC_EXAMPLE_TRANSACTION_HISTORIES.map((item) => (
+                <div
+                  key={item.agent}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold text-text-strong">
+                    {item.agent}
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">{item.summary}</p>
+                  <ul className="mt-3 space-y-1 text-sm text-text-muted">
+                    {item.highlights.map((highlight) => (
+                      <li key={highlight}>{highlight}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
         </section>

@@ -15,7 +15,7 @@ import {
 
 const verificationUpdateSchema = z.object({
   agentUserId: z.string().min(1),
-  status: z.enum(["UNVERIFIED", "PENDING", "VERIFIED"])
+  status: z.enum(["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"])
 });
 
 interface PageProps {
@@ -86,7 +86,7 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
               {
                 label: "Work email verified",
                 value: activationMetrics.workEmailVerified,
-                hint: "Business inbox confirmed"
+                hint: "Email confirmed"
               },
               {
                 label: "Completed",
@@ -112,6 +112,11 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
                 label: "Verified",
                 value: activationMetrics.verified,
                 hint: "Public trust unlocked"
+              },
+              {
+                label: "Denied",
+                value: activationMetrics.denied,
+                hint: "Access restricted"
               }
             ].map((metric) => (
               <div
@@ -155,7 +160,7 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
               <li key={profile.userId} className="rounded-md border border-line bg-surface-1 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="space-y-1">
-                    <p className="font-medium text-text-strong">{profile.user.name ?? "Real estate agent"}</p>
+                    <p className="font-medium text-text-strong">{profile.user.name ?? "Estate agent"}</p>
                     <p className="text-sm text-text-muted">
                       {profile.agencyName ?? "Agency pending"} · {profile.jobTitle ?? "Role pending"}
                     </p>
@@ -172,7 +177,7 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
                           : "onboarding in progress"}
                     </p>
                   </div>
-                  <Badge variant={profile.verificationStatus === "VERIFIED" ? "success" : profile.verificationStatus === "PENDING" ? "warning" : "default"}>
+                  <Badge variant={profile.verificationStatus === "VERIFIED" ? "success" : profile.verificationStatus === "PENDING" ? "warning" : profile.verificationStatus === "REJECTED" ? "danger" : "default"}>
                     {profile.verificationStatus}
                   </Badge>
                 </div>
@@ -187,6 +192,9 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
                   </Button>
                   <Button type="submit" name="status" value="UNVERIFIED" size="sm" variant="tertiary">
                     Mark unverified
+                  </Button>
+                  <Button type="submit" name="status" value="REJECTED" size="sm" variant="danger">
+                    Mark denied
                   </Button>
                 </form>
               </li>

@@ -5,6 +5,7 @@ const pageRoutePolicies = [
   { prefix: "/homeowner", policy: "HOMEOWNER" as const },
   { prefix: "/agent", policy: "AGENT" as const },
   { prefix: "/admin", policy: "ADMIN" as const },
+  { prefix: "/access", policy: "AUTHENTICATED" as const },
   { prefix: "/messages", policy: "AUTHENTICATED" as const },
   { prefix: "/onboarding/role", policy: "AUTHENTICATED" as const }
 ] as const;
@@ -77,9 +78,11 @@ export function getAuthErrorMessage(
     case "AccessDenied":
       return "Sign-in was denied. Please try again or use a different account.";
     case "CredentialsSignin":
-      return "That email and password did not match an existing account.";
+      return "Sign-in failed. Try again or use another sign-in method.";
+    case "EmailSignin":
+      return "We could not send a sign-in link right now. Please try again.";
     case "Configuration":
-      return "That sign-in method is not configured correctly right now. Try another method or contact support.";
+      return "That sign-in method is unavailable right now. Try another method or contact support.";
     case "Callback":
       return "The sign-in provider did not complete correctly. Please try again.";
     case "Verification":

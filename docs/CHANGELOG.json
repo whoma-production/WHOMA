@@ -1390,5 +1390,43 @@
       "Configure live Google/Apple provider credentials in production if those sign-in options should be visible immediately.",
       "Continue tightening Phase 1 public narrative so requests/comparison surfaces remain clearly secondary until Phase 2 thresholds are met."
     ]
+  },
+  {
+    "session_id": "2026-04-07-1805-auth-method-first-pass",
+    "timestamp": "2026-04-07T18:05:00+02:00",
+    "summary": "Delivered a production-ready public auth pass: method-first sign-in UX (Google, Apple, email magic link), post-auth access-state routing (`APPROVED`/`PENDING`/`DENIED`), dedicated pending/denied pages, and explicit denied-state support via `VerificationStatus.REJECTED`.",
+    "files_changed": [
+      "src/auth.ts",
+      "src/lib/auth/provider-config.ts",
+      "src/lib/auth/session.ts",
+      "src/types/next-auth.d.ts",
+      "src/middleware.ts",
+      "src/components/auth/google-auth-button.tsx",
+      "src/components/auth/google-auth-button.test.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/app/access/pending/page.tsx",
+      "src/app/access/denied/page.tsx",
+      "src/app/[slug]/page.tsx",
+      "src/app/(app)/admin/agents/page.tsx",
+      "src/server/agent-profile/service.ts",
+      "src/components/proposal-card.tsx",
+      "src/components/proposal-compare-table.tsx",
+      "prisma/schema.prisma",
+      "prisma/migrations/20260407183500_agent_verification_rejected_state/migration.sql",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept the existing `next-auth` stack and extended it with Email magic-link delivery via Resend instead of replacing auth infrastructure.",
+      "Separated authentication from approval by introducing explicit post-auth access-state routing rather than blocking sign-in.",
+      "Kept request-access/support as a secondary path so public auth remains product-led, not support-led."
+    ],
+    "next_steps": [
+      "Deploy this exact commit to Railway and verify live sign-in/callback/pending/denied behavior.",
+      "Configure live Google and Apple secrets in production where needed so both OAuth methods are immediately available."
+    ]
   }
 ]

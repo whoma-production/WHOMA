@@ -21,6 +21,26 @@ export interface PublicSampleOffer {
   badge: string;
 }
 
+export interface PublicRoadmapStep {
+  title: string;
+  description: string;
+}
+
+export interface PublicExampleAgentProfile {
+  name: string;
+  agency: string;
+  areas: string;
+  specialties: string;
+  readiness: string;
+  verification: string;
+}
+
+export interface PublicExampleTransactionHistory {
+  agent: string;
+  summary: string;
+  highlights: string[];
+}
+
 export const PUBLIC_WHY_AGENTS_JOIN: readonly PublicFeatureItem[] = [
   {
     title: "Stand on your own",
@@ -156,3 +176,93 @@ export const PUBLIC_SAMPLE_COMPARISON = {
     }
   ] satisfies readonly PublicSampleOffer[]
 } as const;
+
+export const PUBLIC_PHASE_SEQUENCE: readonly PublicRoadmapStep[] = [
+  {
+    title: "1) Verified identity first",
+    description:
+      "Every agent starts with verified identity and a structured profile that can be shared publicly."
+  },
+  {
+    title: "2) Collaboration liquidity second",
+    description:
+      "WHOMA then validates real collaboration momentum through inbound enquiries and active opportunities."
+  },
+  {
+    title: "3) Structured tendering after proof",
+    description:
+      "Once identity and liquidity are proven, structured tendering expands with clearer confidence."
+  }
+] as const;
+
+export const PUBLIC_EXAMPLE_AGENT_PROFILES: readonly PublicExampleAgentProfile[] = [
+  {
+    name: "A. Morgan",
+    agency: "North Row Estates",
+    areas: "SW1A, W1, SE1",
+    specialties: "Chain management, family homes",
+    readiness: "92%",
+    verification: "Admin verified"
+  },
+  {
+    name: "Reed & Co",
+    agency: "Reed & Co",
+    areas: "N1, N5, E8",
+    specialties: "Instruction strategy, viewings",
+    readiness: "90%",
+    verification: "Admin verified"
+  },
+  {
+    name: "L. Patel",
+    agency: "Harbour Lane",
+    areas: "E14, SE10, E1",
+    specialties: "Waterfront homes, relocation",
+    readiness: "88%",
+    verification: "Admin verified"
+  },
+  {
+    name: "J. Whitmore",
+    agency: "Whitmore Independent",
+    areas: "W2, W9, NW8",
+    specialties: "Premium flats, chain progression",
+    readiness: "91%",
+    verification: "Admin verified"
+  },
+  {
+    name: "S. Ahmed",
+    agency: "Bridge Court",
+    areas: "CR0, BR1, SE20",
+    specialties: "First-time sellers, valuation prep",
+    readiness: "87%",
+    verification: "Admin verified"
+  },
+  {
+    name: "M. Davies",
+    agency: "Davenport Homes",
+    areas: "SW18, SW11, SW19",
+    specialties: "Family relocations, negotiation",
+    readiness: "89%",
+    verification: "Admin verified"
+  }
+] as const;
+
+export const PUBLIC_EXAMPLE_TRANSACTION_HISTORIES: readonly PublicExampleTransactionHistory[] = [
+  {
+    agent: "A. Morgan · North Row Estates",
+    summary: "Verified transaction history snapshot (illustrative)",
+    highlights: [
+      "12 historic completions logged (last 18 months)",
+      "Median time to exchange: 29 days",
+      "Service areas: SW1A, SE1, W1"
+    ]
+  },
+  {
+    agent: "Reed & Co",
+    summary: "Verified transaction history snapshot (illustrative)",
+    highlights: [
+      "9 historic completions logged (last 12 months)",
+      "4 live collaboration opportunities opened",
+      "Structured updates sent across every active instruction"
+    ]
+  }
+] as const;

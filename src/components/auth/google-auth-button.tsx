@@ -1,13 +1,12 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import React, { useState } from "react";
+import { signIn } from "next-auth/react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthErrorMessage } from "@/lib/auth/session";
 import type { PublicAuthProviderAvailability } from "@/lib/auth/provider-config";
-import { cn } from "@/lib/utils";
 
 interface GoogleAuthButtonProps {
   redirectTo?: string;
@@ -25,8 +24,7 @@ type PreviewRole = "HOMEOWNER" | "AGENT" | "ADMIN";
 type PendingAction =
   | "google"
   | "apple"
-  | "email-sign-in"
-  | "email-sign-up"
+  | "email"
   | "homeowner"
   | "agent"
   | "admin"
@@ -115,8 +113,7 @@ export function GoogleAuthButton({
   const [previewRole, setPreviewRole] = useState<PreviewRole>("AGENT");
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [emailAddress, setEmailAddress] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [fullName, setFullName] = useState<string>("");
+  const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [signInError, setSignInError] = useState<string | null>(null);
 
   const errorMessage = signInError ?? getAuthErrorMessage(oauthError);
@@ -124,13 +121,10 @@ export function GoogleAuthButton({
   const isPending = pendingAction !== null;
   const hasPublicAuth = providerAvailability.any;
   const showPreviewAccess = uxMode === "internal" && allowPreviewAccess;
-  const showSocialButtons =
-    providerAvailability.google || providerAvailability.apple;
 
   async function runSignIn(
-    provider: "google" | "apple" | "email-login" | "preview",
-    options: Record<string, string | boolean>,
-    fallbackUrl?: string
+    provider: "google" | "apple" | "email" | "preview",
+    options: Record<string, string | boolean>
   ): Promise<void> {
     const response = await signIn(provider, {
       ...options,
@@ -140,46 +134,55 @@ export function GoogleAuthButton({
     if (response?.error) {
       setSignInError(
         getAuthErrorMessage(response.error) ??
-          "We could not complete sign-in. Try again or contact support."
+          "We could not complete sign-in. Please try again."
       );
       setPendingAction(null);
       return;
     }
 
-    const destination = response?.url ?? fallbackUrl;
-
-    if (destination) {
-      window.location.assign(destination);
+    if (provider === "email") {
+      setEmailSentTo(String(options.email ?? ""));
+      setPendingAction(null);
       return;
     }
 
-    setSignInError(
-      "We could not complete sign-in. Try again or contact support."
-    );
+    if (response?.url) {
+      window.location.assign(response.url);
+      return;
+    }
+
+    setSignInError("We could not complete sign-in. Please try again.");
     setPendingAction(null);
   }
 
   function handleOauthClick(provider: "google" | "apple"): void {
-    if (
-      isPending ||
-      (provider === "google" && !providerAvailability.google) ||
-      (provider === "apple" && !providerAvailability.apple)
-    ) {
+    if (isPending) {
+      return;
+    }
+
+    if (provider === "google" && !providerAvailability.google) {
+      setSignInError("Google sign-in is temporarily unavailable.");
+      return;
+    }
+
+    if (provider === "apple" && !providerAvailability.apple) {
+      setSignInError("Apple sign-in is temporarily unavailable.");
       return;
     }
 
     setSignInError(null);
+    setEmailSentTo(null);
     setPendingAction(provider);
 
     void runSignIn(provider, { callbackUrl: target }).catch(() => {
       setSignInError(
-        `${provider === "google" ? "Google" : "Apple"} sign-in failed before the redirect completed. Try again.`
+        `${provider === "google" ? "Google" : "Apple"} sign-in failed before redirect.`
       );
       setPendingAction(null);
     });
   }
 
-  async function handleEmailAuthSubmit(
+  async function handleEmailSubmit(
     event: React.FormEvent<HTMLFormElement>
   ): Promise<void> {
     event.preventDefault();
@@ -189,67 +192,22 @@ export function GoogleAuthButton({
     }
 
     const trimmedEmail = emailAddress.trim().toLowerCase();
-    const trimmedName = fullName.trim();
 
     if (!isEmailCandidate(trimmedEmail)) {
       setSignInError("Enter a valid email address.");
       return;
     }
 
-    if (password.length < 8) {
-      setSignInError("Use at least 8 characters for your password.");
-      return;
-    }
-
-    if (authMode === "sign-up" && trimmedName.length < 2) {
-      setSignInError("Enter your full name to create your account.");
-      return;
-    }
-
     setSignInError(null);
-    setPendingAction(
-      authMode === "sign-up" ? "email-sign-up" : "email-sign-in"
-    );
+    setEmailSentTo(null);
+    setPendingAction("email");
 
-    if (authMode === "sign-up") {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          name: trimmedName,
-          email: trimmedEmail,
-          password
-        })
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | { message?: string }
-        | null;
-
-      if (!response.ok) {
-        setSignInError(
-          payload?.message ??
-            "We could not create your account. Try again or contact support."
-        );
-        setPendingAction(null);
-        return;
-      }
-    }
-
-    await runSignIn(
-      "email-login",
-      {
-        email: trimmedEmail,
-        password,
-        callbackUrl: target
-      },
-      target
-    ).catch(() => {
+    await runSignIn("email", {
+      email: trimmedEmail,
+      callbackUrl: target
+    }).catch(() => {
       setSignInError(
-        authMode === "sign-up"
-          ? "Your account was created, but sign-in did not finish cleanly. Try signing in again."
-          : "Email sign-in failed. Check your details and try again."
+        "We could not send your sign-in link right now. Please try again."
       );
       setPendingAction(null);
     });
@@ -278,15 +236,11 @@ export function GoogleAuthButton({
 
     const destination = nextParam ?? previewRedirectTo;
 
-    void runSignIn(
-      "preview",
-      {
-        email: resolvedEmail,
-        role,
-        callbackUrl: destination
-      },
-      destination
-    ).catch(() => {
+    void runSignIn("preview", {
+      email: resolvedEmail,
+      role,
+      callbackUrl: destination
+    }).catch(() => {
       setSignInError(
         "Preview sign-in failed. Check the email and role, then try again."
       );
@@ -310,190 +264,116 @@ export function GoogleAuthButton({
     handlePreviewClick(previewRole, trimmedEmail || undefined);
   }
 
-  if (!hasPublicAuth && uxMode === "public") {
-    return (
+  return (
+    <div className="space-y-4">
       <div className="space-y-2">
-        {errorMessage ? (
-          <p className="border-state-danger/20 bg-state-danger/10 rounded-md border px-3 py-2 text-sm text-state-danger">
-            {errorMessage}
+        <Button
+          type="button"
+          variant="secondary"
+          fullWidth={fullWidth}
+          onClick={() => handleOauthClick("google")}
+          disabled={isPending || !providerAvailability.google}
+          aria-busy={isPending}
+        >
+          <GoogleMark />
+          {pendingAction === "google"
+            ? "Redirecting to Google..."
+            : "Continue with Google"}
+        </Button>
+        {!providerAvailability.google ? (
+          <p className="text-xs text-text-muted">Google sign-in is currently unavailable.</p>
+        ) : null}
+
+        <Button
+          type="button"
+          variant="secondary"
+          fullWidth={fullWidth}
+          onClick={() => handleOauthClick("apple")}
+          disabled={isPending || !providerAvailability.apple}
+          aria-busy={isPending}
+          className={providerAvailability.apple ? "border-black bg-black text-white hover:bg-black/90" : undefined}
+        >
+          <AppleMark />
+          {pendingAction === "apple"
+            ? "Redirecting to Apple..."
+            : "Continue with Apple"}
+        </Button>
+        {!providerAvailability.apple ? (
+          <p className="text-xs text-text-muted">Apple sign-in is currently unavailable.</p>
+        ) : null}
+      </div>
+
+      <div className="rounded-md border border-line bg-surface-1 p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <MailMark />
+          <p className="text-sm font-medium text-text-strong">
+            {authMode === "sign-up" ? "Continue with email" : "Continue with email"}
+          </p>
+        </div>
+
+        <form onSubmit={handleEmailSubmit} className="space-y-3">
+          <label className="space-y-1">
+            <span className="text-sm text-text-muted">Email</span>
+            <Input
+              type="email"
+              value={emailAddress}
+              autoComplete="email"
+              onChange={(event) => {
+                setEmailAddress(event.target.value);
+                if (signInError) {
+                  setSignInError(null);
+                }
+              }}
+              placeholder="you@example.com"
+              disabled={isPending || !providerAvailability.email}
+            />
+          </label>
+
+          <Button
+            type="submit"
+            fullWidth
+            disabled={isPending || !providerAvailability.email}
+            aria-busy={isPending}
+          >
+            {pendingAction === "email" ? "Sending sign-in link..." : "Continue with email"}
+          </Button>
+        </form>
+
+        {!providerAvailability.email ? (
+          <p className="mt-2 text-xs text-text-muted">
+            Email sign-in is currently unavailable.
           </p>
         ) : null}
 
-        <div className="rounded-md border border-line bg-surface-1 p-4 text-left">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-text-strong">
-              Account access
-            </p>
-            <p className="text-sm text-text-muted">
-              Self-serve sign-in is not configured right now. Contact support
-              and we&apos;ll help you get into the right account.
-            </p>
-          </div>
-
-          {supportEmail ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href={`mailto:${supportEmail}`}
-                className={cn(
-                  buttonVariants({ variant: "primary", size: "sm" })
-                )}
-              >
-                Email support
-              </a>
-            </div>
-          ) : null}
-        </div>
+        {emailSentTo ? (
+          <p className="mt-3 rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+            Sign-in link sent to {emailSentTo}. Open your inbox to continue.
+          </p>
+        ) : null}
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {showSocialButtons ? (
-        <div className="space-y-2">
-          {providerAvailability.google ? (
-            <Button
-              type="button"
-              variant="secondary"
-              fullWidth={fullWidth}
-              onClick={() => handleOauthClick("google")}
-              disabled={isPending}
-              aria-busy={isPending}
-            >
-              <GoogleMark />
-              {pendingAction === "google"
-                ? "Redirecting to Google..."
-                : "Continue with Google"}
-            </Button>
-          ) : null}
-
-          {providerAvailability.apple ? (
-            <Button
-              type="button"
-              variant="secondary"
-              fullWidth={fullWidth}
-              onClick={() => handleOauthClick("apple")}
-              disabled={isPending}
-              aria-busy={isPending}
-              className="border-black bg-black text-white hover:bg-black/90"
-            >
-              <AppleMark />
-              {pendingAction === "apple"
-                ? "Redirecting to Apple..."
-                : "Continue with Apple"}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {providerAvailability.email ? (
-        <div className="rounded-md border border-line bg-surface-1 p-4">
-          {!providerAvailability.google || !providerAvailability.apple ? (
-            <p className="mb-3 text-xs text-text-muted">
-              {[
-                !providerAvailability.google ? "Google" : null,
-                !providerAvailability.apple ? "Apple" : null
-              ]
-                .filter(Boolean)
-                .join(" and ")}{" "}
-              sign-in options appear here once live provider credentials are enabled.
-            </p>
-          ) : null}
-          {showSocialButtons ? (
-            <div className="mb-4 flex items-center gap-3">
-              <div className="h-px flex-1 bg-line" />
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted">
-                Or use email
-              </span>
-              <div className="h-px flex-1 bg-line" />
-            </div>
-          ) : null}
-
-          <div className="mb-3 flex items-center gap-2">
-            <MailMark />
-            <p className="text-sm font-medium text-text-strong">
-              {authMode === "sign-up"
-                ? "Create your account with email"
-                : "Sign in with email"}
-            </p>
-          </div>
-
-          <form onSubmit={handleEmailAuthSubmit} className="space-y-3">
-            {authMode === "sign-up" ? (
-              <label className="space-y-1">
-                <span className="text-sm text-text-muted">Full name</span>
-                <Input
-                  type="text"
-                  value={fullName}
-                  autoComplete="name"
-                  onChange={(event) => {
-                    setFullName(event.target.value);
-                    if (signInError) {
-                      setSignInError(null);
-                    }
-                  }}
-                  placeholder="Your full name"
-                  disabled={isPending}
-                />
-              </label>
-            ) : null}
-
-            <label className="space-y-1">
-              <span className="text-sm text-text-muted">Email</span>
-              <Input
-                type="email"
-                value={emailAddress}
-                autoComplete="email"
-                onChange={(event) => {
-                  setEmailAddress(event.target.value);
-                  if (signInError) {
-                    setSignInError(null);
-                  }
-                }}
-                placeholder="you@example.com"
-                disabled={isPending}
-              />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-sm text-text-muted">Password</span>
-              <Input
-                type="password"
-                value={password}
-                autoComplete={
-                  authMode === "sign-up" ? "new-password" : "current-password"
-                }
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  if (signInError) {
-                    setSignInError(null);
-                  }
-                }}
-                placeholder={
-                  authMode === "sign-up"
-                    ? "Create a password"
-                    : "Enter your password"
-                }
-                disabled={isPending}
-              />
-            </label>
-
-            <Button type="submit" fullWidth disabled={isPending} aria-busy={isPending}>
-              {pendingAction === "email-sign-up"
-                ? "Creating your account..."
-                : pendingAction === "email-sign-in"
-                  ? "Signing you in..."
-                  : authMode === "sign-up"
-                    ? "Create account with email"
-                    : "Sign in with email"}
-            </Button>
-          </form>
-        </div>
-      ) : null}
 
       {errorMessage ? (
-        <p className="border-state-danger/20 bg-state-danger/10 rounded-md border px-3 py-2 text-sm text-state-danger">
+        <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
           {errorMessage}
+        </p>
+      ) : null}
+
+      <p className="text-xs text-text-muted">
+        Access control is applied after sign-in.{" "}
+        {supportEmail ? (
+          <>
+            Need help?{" "}
+            <a href={`mailto:${supportEmail}`} className="text-brand-ink underline">
+              Contact support
+            </a>
+            .
+          </>
+        ) : null}
+      </p>
+
+      {!hasPublicAuth && uxMode === "public" ? (
+        <p className="text-xs text-text-muted">
+          Sign-in is temporarily unavailable. Please contact support for access help.
         </p>
       ) : null}
 
@@ -508,8 +388,7 @@ export function GoogleAuthButton({
             </span>
           </div>
           <p className="mb-3 text-xs text-text-muted">
-            Use a temporary role session for local QA or automated tests when
-            public auth methods are unavailable.
+            Use a temporary role session for local QA or automated tests.
           </p>
           <form onSubmit={handlePreviewSubmit} className="space-y-3">
             <label className="space-y-1">

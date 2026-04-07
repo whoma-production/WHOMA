@@ -67,6 +67,9 @@ function sanitizeMetadata(
 
   const sanitized: ProductEventMetadata = {};
   for (const [key, value] of Object.entries(metadata)) {
+    if (value === undefined) {
+      continue;
+    }
     sanitized[key] = piiMetadataKeys.has(key) ? "[REDACTED]" : value;
   }
 

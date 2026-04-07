@@ -3574,3 +3574,59 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 1. Set live Google/Apple OAuth credentials in production if those buttons should be visible immediately on `/sign-in`.
 2. Continue reducing public `requests` emphasis if we want an even stricter Phase 1 identity-first narrative before Phase 2 launch.
+
+---
+
+## Session: 2026-04-07 / 18:05 (CEST) — Production auth method-first pass
+
+**Author:** Codex  
+**Context:** User requested a production-grade public auth experience with Google + Apple + email magic-link sign-in as primary methods, support/request-access as secondary only, and explicit post-auth pending/denied UX states.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Ship the smallest trustworthy auth patch set that can go live quickly without exposing preview/admin controls, while keeping approval logic behind successful authentication.
+
+### Changes Made
+
+- Replaced public password-credentials sign-in with secure email magic-link auth in `next-auth`:
+  - Added Email provider in `src/auth.ts` using Resend `sendVerificationRequest`.
+  - Kept Google/Apple OAuth providers and enabled same-email linking (`allowDangerousEmailAccountLinking`) to reduce provider-fragmented account lockouts.
+- Added explicit post-auth access-state handling:
+  - Session/JWT now carries `accessState` (`APPROVED`, `PENDING`, `DENIED`).
+  - Added authenticated pages `/access/pending` and `/access/denied`.
+  - Middleware now routes signed-in agents to those states when appropriate.
+- Added explicit denied-state domain support:
+  - `VerificationStatus.REJECTED` added in Prisma schema + migration `20260407183500_agent_verification_rejected_state`.
+  - Admin verification queue now supports `Mark denied` and shows denied counts.
+- Refactored public auth UX:
+  - `/sign-in` now uses a method-first auth card (Google, Apple, email) plus secondary access-help card.
+  - `GoogleAuthButton` now renders polished available/unavailable/provider-failure/email-sent states with no public config/setup copy.
+  - `/sign-up` fallback language now uses access-support wording (not beta/invitation framing).
+- Updated trust/support copy to align with magic-link auth wording on contact/FAQ blocks.
+
+### Verification
+
+- `npm run prisma:generate` — passed.
+- `npm run prisma:migrate:dev` — passed (applied `20260407183500_agent_verification_rejected_state` locally).
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm test` — passed (`16 passed`, `3 skipped` files).
+- `npm run build` — passed.
+
+### Decisions (and why)
+
+- **Decision:** Keep `next-auth` and fix/extend it rather than replacing the auth stack.
+  - **Why:** Existing adapter/session/middleware architecture already supports production auth; adding Email magic-link and cleaner UI states is lower-risk and faster.
+- **Decision:** Separate authentication from approval using post-auth access states.
+  - **Why:** This matches the product requirement that users can authenticate immediately while approval/review logic remains controlled.
+- **Decision:** Keep support/request-access as secondary UX only.
+  - **Why:** It preserves a premium product feel and avoids presenting support as the primary auth path.
+
+### Status
+
+- Production auth method-first implementation: `GREEN` (local verification complete).
+
+### Remaining Sign-off Work
+
+1. Deploy this exact working tree to Railway and re-verify live `/sign-in`, `/contact`, and `/api/health` responses after rollout.

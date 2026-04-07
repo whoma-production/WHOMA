@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatGBP } from "@/lib/currency";
 
-export type VerificationBadge = "UNVERIFIED" | "PENDING" | "VERIFIED";
+export type VerificationBadge = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 export type ProposalDecisionAction = "SHORTLIST" | "REJECT" | "AWARD";
 
 export interface ComparableProposal {
@@ -30,9 +30,10 @@ interface ProposalCompareTableProps {
   highlightBadgesByProposalId?: Record<string, string[]>;
 }
 
-function verificationVariant(status: VerificationBadge): "success" | "warning" | "default" {
+function verificationVariant(status: VerificationBadge): "success" | "warning" | "default" | "danger" {
   if (status === "VERIFIED") return "success";
   if (status === "PENDING") return "warning";
+  if (status === "REJECTED") return "danger";
   return "default";
 }
 
@@ -133,7 +134,9 @@ export function ProposalCompareTable({
                         ? "Verified profile"
                         : proposal.verificationStatus === "PENDING"
                           ? "Verification pending"
-                          : "Unverified"}
+                          : proposal.verificationStatus === "REJECTED"
+                            ? "Verification denied"
+                            : "Unverified"}
                     </Badge>
                     {highlightBadges.length > 0 ? (
                       <div className="flex flex-wrap gap-1">

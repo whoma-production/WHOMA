@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { ActivationChecklist } from "@/components/agent/activation-checklist";
+import { HeartbeatProgress } from "@/components/agent/heartbeat-progress";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,6 +39,7 @@ import {
   isAgentWorkEmailVerified,
   requestAgentWorkEmailVerificationCode
 } from "@/server/agent-profile/service";
+import { getAgentHeartbeatProgressState } from "@/server/agent-heartbeat";
 import { checkRateLimit, clientIpFromRequestHeaders } from "@/server/http/rate-limit";
 
 interface PageProps {
@@ -455,6 +457,10 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
   const defaultBio = profile?.bio ?? suggestedPrefill?.bio ?? "";
   const workEmailVerified = Boolean(profile?.workEmailVerifiedAt);
   const resumePrefillCount = countResumePrefillFields(suggestedPrefill);
+  const heartbeatState = await getAgentHeartbeatProgressState(
+    session.user.id,
+    profile?.profileCompleteness ?? 0
+  );
 
   return (
     <AppShell role="AGENT" title="Agent Onboarding">
@@ -462,10 +468,10 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
         <Card className="space-y-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Agent onboarding</p>
-            <h2 className="text-lg font-semibold text-text-strong">Verify your work email and complete your profile</h2>
+            <h2 className="text-lg font-semibold text-text-strong">Verify your email and complete your profile</h2>
             <p className="text-sm text-text-muted">
               This creates your professional baseline on WHOMA. Verify your
-              work email first, then complete your core profile
+              email first, then complete your core profile
               details.
             </p>
           </div>
@@ -551,7 +557,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
 
           {error === "work_email_unverified" ? (
             <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Verify your work email before completing onboarding.
+              Verify your email before completing onboarding.
             </p>
           ) : null}
 
@@ -569,7 +575,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
 
           {error === "work_email_code_not_requested" ? (
             <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Request a verification code before trying to verify your work email.
+              Request a verification code before trying to verify your email.
             </p>
           ) : null}
 
@@ -581,13 +587,13 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
 
           {error === "work_email_code_invalid" ? (
             <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              The verification code is invalid. Enter the latest 6-digit code sent to your work email.
+              The verification code is invalid. Enter the latest 6-digit code sent to your email.
             </p>
           ) : null}
 
           {error === "work_email_code_email_mismatch" ? (
             <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              That code was requested for a different work email. Use the same work email for send and verify.
+              That code was requested for a different email. Use the same email for send and verify.
             </p>
           ) : null}
 
@@ -613,13 +619,13 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
 
           {success === "work_email_code_sent" ? (
             <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Verification code sent. Enter the 6-digit code to verify your work email.
+              Verification code sent. Enter the 6-digit code to verify your email.
             </p>
           ) : null}
 
           {success === "work_email_verified" ? (
             <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Work email verified. You can now complete onboarding.
+              Email verified. You can now complete onboarding.
             </p>
           ) : null}
 
@@ -718,7 +724,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
                   Send verification code
                 </Button>
                 <Button type="submit" variant="secondary" formAction={confirmWorkEmailVerificationCodeAction}>
-                  Verify work email
+                  Verify email
                 </Button>
               </div>
             </form>
@@ -731,7 +737,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
                 <Input name="fullName" required defaultValue={defaultFullName} />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Work email</span>
+                <span className="text-sm font-medium text-text-strong">Email</span>
                 <Input name="workEmail" type="email" required defaultValue={defaultWorkEmail} />
               </label>
               <label className="space-y-1">
@@ -793,6 +799,10 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
           <ActivationChecklist
             profile={profile}
             description={`Complete the five steps required for public visibility: verify your email, finish onboarding, reach ${MIN_AGENT_PUBLISH_COMPLETENESS}% readiness, publish, and pass review.`}
+          />
+          <HeartbeatProgress
+            state={heartbeatState}
+            description="This is the operating heartbeat: profile quality, deal logging, sharing, and incoming demand."
           />
         </Card>
       </div>

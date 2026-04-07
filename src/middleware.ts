@@ -38,6 +38,8 @@ function getCanonicalDevOrigin(): URL | null {
   }
 }
 
+type AccountAccessState = "APPROVED" | "PENDING" | "DENIED";
+
 export async function middleware(request: NextRequest): Promise<Response> {
   const { pathname, search } = request.nextUrl;
   const canonicalDevOrigin = getCanonicalDevOrigin();
@@ -69,6 +71,9 @@ export async function middleware(request: NextRequest): Promise<Response> {
       : { req: request, cookieName }
   );
   const role = (token?.role as UserRole | null | undefined) ?? null;
+  const accessState =
+    (token?.accessState as AccountAccessState | null | undefined) ??
+    "APPROVED";
 
   if (!token) {
     const signInUrl = new URL("/sign-in", request.url);
@@ -89,6 +94,24 @@ export async function middleware(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(new URL("/onboarding/role", request.url));
   }
 
+  if (role === "AGENT" && pathname.startsWith("/agent")) {
+    if (accessState === "DENIED") {
+      return NextResponse.redirect(new URL("/access/denied", request.url));
+    }
+
+    if (accessState === "PENDING") {
+      return NextResponse.redirect(new URL("/access/pending", request.url));
+    }
+  }
+
+  if (
+    role === "AGENT" &&
+    accessState === "APPROVED" &&
+    (pathname === "/access/pending" || pathname === "/access/denied")
+  ) {
+    return NextResponse.redirect(new URL("/agent/onboarding", request.url));
+  }
+
   if (pathname === "/onboarding/role") {
     return NextResponse.redirect(new URL(defaultRouteForRole(role), request.url));
   }
@@ -106,6 +129,7 @@ export const config = {
   matcher: [
     "/sign-in",
     "/sign-up",
+    "/access/:path*",
     "/onboarding/role",
     "/homeowner/:path*",
     "/agent/:path*",

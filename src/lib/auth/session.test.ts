@@ -12,6 +12,7 @@ describe("page route policy", () => {
     expect(getPageRoutePolicy("/agent/marketplace")).toBe("AGENT");
     expect(getPageRoutePolicy("/admin/agents")).toBe("ADMIN");
     expect(getPageRoutePolicy("/messages")).toBe("AUTHENTICATED");
+    expect(getPageRoutePolicy("/access/pending")).toBe("AUTHENTICATED");
     expect(getPageRoutePolicy("/onboarding/role")).toBe("AUTHENTICATED");
     expect(getPageRoutePolicy("/")).toBeNull();
   });
@@ -39,7 +40,7 @@ describe("page route policy", () => {
 describe("auth error messages", () => {
   it("maps known auth errors to user-friendly messages", () => {
     expect(getAuthErrorMessage("forbidden")).toMatch(/permission/i);
-    expect(getAuthErrorMessage("Configuration")).toMatch(/configured/i);
+    expect(getAuthErrorMessage("Configuration")).toMatch(/unavailable/i);
     expect(getAuthErrorMessage("OAuthAccountNotLinked")).toMatch(/different sign-in method/i);
   });
 
