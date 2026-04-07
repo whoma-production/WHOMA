@@ -478,7 +478,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
 
           {error === "invalid_fields" ? (
             <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Check your inputs. Use postcode districts like SW1A and provide meaningful professional details.
+              Please review your details. Use postcode districts like SW1A and add clear professional information.
             </p>
           ) : null}
 
@@ -798,11 +798,11 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
         <Card className="space-y-4">
           <ActivationChecklist
             profile={profile}
-            description={`Complete the five steps required for public visibility: verify your email, finish onboarding, reach ${MIN_AGENT_PUBLISH_COMPLETENESS}% readiness, publish, and pass review.`}
+            description={`Complete these five steps to make your profile share-ready: verify your email, finish onboarding, reach ${MIN_AGENT_PUBLISH_COMPLETENESS}% readiness, publish, and pass review.`}
           />
           <HeartbeatProgress
             state={heartbeatState}
-            description="This is the operating heartbeat: profile quality, deal logging, sharing, and incoming demand."
+            description="Track your progress across profile quality, activity, sharing, and inbound enquiries."
           />
         </Card>
       </div>

@@ -105,7 +105,7 @@ function getLegalContent(
     privacy: {
       title: "Privacy Policy",
       intro:
-        "This page explains what WHOMA collects, why it is needed, and which service providers support the service.",
+        "This page explains what WHOMA collects, why it is needed, and how the platform protects your data.",
       sections: [
         {
           heading: "What data WHOMA handles",
@@ -118,14 +118,14 @@ function getLegalContent(
           heading: "Why it is handled",
           paragraphs: [
             "Data is used to verify identity, publish and review professional profiles, protect the service from misuse, operate structured collaboration, and respond to support, privacy, or complaints requests.",
-            "WHOMA prefers limited operational metrics and audit trails over broad behavioural profiling."
+            "WHOMA keeps data use focused on running secure accounts, trusted profiles, and reliable support."
           ]
         },
         {
           heading: "Sharing, retention, and contact",
           paragraphs: [
             "We do not sell personal data. Operational providers only receive the minimum information required to run authentication, hosting, storage, email verification, or optional resume processing.",
-            "Current operational providers include Auth.js for authentication, Railway/Postgres/Prisma for hosting and persistence, Resend for email delivery when enabled, and optional Upstash or OpenAI services where those features are turned on.",
+            "WHOMA works with trusted providers for sign-in, hosting, database reliability, and email delivery, with least-access controls applied to each service.",
             `Privacy requests should be sent to ${site.supportEmail}. Include the account email, profile slug, or request reference so the team can locate the relevant record quickly.`
           ]
         }
@@ -237,7 +237,7 @@ function getLegalContent(
         {
           heading: "Account access",
           paragraphs: [
-            "Estate agents can sign in with Google, Apple, or secure email link when those methods are available.",
+            "Estate agents can sign in with Google, Apple, or secure email link.",
             "If a sign-in method fails, or an email is already linked to a different provider, contact support and include the account email you tried to use."
           ]
         },
@@ -539,13 +539,13 @@ export default async function StaticPage({
                         <span className="font-medium text-text-strong">
                           Which sign-in methods are live?
                         </span>{" "}
-                        Google, Apple, and secure email-link sign-in are available as soon as each route is live.
+                        Sign in with Google, Apple, or secure email link.
                       </p>
                       <p>
                         <span className="font-medium text-text-strong">
-                          Can I onboard before directory launch?
+                          Can I start onboarding now?
                         </span>{" "}
-                        Yes. You can complete profile, verification, and sharing steps before broader collaboration expansion.
+                        Yes. You can complete your profile, verification, and sharing steps right away.
                       </p>
                       <p>
                         <span className="font-medium text-text-strong">

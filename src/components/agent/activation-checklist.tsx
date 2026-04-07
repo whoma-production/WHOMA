@@ -48,7 +48,7 @@ function StepIcon({
 export function ActivationChecklist({
   profile,
   title = "Profile checklist",
-  description = "Complete the steps required for public visibility on WHOMA."
+  description = "Complete these steps to publish your profile with confidence."
 }: ActivationChecklistProps): JSX.Element {
   const checklist = getAgentActivationChecklist(profile);
   const state = getAgentActivationState(profile);

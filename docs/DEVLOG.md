@@ -3630,3 +3630,53 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 ### Remaining Sign-off Work
 
 1. Deploy this exact working tree to Railway and re-verify live `/sign-in`, `/contact`, and `/api/health` responses after rollout.
+
+---
+
+## Session: 2026-04-07 / 18:35 (CEST) — Premium language hardening follow-up (homepage/contact/onboarding)
+
+**Author:** Codex  
+**Context:** User requested removal of remaining internal/strategy-coded language from public and onboarding surfaces (specifically the homepage `Evidence signal` block and contact/onboarding wording tone).  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Remove remaining internal copy and keep public + agent-facing wording premium, external-facing, and product-first.
+
+### Changes Made
+
+- Homepage:
+  - Removed `Evidence signal` kicker and `Phase 1 focuses on one behaviour...` block from `/`.
+- Contact / static trust page:
+  - Rewrote account-access copy to remove conditional/internal phrasing (`when enabled`, `as soon as each route is live`).
+  - Updated FAQ wording to clean product-facing language (`Can I start onboarding now?` + direct auth-method statement).
+  - Softened privacy text that read as operational internals.
+- Agent onboarding/profile wording:
+  - Replaced internal-sounding helper copy in onboarding validation and progress descriptions.
+  - Updated progress tracker defaults (`Product heartbeat` -> `Progress tracker`).
+  - Reworded profile-edit success and activity helper text to avoid internal metrics/rollout language.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm run build` — passed.
+- `railway up` — deployed successfully.
+- Live verification (cache-bypassed):
+  - Homepage no longer contains `Evidence signal` or `Phase 1 focuses on one behaviour`.
+  - Contact page now renders cleaned wording (`Sign in with Google, Apple, or secure email link`, `Can I start onboarding now?`) with no `when enabled` phrasing.
+
+### Decisions (and why)
+
+- **Decision:** Remove strategy-language blocks from public homepage instead of rephrasing them.
+  - **Why:** User intent was explicit: no internal language on forward-facing pages.
+- **Decision:** Keep functional onboarding progress components but rename/reword them.
+  - **Why:** Product progression still matters, but phrasing should feel polished and customer-facing.
+
+### Status
+
+- Premium language hardening follow-up: `GREEN`
+
+### Remaining Sign-off Work
+
+1. Final manual visual QA with browser screenshots on `/`, `/contact`, and signed-in `/agent/onboarding` after cache clears.

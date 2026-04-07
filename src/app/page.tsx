@@ -364,13 +364,6 @@ export default async function LandingPage(): Promise<JSX.Element> {
 
         <section id="how-it-works" className="public-section bg-surface-0">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-8 rounded-lg border border-line bg-surface-1 px-5 py-5 sm:px-6">
-              <p className="public-kicker">Evidence signal</p>
-              <p className="mt-2 max-w-3xl text-sm text-text-muted sm:text-base">
-                Phase 1 focuses on one behaviour: agents complete and share a
-                verified profile link before collaboration starts.
-              </p>
-            </div>
             <div className="max-w-2xl space-y-3">
               <p className="public-kicker">How it works</p>
               <h2>Professional detail becomes more useful when it is structured.</h2>

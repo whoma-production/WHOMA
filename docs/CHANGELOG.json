@@ -1428,5 +1428,31 @@
       "Deploy this exact commit to Railway and verify live sign-in/callback/pending/denied behavior.",
       "Configure live Google and Apple secrets in production where needed so both OAuth methods are immediately available."
     ]
+  },
+  {
+    "session_id": "2026-04-07-1835-premium-language-hardening-followup",
+    "timestamp": "2026-04-07T18:35:00+02:00",
+    "summary": "Removed remaining internal-facing language from homepage/contact/onboarding surfaces by deleting the `Evidence signal` block, replacing conditional auth wording on contact, and refining onboarding/profile progress copy to read premium and user-facing.",
+    "files_changed": [
+      "src/app/page.tsx",
+      "src/app/[slug]/page.tsx",
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/app/(app)/agent/profile/edit/page.tsx",
+      "src/components/agent/activation-checklist.tsx",
+      "src/components/agent/heartbeat-progress.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Removed the homepage strategy banner entirely instead of rewriting it because the requirement was explicit: no internal language on forward-facing pages.",
+      "Kept the progress/tracker product surfaces but rewrote labels and helper copy so they remain useful without sounding like internal operating dashboards.",
+      "Verified live copy with cache-bypassed URL checks after Railway deploy to avoid stale edge-cache false positives."
+    ],
+    "next_steps": [
+      "Do one manual screenshot QA pass across `/`, `/contact`, and signed-in `/agent/onboarding` to confirm visual tone matches the latest reference set.",
+      "If needed, continue softening roadmap wording (`liquidity`, `proof`) on the homepage strip in a dedicated copy pass."
+    ]
   }
 ]

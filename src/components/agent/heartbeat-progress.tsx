@@ -13,8 +13,8 @@ interface HeartbeatProgressProps {
 
 export function HeartbeatProgress({
   state,
-  title = "Product heartbeat",
-  description = "These milestones map to WHOMA's Phase 1 behaviour metrics."
+  title = "Progress tracker",
+  description = "Track the actions that help your profile gain traction."
 }: HeartbeatProgressProps): JSX.Element {
   const checklist = getAgentHeartbeatChecklist(state);
   const completedCount = checklist.filter((item) => item.done).length;

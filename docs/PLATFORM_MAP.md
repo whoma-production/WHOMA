@@ -255,7 +255,7 @@ Phase 1 delivery focus:
   - removed `Last updated` display from static trust/contact page header,
   - removed `Operating status` section and reduced contact summary card fields to user-relevant support/access information.
 - Updated the shared public brand line to `Where Home Owners Meet Agents` across metadata, header logo subtitle, homepage hero, and footer context copy.
-- Added an explicit Phase 1 evidence statement on homepage and changed featured-profile fallback content to a realistic sample completed profile so public surfaces feel inhabited before full live profile density.
+- Changed featured-profile fallback content to a realistic sample completed profile so public surfaces feel inhabited before full live profile density.
 - Sign-in now clarifies provider readiness by showing that Google/Apple options appear when live OAuth credentials are configured, reducing ambiguity when email is the only available method.
 
 31. Production auth readiness pass: method-first sign-in + post-auth access states (2026-04-07) (new)
@@ -269,6 +269,12 @@ Phase 1 delivery focus:
   - `/access/denied`
 - Middleware now enforces post-auth access-state routing for agent surfaces while keeping preview-role auth internal only.
 - Added `VerificationStatus.REJECTED` to support explicit denied-state workflows and admin controls (`Mark denied`) without exposing internal roles publicly.
+
+32. Public language hardening follow-up (2026-04-07) (new)
+
+- Removed homepage internal strategy copy (`Evidence signal`, `Phase 1 behaviour`) and kept the section focused on externally readable product value.
+- Updated static contact page account-access copy so it no longer uses conditional internal phrasing (`when enabled`, `as each route is live`) and instead reads as clear product-facing guidance.
+- Softened onboarding/profile progress copy (`Profile checklist`, progress tracker, success/error helper lines) so agent-facing pages feel premium and user-centric rather than internal operations-driven.
 
 ## Frontend/Backend Map
 

@@ -244,7 +244,7 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
 
           {success === "historic_transaction_logged" ? (
             <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Historic transaction logged to your heartbeat metrics.
+              Historic transaction added to your profile activity.
             </p>
           ) : null}
 
@@ -363,13 +363,13 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
           />
           <HeartbeatProgress
             state={heartbeatState}
-            description="This is the Phase 1 heartbeat we track: profile quality, deal logging, sharing, and inbound collaboration."
+            description="Track your progress across profile quality, activity, sharing, and inbound enquiries."
           />
 
           <div className="space-y-3 rounded-md border border-line bg-surface-1 px-4 py-3">
             <p className="text-sm font-semibold text-text-strong">Log a historic deal</p>
             <p className="text-xs text-text-muted">
-              Capture one completed transaction to strengthen trust before broad marketplace rollout.
+              Capture one completed transaction to strengthen trust on your public profile.
             </p>
             <form action={logHistoricTransactionAction} className="grid gap-2">
               <Input
@@ -393,7 +393,7 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
           <div className="space-y-3 rounded-md border border-line bg-surface-1 px-4 py-3">
             <p className="text-sm font-semibold text-text-strong">Log a live collaboration opportunity</p>
             <p className="text-xs text-text-muted">
-              Record one live collaboration activity to validate liquidity and inbound intent.
+              Record one live collaboration activity to show current demand and momentum.
             </p>
             <form action={logLiveCollaborationAction} className="grid gap-2">
               <Input
