@@ -3784,3 +3784,38 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 ### Remaining Sign-off Work
 
 1. Deploy and verify `/faqs` live language after edge cache refresh.
+
+---
+
+## Session: 2026-04-07 / 21:17 (CEST) — FAQ cache-busting follow-up (dynamic route)
+
+**Author:** Codex  
+**Context:** After deployment, `/faqs` was still serving stale edge-cached HTML.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Ensure FAQ copy updates appear immediately on live without waiting on long-lived static edge cache expiry.
+
+### Changes Made
+
+- Set `/faqs` route to dynamic rendering in `src/app/faqs/page.tsx` via `export const dynamic = "force-dynamic"`.
+- Updated FAQ page intro line to a friendlier, more inviting opener.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+
+### Decisions (and why)
+
+- **Decision:** Force dynamic rendering on `/faqs`.
+  - **Why:** This route is copy/trust sensitive and needs reliable immediate refresh after deploy; static edge cache had been serving stale content.
+
+### Status
+
+- FAQ freshness follow-up: `GREEN` (local verification complete).
+
+### Remaining Sign-off Work
+
+1. Deploy and re-check `/faqs` content on production.

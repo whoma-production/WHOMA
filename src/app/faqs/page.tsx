@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     "Frequently asked questions about WHOMA profiles, verification, sharing, collaboration, sign-in, and support."
 };
 
+export const dynamic = "force-dynamic";
+
 export default function FaqPage(): JSX.Element {
   const site = getPublicSiteConfig();
 
@@ -32,8 +34,8 @@ export default function FaqPage(): JSX.Element {
               <p className="public-kicker">FAQs</p>
               <h1>Frequently asked questions</h1>
               <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-                Clear answers on profile quality, verification, sharing, and
-                collaboration on WHOMA.
+                New to WHOMA? Start here. These answers explain how profiles,
+                verification, sharing, and access work today.
               </p>
             </div>
 

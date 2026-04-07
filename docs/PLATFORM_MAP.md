@@ -289,6 +289,11 @@ Phase 1 delivery focus:
 - Kept the existing grouped IA and route structure unchanged while improving clarity and trust tone.
 - Preserved product-truth constraints in copy: agent-first positioning, profile trust before broad marketplace behavior, and selective seller access.
 
+35. FAQ freshness hardening (2026-04-07) (new)
+
+- Set `/faqs` to dynamic rendering (`export const dynamic = "force-dynamic"`) so production copy updates are not blocked by long-lived static edge cache.
+- This keeps FAQ trust/copy updates immediately visible after deploy, while preserving the same IA and component structure.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

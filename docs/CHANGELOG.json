@@ -1502,5 +1502,25 @@
       "Deploy to Railway and verify `/faqs` copy on the live URL.",
       "Collect one user-style review pass for any remaining phrases that feel too formal."
     ]
+  },
+  {
+    "session_id": "2026-04-07-2117-faq-dynamic-cache-fix",
+    "timestamp": "2026-04-07T21:17:00+02:00",
+    "summary": "Hardened FAQ freshness by making `/faqs` dynamic to avoid stale long-lived edge-cached HTML after copy updates; also refined the FAQ intro line to be friendlier.",
+    "files_changed": [
+      "src/app/faqs/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Set `export const dynamic = \"force-dynamic\"` on `/faqs` to ensure trust-critical copy changes are visible immediately after deploy.",
+      "Kept FAQ IA/content model unchanged in this patch to scope strictly to freshness and tone of the page intro."
+    ],
+    "next_steps": [
+      "Deploy and verify `/faqs` on production reflects the latest copy without stale content.",
+      "If needed, apply the same cache strategy to other copy-sensitive static trust pages."
+    ]
   }
 ]
