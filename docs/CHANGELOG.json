@@ -1311,5 +1311,84 @@
       "Add Google and Apple provider secrets in Railway if those OAuth buttons should appear immediately in production.",
       "Choose the long-term managed Postgres strategy for scale beyond the current baseline."
     ]
+  },
+  {
+    "session_id": "2026-04-07-1558-sitewide-public-style-unification",
+    "timestamp": "2026-04-07T15:58:00+02:00",
+    "summary": "Unified WHOMA's public visual system to the requested clean style by introducing a shared public header across routes, removing fragmented page-level header implementations, and refreshing global tokens/component chrome to eliminate beige/editorial fallback styling.",
+    "files_changed": [
+      "src/components/layout/public-header.tsx",
+      "src/app/page.tsx",
+      "src/app/agents/page.tsx",
+      "src/app/agents/[slug]/page.tsx",
+      "src/app/requests/page.tsx",
+      "src/app/requests/[postcodeDistrict]/page.tsx",
+      "src/app/[slug]/page.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/app/globals.css",
+      "src/lib/tokens.ts",
+      "src/components/ui/button.tsx",
+      "src/components/ui/card.tsx",
+      "src/components/ui/input.tsx",
+      "src/components/ui/textarea.tsx",
+      "src/components/ui/inline-toast.tsx",
+      "src/components/proposal-compare-table.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Introduced one shared `PublicHeader` instead of continuing per-route header variants so public navigation and CTA hierarchy stay consistent site-wide.",
+      "Shifted the style baseline through global tokens and shared primitives first (rather than one-off page tweaks) to prevent warm/beige drift from reappearing.",
+      "Kept verification scoped to build/lint plus existing public-routing E2E because the change was visual-system-heavy but still needed route safety coverage."
+    ],
+    "next_steps": [
+      "Run a manual desktop/mobile visual sweep on local and preview URLs to confirm spacing and hierarchy after the shared-header rollout.",
+      "Consider adding visual regression snapshots for core public pages if style drift continues to recur."
+    ]
+  },
+  {
+    "session_id": "2026-04-07-1620-phase1-copy-onboarding-contact-alignment",
+    "timestamp": "2026-04-07T16:20:00+02:00",
+    "summary": "Removed business-domain email gating from agent onboarding/profile flows, stripped response-window/internal operating language from public support/contact surfaces, updated the site-wide brand line to `Where Home Owners Meet Agents`, and reinforced Phase 1 trust proof with inhabited sample-profile content plus explicit sign-in provider-readiness messaging.",
+    "files_changed": [
+      "src/lib/validation/agent-profile.ts",
+      "src/server/agent-profile/service.ts",
+      "src/server/agent-profile/resume-ai.ts",
+      "src/server/agent-profile/resume-intake.ts",
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/app/(app)/agent/profile/edit/page.tsx",
+      "src/lib/agent-activation.ts",
+      "src/lib/public-site.ts",
+      "src/app/layout.tsx",
+      "src/app/page.tsx",
+      "src/app/[slug]/page.tsx",
+      "src/components/layout/public-footer.tsx",
+      "src/components/auth/google-auth-button.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/app/onboarding/role/page.tsx",
+      "src/lib/public-proof.ts",
+      "src/app/agents/page.tsx",
+      "src/app/agents/[slug]/page.tsx",
+      "src/app/requests/page.tsx",
+      "src/app/requests/[postcodeDistrict]/page.tsx",
+      "src/components/instruction-card.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept email verification in the activation model but removed business-domain enforcement so onboarding friction does not block valid agents.",
+      "Replaced internal support/operations wording on public pages with user-facing access/support language to keep the product narrative externally credible.",
+      "Added inhabited sample proof blocks and explicit OAuth readiness copy so early visitors understand both platform direction and current auth-provider availability."
+    ],
+    "next_steps": [
+      "Configure live Google/Apple provider credentials in production if those sign-in options should be visible immediately.",
+      "Continue tightening Phase 1 public narrative so requests/comparison surfaces remain clearly secondary until Phase 2 thresholds are met."
+    ]
   }
 ]

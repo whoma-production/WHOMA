@@ -2,14 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 
-import { Logo } from "@/components/brand/logo";
 import { InstructionCard } from "@/components/instruction-card";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicHeader } from "@/components/layout/public-header";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import {
-  getPublicSiteConfig,
-  PUBLIC_AGENT_CTA_HREF,
   PUBLIC_AGENT_DIRECTORY_HREF,
   PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
@@ -58,7 +56,6 @@ export default async function LocationPage({
     allInstructions,
     postcodeDistrict
   );
-  const site = getPublicSiteConfig();
 
   const normalizedDistrict = normalizePostcodeDistrictKey(postcodeDistrict);
   const city = instructions[0]?.city ?? "UK";
@@ -69,27 +66,7 @@ export default async function LocationPage({
 
   return (
     <div className="min-h-screen bg-surface-1">
-      <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle={site.logoSubtitle} />
-          <div className="flex items-center gap-2">
-            <Link
-              href="/requests"
-              className={cn(
-                buttonVariants({ variant: "secondary", size: "sm" })
-              )}
-            >
-              All instruction areas
-            </Link>
-            <Link
-              href={PUBLIC_AGENT_CTA_HREF}
-              className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
-            >
-              Create your profile
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
         <section className="space-y-3">
@@ -123,7 +100,7 @@ export default async function LocationPage({
           </Card>
           <Card className="space-y-1 bg-surface-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-              Offers submitted
+              Responses submitted
             </p>
             <p className="text-lg font-semibold text-text-strong">
               {totalOffers}
@@ -197,7 +174,7 @@ export default async function LocationPage({
                             </span>
                           </div>
                           <p className="mt-1 text-sm text-text-muted">
-                            {offer.fee} · {offer.timeline}
+                            {offer.summary} · {offer.timeline}
                           </p>
                         </div>
                       ))}

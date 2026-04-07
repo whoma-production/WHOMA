@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Logo } from "@/components/brand/logo";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicHeader } from "@/components/layout/public-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_AGENT_DIRECTORY_HREF
 } from "@/lib/public-site";
@@ -104,7 +103,6 @@ export default async function PublicAgentProfilePage({
 }: PageProps): Promise<JSX.Element> {
   const { slug } = await params;
   const profile = await getPublicAgentProfileBySlug(slug);
-  const site = getPublicSiteConfig();
 
   if (!profile) {
     notFound();
@@ -158,25 +156,7 @@ export default async function PublicAgentProfilePage({
 
   return (
     <div className="min-h-screen bg-surface-1">
-      <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle={site.logoSubtitle} />
-          <div className="flex items-center gap-2">
-            <Link
-              href={PUBLIC_AGENT_DIRECTORY_HREF}
-              className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
-            >
-              Back to directory
-            </Link>
-            <Link
-              href={PUBLIC_AGENT_CTA_HREF}
-              className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
-            >
-              Create your profile
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
@@ -361,7 +341,7 @@ export default async function PublicAgentProfilePage({
             Want a WHOMA profile like this?
           </h2>
           <p className="text-sm text-text-muted">
-            Start with work-email verification, complete your profile, and
+            Start with email verification, complete your profile, and
             publish it for review.
           </p>
           <div className="flex flex-wrap gap-2">

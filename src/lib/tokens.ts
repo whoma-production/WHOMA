@@ -1,24 +1,24 @@
 export const designTokens = {
   color: {
-    brandInk: "#191713",
-    brandAccent: "#1F5C58",
-    brandBrass: "#A8844A",
+    brandInk: "#181917",
+    brandAccent: "#2D6660",
+    brandBrass: "#9A7C49",
     surface0: "#FFFFFF",
-    surface1: "#FFFFFF",
-    surface2: "#F6F7F9",
-    surfaceInverse: "#211D18",
-    line: "#D9D0C2",
-    textStrong: "#191713",
-    textBase: "#2B2722",
-    textMuted: "#6B655D",
-    textInverse: "#FFFFFF",
-    success: "#2B6B46",
-    warning: "#996B2C",
-    danger: "#9F3C31"
+    surface1: "#F5F5F3",
+    surface2: "#ECECEB",
+    surfaceInverse: "#20211F",
+    line: "#D8D7D3",
+    textStrong: "#181917",
+    textBase: "#2F302D",
+    textMuted: "#70706C",
+    textInverse: "#F8F8F6",
+    success: "#2F6C45",
+    warning: "#9B6F2F",
+    danger: "#9C4136"
   },
   radius: {
     sm: 6,
-    md: 10,
+    md: 12,
     lg: 14,
     xl: 18
   },
@@ -38,8 +38,8 @@ export const designTokens = {
     28: 112
   },
   shadow: {
-    soft: "0 1px 2px rgba(25, 23, 19, 0.05), 0 8px 20px rgba(25, 23, 19, 0.04)",
-    lift: "0 2px 6px rgba(25, 23, 19, 0.06), 0 18px 34px rgba(25, 23, 19, 0.05)"
+    soft: "0 1px 2px rgba(18, 19, 17, 0.05)",
+    lift: "0 10px 28px rgba(18, 19, 17, 0.1)"
   },
   typeScale: {
     display: { sizeRem: 3.5, lineHeight: 0.98, weight: 500 },

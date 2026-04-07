@@ -26,26 +26,7 @@ function dedupe(values: string[]): string[] {
   return [...new Set(values)];
 }
 
-const disallowedPersonalEmailDomains = new Set([
-  "gmail.com",
-  "googlemail.com",
-  "yahoo.com",
-  "yahoo.co.uk",
-  "outlook.com",
-  "hotmail.com",
-  "hotmail.co.uk",
-  "icloud.com",
-  "me.com",
-  "aol.com",
-  "proton.me",
-  "protonmail.com",
-  "live.com",
-  "msn.com",
-  "gmx.com",
-  "mail.com"
-]);
-
-export function isBusinessWorkEmail(email: string): boolean {
+export function isAcceptedWorkEmail(email: string): boolean {
   const normalized = email.trim().toLowerCase();
   const atIndex = normalized.lastIndexOf("@");
 
@@ -53,8 +34,7 @@ export function isBusinessWorkEmail(email: string): boolean {
     return false;
   }
 
-  const domain = normalized.slice(atIndex + 1);
-  return !disallowedPersonalEmailDomains.has(domain);
+  return normalized.slice(atIndex + 1).includes(".");
 }
 
 const workEmailSchema = z
@@ -62,7 +42,7 @@ const workEmailSchema = z
   .trim()
   .email()
   .max(320)
-  .refine(isBusinessWorkEmail, "Use your business work email (personal inboxes are not accepted).");
+  .refine(isAcceptedWorkEmail, "Enter a valid email address.");
 
 const professionalListSchema = z.array(listItemSchema).max(12);
 const serviceAreaListSchema = z.array(serviceAreaSchema).min(1).max(12);

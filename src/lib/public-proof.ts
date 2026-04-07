@@ -16,7 +16,7 @@ export interface PublicProfileField {
 
 export interface PublicSampleOffer {
   agent: string;
-  fee: string;
+  summary: string;
   timeline: string;
   badge: string;
 }
@@ -43,7 +43,7 @@ export const PUBLIC_PROOF_MODULES: readonly PublicFeatureItem[] = [
   {
     title: "Verified identity",
     description:
-      "A named work email, verified profile details, and a clear public record establish who is behind the profile."
+      "A verified email route, profile details, and a clear public record establish who is behind the profile."
   },
   {
     title: "Profile depth",
@@ -110,7 +110,7 @@ export const PUBLIC_COLLABORATION_FLOW = {
   eyebrow: "How it works",
   title: "Collaboration becomes clearer once the profile is in place.",
   summary:
-    "WHOMA keeps the next step structured so introductions, offers, and communication are easier to follow.",
+    "WHOMA keeps the next step structured so introductions, responses, and communication are easier to follow.",
   steps: [
     {
       title: "Profile shared",
@@ -120,7 +120,7 @@ export const PUBLIC_COLLABORATION_FLOW = {
     {
       title: "Structured response",
       description:
-        "The homeowner reviews a consistent response format covering fee, timing, and service fit."
+        "The homeowner reviews a consistent response format covering service fit, timing, and collaboration clarity."
     },
     {
       title: "Shortlist opened",
@@ -138,19 +138,19 @@ export const PUBLIC_SAMPLE_COMPARISON = {
   offers: [
     {
       agent: "A. Morgan",
-      fee: "1.1% fee",
+      summary: "Local strategy fit",
       timeline: "21 days",
       badge: "Selected"
     },
     {
       agent: "Reed & Co",
-      fee: "GBP 2,250 fixed",
+      summary: "Chain management plan",
       timeline: "28 days",
       badge: "Shortlisted"
     },
     {
       agent: "North Row",
-      fee: "Hybrid fee",
+      summary: "Progress reporting structure",
       timeline: "30 days",
       badge: "Reviewed"
     }

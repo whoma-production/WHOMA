@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { inflateRawSync, inflateSync } from "node:zlib";
 
-import { isBusinessWorkEmail } from "@/lib/validation/agent-profile";
+import { isAcceptedWorkEmail } from "@/lib/validation/agent-profile";
 import { getResumeFeatureFlags } from "@/server/agent-profile/resume-flags";
 
 import type {
@@ -676,7 +676,7 @@ function takeFirstMeaningfulLine(lines: string[]): string | null {
 function extractEmailCandidate(text: string): string | null {
   const matches = text.match(EMAIL_PATTERN) ?? [];
   for (const match of matches) {
-    if (isBusinessWorkEmail(match)) {
+    if (isAcceptedWorkEmail(match)) {
       return match.toLowerCase();
     }
   }
@@ -913,7 +913,7 @@ export async function createResumeSuggestionsFromFile(file: File): Promise<Resum
   const summary = summarizeResumeText(normalizedText);
   const highlights = [
     ...(prefill.fullName ? ["Detected a candidate name"] : []),
-    ...(prefill.workEmail ? ["Detected a business email"] : []),
+    ...(prefill.workEmail ? ["Detected an email address"] : []),
     ...(prefill.phone ? ["Detected a phone number"] : []),
     ...(prefill.agencyName ? ["Detected an agency or employer"] : []),
     ...(prefill.jobTitle ? ["Detected a likely job title"] : []),

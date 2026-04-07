@@ -109,7 +109,7 @@ export function ProposalCompareTable({
   const actionsDisabled = !onDecision || pendingProposalId !== null;
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-line bg-surface-0 shadow-soft" data-testid="proposal-compare-table">
+    <div className="overflow-x-auto rounded-lg border border-line bg-surface-0" data-testid="proposal-compare-table">
       <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
         <thead>
           <tr className="bg-surface-1 text-text-muted">

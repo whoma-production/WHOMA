@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
-import { Logo } from "@/components/brand/logo";
+import { PublicHeader } from "@/components/layout/public-header";
 import {
   Card,
   CardContent,
@@ -31,43 +31,42 @@ export default async function SignInPage({
     ? "Sign in to WHOMA"
     : "Account access for WHOMA";
   const description = providerAvailability.any
-    ? "Continue with your profile, instructions, offers, and messages."
+    ? "Continue with your profile, collaboration routes, and messages."
     : "Self-serve sign-in is not configured right now. Contact support and we will help you get into the right account.";
 
   return (
-    <main className="grid min-h-screen place-items-center bg-surface-1 px-4 py-10">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex justify-center">
-          <Logo subtitle={site.logoSubtitle} compact={false} />
+    <div className="min-h-screen bg-surface-1">
+      <PublicHeader />
+      <main className="grid px-4 py-10">
+        <div className="mx-auto w-full max-w-md space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>{title}</CardTitle>
+              <CardDescription>{description}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <GoogleAuthButton
+                providerAvailability={providerAvailability}
+                authMode="sign-in"
+                uxMode="public"
+                supportEmail={site.supportEmail}
+                nextParam={nextParam}
+                oauthError={resolvedSearchParams?.error ?? null}
+              />
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-sm text-text-muted">
+            Need a fresh account?{" "}
+            <Link
+              href={PUBLIC_AGENT_CTA_HREF}
+              className="font-medium text-brand-ink underline"
+            >
+              Create your account
+            </Link>
+          </p>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <GoogleAuthButton
-              providerAvailability={providerAvailability}
-              authMode="sign-in"
-              uxMode="public"
-              supportEmail={site.supportEmail}
-              nextParam={nextParam}
-              oauthError={resolvedSearchParams?.error ?? null}
-            />
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-sm text-text-muted">
-          Need a fresh account?{" "}
-          <Link
-            href={PUBLIC_AGENT_CTA_HREF}
-            className="font-medium text-brand-ink underline"
-          >
-            Create your account
-          </Link>
-        </p>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

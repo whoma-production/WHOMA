@@ -238,6 +238,26 @@ Phase 1 delivery focus:
 - Shared public site summary copy no longer claims `real transaction depth`; the homepage seller-access section now stays within profile-first, collaboration-safe language.
 - `tests/e2e/public-routing.spec.ts` now asserts that redirected `/locations*` routes contain no links into `/agent/marketplace`, preventing this trust leak from reappearing silently.
 
+29. Site-wide public visual-system unification (2026-04-07) (new)
+
+- Added `src/components/layout/public-header.tsx` as the shared top navigation shell for public pages, and adopted it on `/`, `/agents`, `/agents/[slug]`, `/requests`, `/requests/[postcodeDistrict]`, `/sign-in`, `/sign-up`, and static trust pages.
+- Removed fragmented route-by-route public header variants so navigation, CTA hierarchy, spacing, and header chrome now stay consistent across the public site.
+- Updated global visual tokens in `src/app/globals.css` and `src/lib/tokens.ts` toward a neutral/clean baseline (`surface-1`, line color, muted text, accent tuning) to eliminate warm beige drift.
+- Flattened shared component chrome for consistency with the target style by removing legacy soft-shadow dependencies from core cards, toasts, and comparison table shells and by simplifying button/form-control interaction treatment.
+- Verified route behavior after the visual refactor with `npm run typecheck`, `npm run lint`, and `tests/e2e/public-routing.spec.ts` against the local app host.
+
+30. Phase 1 messaging + contact/onboarding cleanup (2026-04-07) (new)
+
+- Removed business-domain filtering from agent onboarding/profile validation so any valid email address can be verified and used for onboarding/publish flows.
+- Updated onboarding/profile activation and error messaging to remove `business work email` phrasing while preserving work-email verification as the identity step.
+- Public trust/support surfaces no longer show internal operations framing:
+  - removed `Typical response window` language from homepage support copy and footer,
+  - removed `Last updated` display from static trust/contact page header,
+  - removed `Operating status` section and reduced contact summary card fields to user-relevant support/access information.
+- Updated the shared public brand line to `Where Home Owners Meet Agents` across metadata, header logo subtitle, homepage hero, and footer context copy.
+- Added an explicit Phase 1 evidence statement on homepage and changed featured-profile fallback content to a realistic sample completed profile so public surfaces feel inhabited before full live profile density.
+- Sign-in now clarifies provider readiness by showing that Google/Apple options appear when live OAuth credentials are configured, reducing ambiguity when email is the only available method.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

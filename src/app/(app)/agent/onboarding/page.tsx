@@ -296,7 +296,7 @@ async function sendWorkEmailVerificationCodeAction(formData: FormData): Promise<
   });
 
   if (!parsed.success) {
-    redirect("/agent/onboarding?error=work_email_not_business");
+    redirect("/agent/onboarding?error=work_email_invalid");
   }
 
   let result: Awaited<ReturnType<typeof requestAgentWorkEmailVerificationCode>> | null = null;
@@ -465,7 +465,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
             <h2 className="text-lg font-semibold text-text-strong">Verify your work email and complete your profile</h2>
             <p className="text-sm text-text-muted">
               This creates your professional baseline on WHOMA. Verify your
-              business work email first, then complete your core profile
+              work email first, then complete your core profile
               details.
             </p>
           </div>
@@ -543,15 +543,15 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
             </p>
           ) : null}
 
-          {error === "work_email_not_business" ? (
+          {error === "work_email_invalid" ? (
             <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Use your business work email. Personal email domains are not accepted.
+              Enter a valid email address before requesting a verification code.
             </p>
           ) : null}
 
           {error === "work_email_unverified" ? (
             <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Verify your business work email before completing onboarding.
+              Verify your work email before completing onboarding.
             </p>
           ) : null}
 
@@ -697,7 +697,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
 
           <Card className="space-y-3 bg-surface-1">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-text-strong">Business work email verification</p>
+              <p className="text-sm font-semibold text-text-strong">Email verification</p>
               <p className="text-xs text-text-muted">
                 Status:{" "}
                 <span className="font-semibold text-text-strong">{workEmailVerified ? "VERIFIED" : "NOT VERIFIED"}</span>
@@ -706,7 +706,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
 
             <form className="space-y-3">
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Work email for verification</span>
+                <span className="text-sm font-medium text-text-strong">Email for verification</span>
                 <Input name="workEmail" type="email" required defaultValue={defaultWorkEmail} />
               </label>
               <label className="space-y-1">
@@ -792,7 +792,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
         <Card className="space-y-4">
           <ActivationChecklist
             profile={profile}
-            description={`Complete the five steps required for public visibility: verify your business inbox, finish onboarding, reach ${MIN_AGENT_PUBLISH_COMPLETENESS}% readiness, publish, and pass review.`}
+            description={`Complete the five steps required for public visibility: verify your email, finish onboarding, reach ${MIN_AGENT_PUBLISH_COMPLETENESS}% readiness, publish, and pass review.`}
           />
         </Card>
       </div>

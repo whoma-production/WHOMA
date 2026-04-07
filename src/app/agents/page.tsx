@@ -1,12 +1,11 @@
 import Link from "next/link";
 
-import { Logo } from "@/components/brand/logo";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicHeader } from "@/components/layout/public-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
@@ -24,7 +23,6 @@ export default async function AgentDirectoryPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const serviceArea = resolvedSearchParams?.area?.trim() || undefined;
   const specialty = resolvedSearchParams?.specialty?.trim() || undefined;
-  const site = getPublicSiteConfig();
 
   const agents = await listPublicAgentProfiles({
     ...(serviceArea ? { serviceArea } : {}),
@@ -38,27 +36,7 @@ export default async function AgentDirectoryPage({
 
   return (
     <div className="min-h-screen bg-surface-1">
-      <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle={site.logoSubtitle} />
-          <div className="flex items-center gap-2">
-            <Link
-              href="/sign-in"
-              className={cn(
-                buttonVariants({ variant: "secondary", size: "sm" })
-              )}
-            >
-              Sign in
-            </Link>
-            <Link
-              href={PUBLIC_AGENT_CTA_HREF}
-              className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
-            >
-              Create your profile
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="space-y-3">
@@ -120,7 +98,7 @@ export default async function AgentDirectoryPage({
           <div className="md:col-span-3">
             <button
               type="submit"
-              className="rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white"
+              className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
             >
               Search profiles
             </button>
@@ -154,10 +132,11 @@ export default async function AgentDirectoryPage({
               ) : (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                    Selective publication
+                    Sample completed profile
                   </p>
                   <p className="mt-1 text-sm text-text-muted">
-                    Profiles appear here once publication review is complete.
+                    A. Morgan · North Row Estates · London, SW1A, SE1 · 92%
+                    profile readiness
                   </p>
                 </>
               )}

@@ -6,35 +6,33 @@
   --font-display: "Montserrat";
   --font-ui: "Montserrat";
 
-  --color-brand-ink: #191713;
-  --color-brand-accent: #1f5c58;
-  --color-brand-brass: #a8844a;
+  --color-brand-ink: #181917;
+  --color-brand-accent: #2d6660;
+  --color-brand-brass: #9a7c49;
 
   --color-surface-0: #ffffff;
-  --color-surface-1: #ffffff;
-  --color-surface-2: #f6f7f9;
-  --color-surface-inverse: #211d18;
+  --color-surface-1: #f5f5f3;
+  --color-surface-2: #ececeb;
+  --color-surface-inverse: #20211f;
 
-  --color-line: #d9d0c2;
+  --color-line: #d8d7d3;
 
-  --color-text-strong: #191713;
-  --color-text-base: #2b2722;
-  --color-text-muted: #6b655d;
-  --color-text-inverse: #f7f1e7;
+  --color-text-strong: #181917;
+  --color-text-base: #2f302d;
+  --color-text-muted: #70706c;
+  --color-text-inverse: #f8f8f6;
 
-  --color-success: #2b6b46;
-  --color-warning: #996b2c;
-  --color-danger: #9f3c31;
+  --color-success: #2f6c45;
+  --color-warning: #9b6f2f;
+  --color-danger: #9c4136;
 
   --radius-sm: 6px;
-  --radius-md: 10px;
+  --radius-md: 12px;
   --radius-lg: 14px;
   --radius-xl: 18px;
 
-  --shadow-soft: 0 1px 2px rgba(25, 23, 19, 0.05),
-    0 8px 20px rgba(25, 23, 19, 0.04);
-  --shadow-lift: 0 2px 6px rgba(25, 23, 19, 0.06),
-    0 18px 34px rgba(25, 23, 19, 0.05);
+  --shadow-soft: 0 1px 2px rgba(18, 19, 17, 0.05);
+  --shadow-lift: 0 10px 28px rgba(18, 19, 17, 0.1);
 }
 
 * {
@@ -47,14 +45,14 @@ body {
 }
 
 body {
-  background: #ffffff;
+  background: var(--color-surface-1);
   color: var(--color-text-base);
   font-family: var(--font-ui), system-ui, sans-serif;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: rgba(31, 92, 88, 0.18);
+  background: rgba(45, 102, 96, 0.2);
   color: var(--color-text-strong);
 }
 
@@ -157,19 +155,18 @@ a {
 
   .interactive-lift {
     transition:
-      transform 180ms ease,
-      box-shadow 180ms ease,
+      background-color 180ms ease,
       border-color 180ms ease;
   }
 
   .interactive-lift:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-soft);
+    border-color: rgba(45, 102, 96, 0.28);
+    background: var(--color-surface-0);
   }
 
   .interactive-lift:focus-within {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-soft);
+    border-color: rgba(45, 102, 96, 0.34);
+    background: var(--color-surface-0);
   }
 
   .public-section {
@@ -189,7 +186,6 @@ a {
     border-radius: var(--radius-lg);
     background: #ffffff;
     padding: clamp(1.25rem, 2vw, 2rem);
-    box-shadow: var(--shadow-soft);
   }
 
   .public-divider {

@@ -149,7 +149,7 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
 
           {error === "publish_work_email_unverified" ? (
             <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Verify your business work email on onboarding before publishing your profile.
+              Verify your work email on onboarding before publishing your profile.
             </p>
           ) : null}
 

@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { Route } from "next";
 import { ArrowRight } from "lucide-react";
 
-import { Logo } from "@/components/brand/logo";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicHeader } from "@/components/layout/public-header";
 import { buttonVariants } from "@/components/ui/button";
 import {
   getPublicSiteConfig,
@@ -44,6 +44,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
   }
 
   const featuredAgent = publicAgents[0] ?? null;
+  const isLiveFeaturedProfile = Boolean(featuredAgent);
   const locationSummaries =
     getLiveInstructionLocationSummaries(liveInstructions);
 
@@ -62,7 +63,18 @@ export default async function LandingPage(): Promise<JSX.Element> {
           ? (`/agents/${featuredAgent.profileSlug}` as Route)
           : PUBLIC_AGENT_DIRECTORY_HREF
       }
-    : null;
+    : {
+        name: "A. Morgan",
+        role: "Independent estate agent",
+        agency: "North Row Estates",
+        serviceAreas: ["London", "SW1A", "SE1"],
+        specialties: ["Chain progression", "Family homes", "Viewings"],
+        profileCompleteness: 92,
+        yearsExperience: 11,
+        publishedAt: null,
+        image: null,
+        href: PUBLIC_AGENT_CTA_HREF as Route
+      };
 
   const sellerAccessNote =
     locationSummaries.length > 0
@@ -74,88 +86,33 @@ export default async function LandingPage(): Promise<JSX.Element> {
   const featuredProfileFacts = [
     {
       label: "Service areas",
-      value:
-        featuredProof?.serviceAreas.slice(0, 3).join(", ") ||
-        "Visible once the first production profile is public"
+      value: featuredProof.serviceAreas.slice(0, 3).join(", ")
     },
     {
       label: "Specialties",
-      value:
-        featuredProof?.specialties.slice(0, 3).join(", ") ||
-        "Professional profile in progress"
+      value: featuredProof.specialties.slice(0, 3).join(", ")
     },
     {
       label: "Verification",
-      value: featuredAgent ? "Admin verified" : "Awaiting first live profile"
+      value: isLiveFeaturedProfile ? "Admin verified" : "Sample completed profile"
     },
     {
       label: "Experience",
       value:
-        featuredProof?.yearsExperience !== null &&
-        featuredProof?.yearsExperience !== undefined
+        featuredProof.yearsExperience !== null &&
+        featuredProof.yearsExperience !== undefined
           ? `${featuredProof.yearsExperience} years`
-          : "Self-reported once the profile is live"
+          : "Self-reported"
     },
     {
       label: "Profile readiness",
-      value: `${featuredProof?.profileCompleteness ?? 0}% complete`
+      value: `${featuredProof.profileCompleteness}% complete`
     }
   ] as const;
 
   return (
     <div className="min-h-screen bg-surface-1">
-      <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <Logo subtitle={site.logoSubtitle} />
-
-          <nav
-            className="hidden items-center gap-5 text-sm text-text-muted lg:flex"
-            aria-label="Primary"
-          >
-            <Link
-              href="/#platform"
-              className="transition-colors hover:text-text-strong"
-            >
-              Platform
-            </Link>
-            <Link
-              href="/#how-it-works"
-              className="transition-colors hover:text-text-strong"
-            >
-              How it works
-            </Link>
-            <Link
-              href={PUBLIC_AGENT_DIRECTORY_HREF}
-              className="transition-colors hover:text-text-strong"
-            >
-              Agents
-            </Link>
-            <Link
-              href={PUBLIC_COLLABORATION_PILOT_HREF}
-              className="transition-colors hover:text-text-strong"
-            >
-              Support
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/sign-in"
-              className={cn(
-                buttonVariants({ variant: "secondary", size: "sm" })
-              )}
-            >
-              Sign in
-            </Link>
-            <Link
-              href={PUBLIC_AGENT_CTA_HREF}
-              className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
-            >
-              Build your verified profile
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main>
         <section className="public-section border-b border-line bg-surface-1">
@@ -164,7 +121,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
               <p className="public-kicker">For independent estate agents</p>
               <div className="space-y-4">
                 <h1 className="max-w-3xl">
-                  The professional layer for independent estate agents.
+                  Where Home Owners Meet Agents.
                 </h1>
                 <p className="max-w-xl text-base text-text-muted sm:text-lg">
                   {site.pilotSummary}
@@ -204,16 +161,14 @@ export default async function LandingPage(): Promise<JSX.Element> {
                 <div className="space-y-1">
                   <p className="public-kicker">Featured profile</p>
                   <h2 className="text-2xl">
-                    {featuredProof?.name ?? "Featured profile unlocks after live verification"}
+                    {featuredProof.name}
                   </h2>
                   <p className="text-sm text-text-muted">
-                    {featuredProof
-                      ? `${featuredProof.role} · ${featuredProof.agency}`
-                      : "A real production-verified profile appears here once admin review is complete"}
+                    {featuredProof.role} · {featuredProof.agency}
                   </p>
                 </div>
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-line bg-surface-1 text-sm font-semibold text-text-strong">
-                  {featuredProof?.image ? (
+                  {featuredProof.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={featuredProof.image}
@@ -221,7 +176,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
                       className="h-full w-full rounded-full object-cover"
                     />
                   ) : (
-                    (featuredProof?.name ?? "WHOMA")
+                    featuredProof.name
                       .split(" ")
                       .map((part) => part[0])
                       .join("")
@@ -240,9 +195,9 @@ export default async function LandingPage(): Promise<JSX.Element> {
               </div>
 
               <p className="max-w-xl text-sm text-text-muted">
-                {featuredAgent
+                {isLiveFeaturedProfile
                   ? "This is a live production-verified public profile."
-                  : "Live public examples appear here only after a real agent profile clears verification."}
+                  : "This sample completed profile is shown until the first live verified profile is published."}
               </p>
             </div>
           </div>
@@ -283,15 +238,15 @@ export default async function LandingPage(): Promise<JSX.Element> {
               <div className="public-record space-y-4">
                 <div className="public-divider" />
                 <p className="text-sm leading-7 text-text-base">
-                  {featuredAgent
+                  {isLiveFeaturedProfile
                     ? "This live profile is public because it has been published and admin verified."
-                    : "This space switches from placeholder to live profile once the first production-verified agent is public."}
+                    : "This sample switches to a live profile once the first production-verified agent is public."}
                 </p>
                 <Link
-                  href={(featuredProof?.href ?? PUBLIC_AGENT_CTA_HREF) as Route}
+                  href={featuredProof.href}
                   className={cn(buttonVariants({ variant: "secondary" }))}
                 >
-                  {featuredAgent ? "View this profile" : "Build your verified profile"}
+                  {isLiveFeaturedProfile ? "View this profile" : "Build your verified profile"}
                 </Link>
               </div>
             </div>
@@ -324,6 +279,13 @@ export default async function LandingPage(): Promise<JSX.Element> {
 
         <section id="how-it-works" className="public-section bg-surface-0">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-8 rounded-lg border border-line bg-surface-1 px-5 py-5 sm:px-6">
+              <p className="public-kicker">Evidence signal</p>
+              <p className="mt-2 max-w-3xl text-sm text-text-muted sm:text-base">
+                Phase 1 focuses on one behaviour: agents complete and share a
+                verified profile link before collaboration starts.
+              </p>
+            </div>
             <div className="max-w-2xl space-y-3">
               <p className="public-kicker">How it works</p>
               <h2>Professional detail becomes more useful when it is structured.</h2>
@@ -386,7 +348,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
                           {offer.agent}
                         </p>
                         <p className="mt-1 text-sm text-text-muted">
-                          {offer.fee} · {offer.timeline}
+                          {offer.summary} · {offer.timeline}
                         </p>
                       </div>
                       <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
@@ -426,8 +388,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
               <h2>Questions about profiles, access, or collaboration?</h2>
               <p className="text-sm text-text-muted sm:text-base">
                 Email {site.supportEmail} and we&apos;ll point you in the right
-                direction. Typical response window:{" "}
-                {site.supportResponseWindow.toLowerCase()}.
+                direction.
               </p>
             </div>
             <a

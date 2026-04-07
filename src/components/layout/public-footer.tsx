@@ -41,9 +41,8 @@ export function PublicFooter(): JSX.Element {
         <div className="space-y-3">
           <Logo subtitle={site.logoSubtitle} />
           <p className="max-w-sm text-sm text-text-muted">
-            WHOMA is the professional layer for independent estate agents:
-            verified identity, portable reputation, and structured
-            collaboration.
+            WHOMA helps independent estate agents build verified identity,
+            portable reputation, and structured collaboration.
           </p>
           <p className="text-sm text-text-muted">
             Support:{" "}
@@ -53,10 +52,6 @@ export function PublicFooter(): JSX.Element {
             >
               {site.supportEmail}
             </a>
-          </p>
-          <p className="max-w-sm text-sm text-text-muted">
-            {site.companyLegalName} · {site.operatingRegion} · Typical response
-            window: {site.supportResponseWindow.toLowerCase()}.
           </p>
         </div>
 

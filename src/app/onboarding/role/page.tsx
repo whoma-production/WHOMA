@@ -111,8 +111,8 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
                   <div>
                     <h2 className="text-lg">I&apos;m selling my home</h2>
                     <p className="mt-2 text-sm text-text-muted">
-                      Create an instruction, compare structured offers, and
-                      manage communication in one place.
+                      Request selective seller access while WHOMA continues to
+                      expand collaboration coverage.
                     </p>
                   </div>
                   <Button type="submit" fullWidth>

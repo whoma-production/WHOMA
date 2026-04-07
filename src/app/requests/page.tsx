@@ -2,14 +2,12 @@ import Link from "next/link";
 import type { Metadata, Route } from "next";
 import type { ReactElement } from "react";
 
-import { Logo } from "@/components/brand/logo";
 import { InstructionCard } from "@/components/instruction-card";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicHeader } from "@/components/layout/public-header";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import {
-  getPublicSiteConfig,
-  PUBLIC_AGENT_CTA_HREF,
   PUBLIC_AGENT_DIRECTORY_HREF,
   PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
@@ -35,31 +33,10 @@ export const metadata: Metadata = {
 export default async function LocationsIndexPage(): Promise<ReactElement> {
   const instructions = await getLiveInstructionCards();
   const locations = getLiveInstructionLocationSummaries(instructions);
-  const site = getPublicSiteConfig();
 
   return (
     <div className="min-h-screen bg-surface-1">
-      <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle={site.logoSubtitle} />
-          <div className="flex items-center gap-2">
-            <Link
-              href={PUBLIC_AGENT_DIRECTORY_HREF}
-              className={cn(
-                buttonVariants({ variant: "secondary", size: "sm" })
-              )}
-            >
-              Verified agents
-            </Link>
-            <Link
-              href={PUBLIC_AGENT_CTA_HREF}
-              className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
-            >
-              Create your profile
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
         <section className="space-y-3">
@@ -129,7 +106,7 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                             </span>
                           </div>
                           <p className="mt-1 text-sm text-text-muted">
-                            {offer.fee} · {offer.timeline}
+                            {offer.summary} · {offer.timeline}
                           </p>
                         </div>
                       ))}
@@ -164,7 +141,7 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                     {location.instructionsCount} open instruction
                     {location.instructionsCount === 1 ? "" : "s"}
                   </p>
-                  <p>{location.totalProposalsCount} offers submitted</p>
+                  <p>{location.totalProposalsCount} responses submitted</p>
                 </div>
                 <Link
                   href={`/requests/${location.postcodeDistrict}` as Route}
@@ -223,7 +200,7 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-text-muted">
-                          {offer.fee} · {offer.timeline}
+                          {offer.summary} · {offer.timeline}
                         </p>
                       </div>
                     ))}

@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata, Route } from "next";
 
-import { Logo } from "@/components/brand/logo";
 import { CookieConsentPanel } from "@/components/layout/cookie-consent-panel";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicHeader } from "@/components/layout/public-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getPublicSiteConfig, getSupportMailto } from "@/lib/public-site";
@@ -27,8 +27,6 @@ interface LegalPageContent {
   intro: string;
   sections: LegalSection[];
 }
-
-const LAST_UPDATED_LABEL = "April 6, 2026";
 
 const legalSlugs: readonly LegalSlug[] = [
   "privacy",
@@ -147,7 +145,7 @@ function getLegalContent(
           heading: "How to raise a complaint",
           paragraphs: [
             `Send complaints to ${site.supportEmail} and include the account email, public profile slug, or request reference wherever possible.`,
-            `WHOMA aims to acknowledge complaints within ${site.supportResponseWindow.toLowerCase()} and will explain if a case needs a longer review.`
+            "WHOMA reviews complaints in order of urgency and will confirm next steps if a case needs a longer investigation."
           ]
         },
         {
@@ -175,13 +173,13 @@ function getLegalContent(
           heading: "Support",
           paragraphs: [
             `Email ${site.supportEmail}.`,
-            `Typical response window: ${site.supportResponseWindow}. ${site.supportCoverage}`
+            site.supportCoverage
           ]
         },
         {
           heading: "Account access",
           paragraphs: [
-            "Estate agents can sign in with Google, Apple, or email whenever those methods are enabled on the live service.",
+            "Estate agents can sign in with Google, Apple, or email when those methods are enabled on the live service.",
             "If a sign-in method fails, or an email is already linked to a different provider, contact support and include the account email you tried to use."
           ]
         },
@@ -190,13 +188,6 @@ function getLegalContent(
           paragraphs: [
             "Include your account email, public profile slug, or request reference where relevant so the team can locate the right record quickly.",
             "Please also state whether the enquiry relates to agent onboarding, verification, profile visibility, seller access, privacy, or partnerships."
-          ]
-        },
-        {
-          heading: "Operating status",
-          paragraphs: [
-            `${site.companyLegalName} operates WHOMA in the ${site.operatingRegion}.`,
-            "Seller access may still be selective, but estate-agent account creation and sign-in are handled through the live auth routes."
           ]
         }
       ]
@@ -265,15 +256,13 @@ export default async function StaticPage({
     slug === "sitemap"
       ? getLiveInstructionLocationSummaries(liveInstructions)
       : [];
-  const accessLabel = slug === "contact" ? "Seller access" : "Access";
-  const accessValue =
-    slug === "contact" ? "Selective homeowner access" : site.betaStatusLabel;
 
   return (
     <div className="min-h-screen bg-surface-1">
-      <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle={site.logoSubtitle} />
+      <PublicHeader />
+
+      <main className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mb-5">
           <Link
             href={"/" as Route}
             className="text-sm font-medium text-text-muted transition-colors hover:text-brand-ink"
@@ -281,9 +270,6 @@ export default async function StaticPage({
             Back to home
           </Link>
         </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
         <Card className="space-y-6">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
@@ -299,9 +285,6 @@ export default async function StaticPage({
               <>
                 <p className="text-sm text-text-muted">
                   {legalContent[slug].intro}
-                </p>
-                <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted">
-                  Last updated: {LAST_UPDATED_LABEL}
                 </p>
               </>
             )}
@@ -377,80 +360,66 @@ export default async function StaticPage({
             </div>
           ) : (
             <div className="space-y-6">
-              <Card className="space-y-4 bg-surface-1">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      {accessLabel}
-                    </p>
-                    <p className="text-sm font-medium text-text-strong">
-                      {accessValue}
-                    </p>
+              {slug === "contact" ? (
+                <Card className="space-y-4 bg-surface-1">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                        Primary support route
+                      </p>
+                      <a
+                        href={getSupportMailto(site.supportEmail)}
+                        className="text-sm font-medium text-brand-ink underline"
+                      >
+                        {site.supportEmail}
+                      </a>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                        Seller access
+                      </p>
+                      <p className="text-sm font-medium text-text-strong">
+                        Selective homeowner access
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                        Account access
+                      </p>
+                      <p className="text-sm font-medium text-text-strong">
+                        Google, Apple, or email (when enabled)
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                        How support works
+                      </p>
+                      <p className="text-sm font-medium text-text-strong">
+                        {site.supportCoverage}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      Operating entity
-                    </p>
-                    <p className="text-sm font-medium text-text-strong">
-                      {site.companyLegalName}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      Primary support route
-                    </p>
+
+                  <div className="flex flex-wrap gap-3">
                     <a
                       href={getSupportMailto(site.supportEmail)}
-                      className="text-sm font-medium text-brand-ink underline"
+                      className={cn(
+                        buttonVariants({ variant: "primary", size: "sm" })
+                      )}
                     >
-                      {site.supportEmail}
+                      Email support
                     </a>
+                    <Link
+                      href="/complaints"
+                      className={cn(
+                        buttonVariants({ variant: "secondary", size: "sm" })
+                      )}
+                    >
+                      Complaints route
+                    </Link>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      Typical response window
-                    </p>
-                    <p className="text-sm font-medium text-text-strong">
-                      {site.supportResponseWindow}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      Operating region
-                    </p>
-                    <p className="text-sm font-medium text-text-strong">
-                      {site.operatingRegion}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      Support handling
-                    </p>
-                    <p className="text-sm font-medium text-text-strong">
-                      {site.supportCoverage}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <a
-                    href={getSupportMailto(site.supportEmail)}
-                    className={cn(
-                      buttonVariants({ variant: "primary", size: "sm" })
-                    )}
-                  >
-                    Email support
-                  </a>
-                  <Link
-                    href="/complaints"
-                    className={cn(
-                      buttonVariants({ variant: "secondary", size: "sm" })
-                    )}
-                  >
-                    Complaints route
-                  </Link>
-                </div>
-              </Card>
+                </Card>
+              ) : null}
 
               {legalContent[slug].sections.map((section) => (
                 <section key={section.heading} className="space-y-2">

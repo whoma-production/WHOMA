@@ -3445,3 +3445,132 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Deploy this auth slice from a clean release state and verify public sign-in/sign-up on the live Railway app.
 2. Add the missing live OAuth provider secrets in Railway if Google and Apple should be visible immediately in production.
 3. Pick the long-term managed Postgres service strategy for scale so the app does not outgrow the current operational baseline.
+
+---
+
+## Session: 2026-04-07 / 15:58 (CEST) — Site-wide public style unification + shared header rollout
+
+**Author:** Codex  
+**Context:** User reported visual regression back toward beige/editorial styling and requested a return to the newer clean style across the entire site, not just the homepage.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Re-align WHOMA to the requested clean/neutral style across all public routes and shared UI primitives, then verify route behavior and build integrity.
+
+### Changes Made
+
+- Added a new shared `PublicHeader` component and replaced fragmented per-route header implementations across:
+  - landing,
+  - agent directory/profile,
+  - requests index/district,
+  - static trust/legal pages,
+  - sign-in/sign-up entry pages.
+- Applied a global token refresh (`globals.css`, `tokens.ts`) to remove warm/beige drift and restore a neutral light-gray/white hierarchy with consistent borders/text tones.
+- Simplified shared component chrome to match the target style:
+  - removed legacy soft-shadow dependency from `Card`, inline toast, and proposal compare table container,
+  - removed transform-based button hover lift and tuned button variants toward flatter, cleaner interactions,
+  - removed residual input/textarea shadow treatment.
+- Standardized ad-hoc public CTA button styling to use shared button variants for consistency.
+- Kept public routing/feature behavior intact while updating style system foundations.
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/layout/public-header.tsx` (new)
+- `src/app/page.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/agents/[slug]/page.tsx`
+- `src/app/requests/page.tsx`
+- `src/app/requests/[postcodeDistrict]/page.tsx`
+- `src/app/[slug]/page.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/globals.css`
+- `src/lib/tokens.ts`
+- `src/components/ui/button.tsx`
+- `src/components/ui/card.tsx`
+- `src/components/ui/input.tsx`
+- `src/components/ui/textarea.tsx`
+- `src/components/ui/inline-toast.tsx`
+- `src/components/proposal-compare-table.tsx`
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3012 npx playwright test tests/e2e/public-routing.spec.ts --project=chromium --workers=1` — passed.
+  - Note: initial run failed due no local server on `:3012`; rerun passed after starting `npm run dev -- --hostname 127.0.0.1 --port 3012`.
+
+### Decisions (and why)
+
+- **Decision:** Ship a shared public header rather than tuning each route in isolation.
+  - **Why:** The regression was systemic; one shared shell prevents future visual drift and keeps nav/CTA behavior consistent.
+- **Decision:** Fix the style baseline via global tokens and core primitives first.
+  - **Why:** Route-level tweaks alone would leave inconsistent chrome in cards/forms/buttons and allow beige styling to reappear.
+- **Decision:** Keep behavior-focused E2E verification (`public-routing`) in this pass rather than adding screenshot assertions.
+  - **Why:** This change is visual-system-heavy but still needed routing safety checks immediately after shared header adoption.
+
+### Status
+
+- Public style unification pass: `GREEN`
+
+### Remaining Sign-off Work
+
+1. Run a manual desktop/mobile visual sweep on local/preview URLs to confirm spacing hierarchy after the shared-header rollout.
+2. Optionally add visual regression snapshots for core public pages if style drift has been a recurring issue.
+
+---
+
+## Session: 2026-04-07 / 16:20 (CEST) — Phase 1 copy alignment + onboarding/contact cleanup
+
+**Author:** Codex  
+**Context:** User requested a site-wide correction away from internal/beige/editorial leftovers and toward the current clean WHOMA style + Phase 1 positioning (`Where Home Owners Meet Agents`) with specific copy removals and onboarding logic fixes.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Remove business-email-only onboarding restrictions, remove internal support/ops language from public pages, align brand/tagline and public messaging with Phase 1 identity-first validation, and verify end-to-end.
+
+### Changes Made
+
+- Removed business-domain gating in agent profile validation:
+  - `workEmail` now accepts any valid email address for onboarding/profile publish flows.
+- Updated all affected onboarding/profile copy and errors to remove `business work email` wording while keeping email verification as a required activation step.
+- Updated resume-intake AI/heuristics to treat email detection generically (no business-domain bias language).
+- Updated public brand line and metadata to `Where Home Owners Meet Agents`.
+- Removed public `Typical response window` language from homepage support copy and footer.
+- Removed contact/trust page `Last updated` display and deleted the `Operating status` section.
+- Simplified static contact summary card to user-facing support/access details only.
+- Added a Phase 1 evidence signal block on homepage and introduced a realistic sample fallback featured profile/directory snippet to avoid empty/placeholder feel.
+- Clarified sign-in provider readiness: when Google/Apple are not configured, sign-in now states those options appear once live credentials are enabled.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm test` — passed (`15 passed`, `3 skipped` files).
+- `PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=http://localhost:3012 npx playwright test tests/e2e/public-routing.spec.ts --project=chromium` — passed.
+  - First attempt failed in sandbox due Playwright browser-launch permissions; reran outside sandbox and passed.
+- Local page assertions via `curl` against `http://127.0.0.1:3012` confirmed:
+  - tagline present (`Where Home Owners Meet Agents`),
+  - old tagline/response-window strings absent,
+  - contact page no longer shows `Last updated`/`Operating status`/`Typical response window`,
+  - sign-in page shows provider-readiness note + neutral email placeholder.
+
+### Decisions (and why)
+
+- **Decision:** Keep email verification mandatory but remove business-domain policy.
+  - **Why:** Supports Phase 1 identity flow while eliminating unnecessary onboarding friction for valid users.
+- **Decision:** Replace internal operations copy with user-facing support/access language.
+  - **Why:** Public trust pages should read as product-ready, not operational runbook notes.
+- **Decision:** Add inhabited fallback proof modules (sample featured profile/evidence signal) instead of empty-state placeholders.
+  - **Why:** Improves early trust and perceived platform liveliness during cold-start.
+
+### Status
+
+- Phase 1 copy + onboarding/contact cleanup: `GREEN`
+
+### Remaining Sign-off Work
+
+1. Set live Google/Apple OAuth credentials in production if those buttons should be visible immediately on `/sign-in`.
+2. Continue reducing public `requests` emphasis if we want an even stricter Phase 1 identity-first narrative before Phase 2 launch.

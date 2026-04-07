@@ -59,7 +59,7 @@ export function getAgentActivationChecklist(
       key: "workEmailVerified",
       title: "Work email verified",
       description:
-        "Use your business inbox and confirm the 6-digit code to continue.",
+        "Use your preferred email address and confirm the 6-digit code to continue.",
       done: state.workEmailVerified,
       current: false
     },

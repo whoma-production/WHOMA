@@ -388,6 +388,17 @@ export function GoogleAuthButton({
 
       {providerAvailability.email ? (
         <div className="rounded-md border border-line bg-surface-1 p-4">
+          {!providerAvailability.google || !providerAvailability.apple ? (
+            <p className="mb-3 text-xs text-text-muted">
+              {[
+                !providerAvailability.google ? "Google" : null,
+                !providerAvailability.apple ? "Apple" : null
+              ]
+                .filter(Boolean)
+                .join(" and ")}{" "}
+              sign-in options appear here once live provider credentials are enabled.
+            </p>
+          ) : null}
           {showSocialButtons ? (
             <div className="mb-4 flex items-center gap-3">
               <div className="h-px flex-1 bg-line" />
@@ -439,7 +450,7 @@ export function GoogleAuthButton({
                     setSignInError(null);
                   }
                 }}
-                placeholder="you@agency.co.uk"
+                placeholder="you@example.com"
                 disabled={isPending}
               />
             </label>

@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 import { z } from "zod";
 
-import { isBusinessWorkEmail } from "@/lib/validation/agent-profile";
+import { isAcceptedWorkEmail } from "@/lib/validation/agent-profile";
 import {
   getResumeFeatureFlags,
   type ResumePipelineMode
@@ -94,7 +94,7 @@ If uncertain, return null/omit and lower confidence.
 Normalize outputs for these fields only:
 fullName, workEmail, phone, agencyName, jobTitle, yearsExperience, bio, serviceAreas, specialties.
 serviceAreas must be UK postcode districts (e.g., SW1A, SE1).
-workEmail must be business-domain if possible; personal inboxes should be low confidence.
+workEmail should be a valid email address.
 Do not invent achievements, sales numbers, awards, or credentials.`;
 
 function normalizeWhitespace(value: string): string {
@@ -144,7 +144,7 @@ function hasPrefillValues(prefill: ResumePrefillValues): boolean {
 function createHeuristicHighlights(prefill: ResumePrefillValues): string[] {
   return [
     ...(prefill.fullName ? ["Detected a candidate name"] : []),
-    ...(prefill.workEmail ? ["Detected a business email"] : []),
+    ...(prefill.workEmail ? ["Detected an email address"] : []),
     ...(prefill.phone ? ["Detected a phone number"] : []),
     ...(prefill.agencyName ? ["Detected an agency or employer"] : []),
     ...(prefill.jobTitle ? ["Detected a likely job title"] : []),
@@ -255,7 +255,7 @@ function setPrefillValue(
   }
 
   if (field === "workEmail") {
-    if (!isBusinessWorkEmail(cleaned)) {
+    if (!isAcceptedWorkEmail(cleaned)) {
       return;
     }
 

@@ -43,7 +43,9 @@ export function InstructionCard({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Badge>{instruction.proposalsCount} offers</Badge>
+        <Badge>
+          {instruction.proposalsCount} {isPublic ? "responses" : "offers"}
+        </Badge>
         <Badge variant="accent">{instruction.sellerTimelineGoal}</Badge>
         {isPublic ? <Badge variant="warning">Access by invitation</Badge> : null}
       </div>

@@ -271,7 +271,7 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
   if (!hasVerifiedWorkEmail) {
     throw new WorkEmailVerificationError(
       "EMAIL_NOT_VERIFIED",
-      "Verify your business work email before completing onboarding."
+      "Verify your work email before completing onboarding."
     );
   }
 
@@ -467,7 +467,7 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
   if (!hasVerifiedWorkEmail) {
     throw new WorkEmailVerificationError(
       "EMAIL_NOT_VERIFIED",
-      "Verify your business work email before publishing your profile."
+      "Verify your work email before publishing your profile."
     );
   }
 

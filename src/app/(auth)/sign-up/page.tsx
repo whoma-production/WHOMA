@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
-import { Logo } from "@/components/brand/logo";
+import { PublicHeader } from "@/components/layout/public-header";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeRedirectPath } from "@/lib/auth/session";
 import { getPublicAuthProviderAvailability } from "@/lib/auth/provider-config";
@@ -11,6 +12,7 @@ import {
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
+import { cn } from "@/lib/utils";
 
 interface SignUpPageProps {
   searchParams?: Promise<{ role?: string; next?: string; error?: string }>;
@@ -23,7 +25,7 @@ const roleContent = {
     body: "WHOMA currently opens seller access selectively to maintain a high-quality collaboration standard.",
     reassurance: [
       "Access by invitation",
-      "Structured offer comparison",
+      "Structured collaboration route",
       "Messaging opens after shortlist"
     ]
   },
@@ -32,7 +34,7 @@ const roleContent = {
     headline: "Create a profile clients, referrers, and collaborators can trust.",
     body: "WHOMA helps independent estate agents build a stronger professional presence before collaboration begins.",
     reassurance: [
-      "Business email verification",
+      "Email verification",
       "Shareable public profile",
       "Proof that travels with you"
     ]
@@ -82,160 +84,163 @@ export default async function SignUpPage({
         : "Self-serve account creation is not configured right now. Contact support and we will help directly.";
 
   return (
-    <main className="min-h-screen bg-surface-1 px-4 py-10">
-      <div className="mx-auto w-full max-w-3xl space-y-8">
-        <div className="flex items-center justify-between gap-3">
-          <Logo subtitle={site.logoSubtitle} />
-          <Link
-            href="/sign-in"
-            className="text-sm font-medium text-brand-ink underline"
-          >
-            Already have an account?
-          </Link>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-            {content?.eyebrow ?? "Create your account"}
-          </p>
-          <h1>
-            {content?.headline ??
-              "Create your WHOMA account."}
-          </h1>
-          <p className="max-w-3xl text-text-muted">
-            {content?.body ??
-              "WHOMA helps independent estate agents build verified public profiles and manage high-trust collaboration more clearly."}
-          </p>
-        </div>
-
-        {!role ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border-brand-accent/30 space-y-3 bg-surface-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Primary path
-              </p>
-              <h2 className="text-xl">I&apos;m an estate agent</h2>
-              <p className="text-sm text-text-muted">
-                Create your public profile, add professional depth, and publish
-                it for review.
-              </p>
-              <Link
-                href={PUBLIC_AGENT_CTA_HREF}
-                className="text-sm font-medium text-brand-ink underline"
-              >
-                Create your profile
-              </Link>
-            </Card>
-            <Card className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Seller access
-              </p>
-              <h2 className="text-xl">I&apos;m requesting seller access</h2>
-              <p className="text-sm text-text-muted">
-                Request seller access if you need help opening an instruction
-                through WHOMA.
-              </p>
-              <Link
-                href={PUBLIC_COLLABORATION_PILOT_HREF}
-                className="text-sm font-medium text-brand-ink underline"
-              >
-                Contact support
-              </Link>
-            </Card>
+    <div className="min-h-screen bg-surface-1">
+      <PublicHeader />
+      <main className="px-4 py-10">
+        <div className="mx-auto w-full max-w-3xl space-y-8">
+          <div className="flex justify-end">
+            <Link
+              href="/sign-in"
+              className="text-sm font-medium text-brand-ink underline"
+            >
+              Already have an account?
+            </Link>
           </div>
-        ) : null}
 
-        {content ? (
-          <div className="grid gap-3 md:grid-cols-3">
-            {content.reassurance.map((item) => (
-              <Card
-                key={item}
-                className="bg-surface-0 px-4 py-3 text-sm text-text-muted"
-              >
-                {item}
-              </Card>
-            ))}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+              {content?.eyebrow ?? "Create your account"}
+            </p>
+            <h1>{content?.headline ?? "Create your WHOMA account."}</h1>
+            <p className="max-w-3xl text-text-muted">
+              {content?.body ??
+                "WHOMA helps independent estate agents build verified public profiles and manage high-trust collaboration more clearly."}
+            </p>
           </div>
-        ) : null}
 
-        {role !== "HOMEOWNER" ? (
-          <Card className="space-y-4 bg-surface-0">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                What your profile includes
-              </p>
-              <h2 className="text-xl">
-                Create your profile, add professional depth, and publish it.
-              </h2>
-              <p className="text-sm text-text-muted">
-                WHOMA is designed to help independent estate agents build a
-                stronger public presence before collaboration begins.
-              </p>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {PUBLIC_AGENT_JOURNEY.map((step) => (
-                <div
-                  key={step.title}
-                  className="rounded-md border border-line bg-surface-1 px-4 py-3"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-text-strong">
-                      {step.title}
-                    </p>
-                    <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      {step.status}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-text-muted">
-                    {step.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        ) : null}
-
-        <Card className="mx-auto w-full max-w-xl space-y-4 text-center">
-          <div className="space-y-1">
-            <h2 className="text-xl">{entryTitle}</h2>
-            <p className="text-sm text-text-muted">{entryDescription}</p>
-          </div>
-          {role === "HOMEOWNER" ? (
-            <div className="rounded-md border border-line bg-surface-1 p-4 text-left">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-text-strong">Access</p>
-                <p className="text-sm text-text-muted">
-                  If you need seller access, email {site.supportEmail} and we
-                  will point you in the right direction.
+          {!role ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="border-brand-accent/30 space-y-3 bg-surface-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                  Primary path
                 </p>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <a
-                  href={`mailto:${site.supportEmail}`}
-                  className="inline-flex h-9 items-center justify-center rounded-md bg-brand-accent px-3 text-sm font-medium text-white transition-colors hover:bg-[#018e85]"
+                <h2 className="text-xl">I&apos;m an estate agent</h2>
+                <p className="text-sm text-text-muted">
+                  Create your public profile, add professional depth, and
+                  publish it for review.
+                </p>
+                <Link
+                  href={PUBLIC_AGENT_CTA_HREF}
+                  className="text-sm font-medium text-brand-ink underline"
                 >
-                  Email support
-                </a>
+                  Create your profile
+                </Link>
+              </Card>
+              <Card className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                  Seller access
+                </p>
+                <h2 className="text-xl">I&apos;m requesting seller access</h2>
+                <p className="text-sm text-text-muted">
+                  Request seller access if you need help opening an instruction
+                  through WHOMA.
+                </p>
                 <Link
                   href={PUBLIC_COLLABORATION_PILOT_HREF}
-                  className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-surface-0 px-3 text-sm font-medium text-text-strong transition-colors hover:bg-surface-1"
+                  className="text-sm font-medium text-brand-ink underline"
                 >
-                  Contact page
+                  Contact support
                 </Link>
-              </div>
+              </Card>
             </div>
-          ) : (
-            <GoogleAuthButton
-              providerAvailability={providerAvailability}
-              authMode="sign-up"
-              uxMode="public"
-              supportEmail={site.supportEmail}
-              nextParam={nextParam}
-              oauthError={resolvedSearchParams?.error ?? null}
-            />
-          )}
-        </Card>
-      </div>
-    </main>
+          ) : null}
+
+          {content ? (
+            <div className="grid gap-3 md:grid-cols-3">
+              {content.reassurance.map((item) => (
+                <Card
+                  key={item}
+                  className="bg-surface-0 px-4 py-3 text-sm text-text-muted"
+                >
+                  {item}
+                </Card>
+              ))}
+            </div>
+          ) : null}
+
+          {role !== "HOMEOWNER" ? (
+            <Card className="space-y-4 bg-surface-0">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                  What your profile includes
+                </p>
+                <h2 className="text-xl">
+                  Create your profile, add professional depth, and publish it.
+                </h2>
+                <p className="text-sm text-text-muted">
+                  WHOMA is designed to help independent estate agents build a
+                  stronger public presence before collaboration begins.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {PUBLIC_AGENT_JOURNEY.map((step) => (
+                  <div
+                    key={step.title}
+                    className="rounded-md border border-line bg-surface-1 px-4 py-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-text-strong">
+                        {step.title}
+                      </p>
+                      <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                        {step.status}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-text-muted">
+                      {step.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ) : null}
+
+          <Card className="mx-auto w-full max-w-xl space-y-4 text-center">
+            <div className="space-y-1">
+              <h2 className="text-xl">{entryTitle}</h2>
+              <p className="text-sm text-text-muted">{entryDescription}</p>
+            </div>
+            {role === "HOMEOWNER" ? (
+              <div className="rounded-md border border-line bg-surface-1 p-4 text-left">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-text-strong">Access</p>
+                  <p className="text-sm text-text-muted">
+                    If you need seller access, email {site.supportEmail} and we
+                    will point you in the right direction.
+                  </p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a
+                    href={`mailto:${site.supportEmail}`}
+                    className={cn(
+                      buttonVariants({ variant: "primary", size: "sm" })
+                    )}
+                  >
+                    Email support
+                  </a>
+                  <Link
+                    href={PUBLIC_COLLABORATION_PILOT_HREF}
+                    className={cn(
+                      buttonVariants({ variant: "secondary", size: "sm" })
+                    )}
+                  >
+                    Contact page
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <GoogleAuthButton
+                providerAvailability={providerAvailability}
+                authMode="sign-up"
+                uxMode="public"
+                supportEmail={site.supportEmail}
+                nextParam={nextParam}
+                oauthError={resolvedSearchParams?.error ?? null}
+              />
+            )}
+          </Card>
+        </div>
+      </main>
+    </div>
   );
 }
