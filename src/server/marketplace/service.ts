@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import type { CreateInstructionInput } from "@/lib/validation/instruction";
 import type { ProposalSubmissionInput } from "@/lib/validation/proposal";
 import { trackEvent } from "@/server/analytics";
+import { PRODUCT_EVENT_NAMES } from "@/server/product-events";
 
 export type MarketplaceServiceErrorCode =
   | "DATABASE_NOT_CONFIGURED"
@@ -544,7 +545,7 @@ export async function createMessageForParticipant(
     );
   }
 
-  return prisma.message.create({
+  const createdMessage = await prisma.message.create({
     data: {
       threadId: thread.id,
       senderId: userId,
@@ -552,6 +553,44 @@ export async function createMessageForParticipant(
     },
     select: messageCreateSelect
   });
+
+  const senderRole = thread.homeownerId === userId ? "HOMEOWNER" : "AGENT";
+  const recipientId =
+    thread.homeownerId === userId ? thread.agentId : thread.homeownerId;
+
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.messageSent,
+    {
+      threadId: thread.id,
+      senderId: userId,
+      recipientId,
+      messageLength: body.length
+    },
+    {
+      actorId: userId,
+      actorRole: senderRole,
+      subjectUserId: userId,
+      source: "/api/messages/[threadId]"
+    }
+  );
+
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.interactionReceived,
+    {
+      threadId: thread.id,
+      senderId: userId,
+      recipientId,
+      messageLength: body.length
+    },
+    {
+      actorId: userId,
+      actorRole: senderRole,
+      subjectUserId: recipientId,
+      source: "/api/messages/[threadId]"
+    }
+  );
+
+  return createdMessage;
 }
 
 function toParticipantThreadSummary(
@@ -684,22 +723,56 @@ export async function createInstructionForHomeowner(
       (1000 * 60 * 60)
   );
 
-  trackEvent("instruction_created", {
-    instructionId: instruction.id,
-    homeownerId,
-    instructionStatus: instruction.status,
-    propertyType: instruction.property.propertyType,
-    postcodeDistrict,
-    bidWindowHours
-  });
-
-  if (instruction.status === "LIVE") {
-    trackEvent("instruction_published", {
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.instructionCreated,
+    {
       instructionId: instruction.id,
       homeownerId,
-      postcodeDistrict
-    });
+      instructionStatus: instruction.status,
+      propertyType: instruction.property.propertyType,
+      postcodeDistrict,
+      bidWindowHours
+    },
+    {
+      actorId: homeownerId,
+      actorRole: "HOMEOWNER",
+      subjectUserId: homeownerId,
+      source: "/api/instructions"
+    }
+  );
+
+  if (instruction.status === "LIVE") {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.instructionPublished,
+      {
+        instructionId: instruction.id,
+        homeownerId,
+        postcodeDistrict
+      },
+      {
+        actorId: homeownerId,
+        actorRole: "HOMEOWNER",
+        subjectUserId: homeownerId,
+        source: "/api/instructions"
+      }
+    );
   }
+
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.listingCreated,
+    {
+      instructionId: instruction.id,
+      homeownerId,
+      listingType: "homeowner_instruction",
+      postcodeDistrict
+    },
+    {
+      actorId: homeownerId,
+      actorRole: "HOMEOWNER",
+      subjectUserId: homeownerId,
+      source: "/api/instructions"
+    }
+  );
 
   return instruction;
 }
@@ -796,15 +869,24 @@ export async function submitProposalForAgent(
     const postcodeDistrict =
       extractPostcodeDistrict(instruction.property.postcode) ?? "UNKNOWN";
 
-    trackEvent("proposal_submitted", {
-      proposalId: proposal.id,
-      instructionId: proposal.instructionId,
-      agentId,
-      feeModel: proposal.feeModel,
-      timelineDays: proposal.timelineDays,
-      postcodeDistrict,
-      inclusionsCount: input.inclusions.length
-    });
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.proposalSubmitted,
+      {
+        proposalId: proposal.id,
+        instructionId: proposal.instructionId,
+        agentId,
+        feeModel: proposal.feeModel,
+        timelineDays: proposal.timelineDays,
+        postcodeDistrict,
+        inclusionsCount: input.inclusions.length
+      },
+      {
+        actorId: agentId,
+        actorRole: "AGENT",
+        subjectUserId: agentId,
+        source: "/api/proposals"
+      }
+    );
 
     return proposal;
   } catch (error) {
@@ -983,19 +1065,37 @@ export async function decideProposalForHomeowner(
     }
 
     if (transition.trackEventName === "proposal_shortlisted") {
-      trackEvent("proposal_shortlisted", {
-        homeownerId,
-        instructionId: nextProposal.instructionId,
-        proposalId: nextProposal.id
-      });
+      await trackEvent(
+        PRODUCT_EVENT_NAMES.proposalShortlisted,
+        {
+          homeownerId,
+          instructionId: nextProposal.instructionId,
+          proposalId: nextProposal.id
+        },
+        {
+          actorId: homeownerId,
+          actorRole: "HOMEOWNER",
+          subjectUserId: homeownerId,
+          source: "/api/proposals/[proposalId]/decision"
+        }
+      );
     }
 
     if (transition.trackEventName === "proposal_awarded") {
-      trackEvent("proposal_awarded", {
-        homeownerId,
-        instructionId: nextProposal.instructionId,
-        proposalId: nextProposal.id
-      });
+      await trackEvent(
+        PRODUCT_EVENT_NAMES.proposalAwarded,
+        {
+          homeownerId,
+          instructionId: nextProposal.instructionId,
+          proposalId: nextProposal.id
+        },
+        {
+          actorId: homeownerId,
+          actorRole: "HOMEOWNER",
+          subjectUserId: homeownerId,
+          source: "/api/proposals/[proposalId]/decision"
+        }
+      );
     }
 
     return {

@@ -6,10 +6,12 @@ import { AgentProfileStatus } from "@prisma/client";
 import { MIN_AGENT_PUBLISH_COMPLETENESS } from "@/lib/agent-activation";
 import { prisma } from "@/lib/prisma";
 import type { AgentOnboardingInput, AgentProfileDraftInput, AgentProfilePublishInput } from "@/lib/validation/agent-profile";
+import { trackEvent } from "@/server/analytics";
 import {
   sendWorkEmailVerificationCodeEmail,
   WorkEmailDeliveryError
 } from "@/server/agent-profile/work-email-delivery";
+import { PRODUCT_EVENT_NAMES } from "@/server/product-events";
 
 const WORK_EMAIL_VERIFICATION_CODE_TTL_MINUTES = 15;
 
@@ -260,7 +262,12 @@ function getOfficialAgentProfileFilter(): Prisma.AgentProfileWhereInput {
 export async function completeAgentOnboarding(userId: string, input: AgentOnboardingInput): Promise<AgentProfileWithUser> {
   const existingProfile = await prisma.agentProfile.findUnique({
     where: { userId },
-    select: { profileSlug: true, workEmail: true, workEmailVerifiedAt: true }
+    select: {
+      profileSlug: true,
+      workEmail: true,
+      workEmailVerifiedAt: true,
+      onboardingCompletedAt: true
+    }
   });
 
   const normalizedWorkEmail = normalizeEmail(input.workEmail);
@@ -341,6 +348,38 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
     }
   });
 
+  if (!existingProfile?.onboardingCompletedAt) {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.profileStarted,
+      {
+        userId,
+        profileCompleteness: profile.profileCompleteness
+      },
+      {
+        actorId: userId,
+        actorRole: "AGENT",
+        subjectUserId: userId,
+        source: "/agent/onboarding"
+      }
+    );
+  }
+
+  if (profile.profileCompleteness >= MIN_AGENT_PUBLISH_COMPLETENESS) {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.profileCompleted,
+      {
+        userId,
+        profileCompleteness: profile.profileCompleteness
+      },
+      {
+        actorId: userId,
+        actorRole: "AGENT",
+        subjectUserId: userId,
+        source: "/agent/onboarding"
+      }
+    );
+  }
+
   return mapAgentProfile(profile);
 }
 
@@ -361,6 +400,7 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       specialties: true,
       achievements: true,
       languages: true,
+      onboardingCompletedAt: true,
       user: { select: { name: true } }
     }
   });
@@ -432,6 +472,41 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       }
     }
   });
+
+  if (!existing) {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.profileStarted,
+      {
+        userId,
+        profileCompleteness: profile.profileCompleteness
+      },
+      {
+        actorId: userId,
+        actorRole: "AGENT",
+        subjectUserId: userId,
+        source: "/agent/profile/edit"
+      }
+    );
+  }
+
+  if (
+    profile.onboardingCompletedAt &&
+    profile.profileCompleteness >= MIN_AGENT_PUBLISH_COMPLETENESS
+  ) {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.profileCompleted,
+      {
+        userId,
+        profileCompleteness: profile.profileCompleteness
+      },
+      {
+        actorId: userId,
+        actorRole: "AGENT",
+        subjectUserId: userId,
+        source: "/agent/profile/edit"
+      }
+    );
+  }
 
   return mapAgentProfile(profile);
 }
@@ -542,6 +617,21 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
       }
     }
   });
+
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.profileCompleted,
+    {
+      userId,
+      profileCompleteness: profile.profileCompleteness,
+      published: true
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/profile/edit"
+    }
+  );
 
   return mapAgentProfile(profile);
 }
@@ -721,6 +811,20 @@ export async function requestAgentWorkEmailVerificationCode(userId: string, work
     console.info(`[WHOMA] Work email verification code for ${normalizedWorkEmail}: ${verificationCode}`);
   }
 
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.verificationSent,
+    {
+      userId,
+      destinationDomain: normalizedWorkEmail.split("@")[1] ?? null
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/onboarding"
+    }
+  );
+
   return {
     expiresAt,
     ...(process.env.NODE_ENV !== "production" ? { devCode: verificationCode } : {})
@@ -836,6 +940,19 @@ export async function confirmAgentWorkEmailVerificationCode(
       workEmailVerificationLockedUntil: null
     }
   });
+
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.verificationCompleted,
+    {
+      userId
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/onboarding"
+    }
+  );
 }
 
 export async function isAgentWorkEmailVerified(
