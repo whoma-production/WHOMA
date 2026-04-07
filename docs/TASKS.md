@@ -62,6 +62,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Progress (2026-04-07):** Premium-language hardening pass: removed the homepage `Evidence signal` / `Phase 1 behaviour` banner, replaced public contact copy that read as conditional/internal (`when enabled`, `live route`) with clean product language, and softened onboarding/profile progress copy so agent-facing surfaces read as product-led rather than internal metrics dashboards.
       **Progress (2026-04-07):** Public auth now ships method-first with Google, Apple, and email magic-link sign-in on `/sign-in`; invitation/request-access is secondary only; preview controls remain internal-only; post-auth gating is separated from authentication via explicit `APPROVED/PENDING/DENIED` session access states with dedicated `/access/pending` and `/access/denied` UX for agent review outcomes.
       **Progress (2026-04-07):** Added a site-wide public FAQ system for clarity/trust: top utility strip (`Create profile`, `FAQs`, `Support`) above shared public nav, new grouped `/faqs` route, and a compact homepage FAQ preview block linking to full answers.
+      **Progress (2026-04-07):** Rewrote all `/faqs` answers to a warmer, clearer external tone (less vague/internal language) while preserving accurate agent-first and selective-access positioning.
 
 ## Behavioural Validation Gap Closures (Audit 2026-04-02)
 

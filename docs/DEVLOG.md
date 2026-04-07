@@ -3737,3 +3737,50 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 ### Remaining Sign-off Work
 
 1. Run a quick visual pass on mobile widths to confirm utility-strip wrapping and FAQ-page spacing feel premium on smaller screens.
+
+---
+
+## Session: 2026-04-07 / 21:14 (CEST) — FAQ tone rewrite (approachability pass)
+
+**Author:** Codex  
+**Context:** User reviewed live `/faqs` and requested a full-answer rewrite because the copy felt vague and unapproachable.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Rewrite all FAQ answers so tone is warmer, clearer, and more inviting while staying accurate to current product state.
+
+### Changes Made
+
+- Rewrote every FAQ answer in `src/lib/faqs.ts` across all six categories:
+  - `General`,
+  - `Agent profiles and verification`,
+  - `Sharing and visibility`,
+  - `Collaboration and seller access`,
+  - `Sign-in and access`,
+  - `Support and trust`.
+- Shifted language from abstract/internal framing to direct user-facing phrasing:
+  - more concrete outcomes,
+  - less jargon and fewer vague nouns,
+  - clearer sign-in/access and support expectations.
+- Kept FAQ structure and IA unchanged so route behavior stayed stable.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+
+### Decisions (and why)
+
+- **Decision:** Keep question titles unchanged and rewrite answers only.
+  - **Why:** Preserves IA and scanning familiarity while fixing tone where users actually judge trust and clarity.
+- **Decision:** Keep all answers truthful to current state (agent-first, selective seller access).
+  - **Why:** Approachability should not come at the cost of product truthfulness.
+
+### Status
+
+- FAQ tone rewrite: `GREEN` (local verification complete).
+
+### Remaining Sign-off Work
+
+1. Deploy and verify `/faqs` live language after edge cache refresh.

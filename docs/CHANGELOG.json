@@ -1481,5 +1481,26 @@
       "Run a quick manual visual sweep on desktop/mobile to validate utility-strip wrapping and FAQ spacing.",
       "Optionally add FAQ route coverage to public routing E2E if regression frequency on public IA increases."
     ]
+  },
+  {
+    "session_id": "2026-04-07-2114-faq-tone-rewrite",
+    "timestamp": "2026-04-07T21:14:00+02:00",
+    "summary": "Rewrote all public FAQ answers to a warmer, clearer, and more approachable tone while keeping structure and product-truth positioning intact.",
+    "files_changed": [
+      "src/lib/faqs.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Updated answers across every FAQ category without changing question titles or IA structure to preserve scanability.",
+      "Prioritized direct, inviting language over abstract framing while keeping agent-first and selective-access truth constraints.",
+      "Scoped changes to shared FAQ copy source so homepage/contact previews inherit the same improved tone automatically."
+    ],
+    "next_steps": [
+      "Deploy to Railway and verify `/faqs` copy on the live URL.",
+      "Collect one user-style review pass for any remaining phrases that feel too formal."
+    ]
   }
 ]

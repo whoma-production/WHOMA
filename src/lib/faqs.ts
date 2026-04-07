@@ -19,19 +19,19 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         id: "what-is-whoma",
         question: "What is WHOMA?",
         answer:
-          "WHOMA is the professional layer for independent estate agents. It helps agents build stronger public profiles, verify identity, and open structured collaboration."
+          "WHOMA gives independent estate agents one trusted profile link to share. It brings identity checks, clear professional detail, and structured collaboration into one place."
       },
       {
         id: "who-is-whoma-for",
         question: "Who is WHOMA for?",
         answer:
-          "WHOMA is built first for independent estate agents who want clearer professional standing, stronger profile quality, and a better way to support referrals and collaboration."
+          "WHOMA is built for independent estate agents who want to look credible from the first click. If you value quality referrals, cleaner introductions, and a stronger public profile, it is made for you."
       },
       {
         id: "is-whoma-a-comparison-marketplace",
         question: "Is WHOMA a marketplace for comparing agents?",
         answer:
-          "No. WHOMA is not a fee-comparison portal. It starts with verified identity, profile depth, and structured collaboration, with seller access opened selectively."
+          "No. WHOMA is not a price-comparison website. The focus is profile quality and trust first, with collaboration and seller access opened carefully."
       }
     ]
   },
@@ -44,19 +44,19 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         question:
           "What makes a WHOMA profile different from an agency bio page?",
         answer:
-          "A WHOMA profile is structured to make professional standing easier to read. It brings service areas, specialties, profile depth, and verification into one shareable profile."
+          "An agency bio is usually marketing copy. A WHOMA profile is structured and easier to evaluate: service areas, specialties, experience, readiness, and verification in one shareable page."
       },
       {
         id: "how-verification-works",
         question: "How does profile verification work?",
         answer:
-          "WHOMA checks identity and profile detail before a profile is treated as verified and public. Verification is used to protect trust and profile quality."
+          "After you complete your core profile, WHOMA reviews identity and profile details. Once checks pass, your profile can be shown as verified and public."
       },
       {
         id: "what-profile-readiness-means",
         question: "What does profile readiness mean?",
         answer:
-          "Profile readiness is a completion signal showing how close a profile is to publication quality. It helps agents see what to finish before sharing at scale."
+          "Profile readiness is your completion score. It shows what is done and what still needs attention before you publish and share with confidence."
       }
     ]
   },
@@ -69,13 +69,13 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         question:
           "Can I share my WHOMA profile with clients, referrers, or collaborators?",
         answer:
-          "Yes. WHOMA is built for profile sharing so agents can send one trusted public profile in referrals, introductions, and collaboration conversations."
+          "Yes. Sharing is a core part of WHOMA. You can send your profile to clients, referrers, and collaborators as your professional link."
       },
       {
         id: "why-profile-sharing-matters",
         question: "Why is profile sharing important on WHOMA?",
         answer:
-          "Profile sharing turns professional identity into a portable asset. It helps people review standing, service fit, and collaboration readiness in one place."
+          "One clear profile reduces back-and-forth. People can quickly understand who you are, where you work, and how you collaborate."
       }
     ]
   },
@@ -87,19 +87,19 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         id: "what-collaboration-means",
         question: "What does collaboration mean on WHOMA?",
         answer:
-          "Collaboration means structured introductions and responses once a strong profile is in place, so fit, timing, and trust are easier to judge."
+          "On WHOMA, collaboration means structured conversations and responses once profile trust is in place. It is designed to make fit, timing, and expectations clearer for everyone."
       },
       {
         id: "when-seller-access-opens",
         question: "When does seller access open?",
         answer:
-          "Seller access opens selectively as profile quality, moderation, and matching depth meet the required standard."
+          "Seller access opens selectively as verified agent supply and moderation depth grow. This keeps quality high while the network expands."
       },
       {
         id: "can-homeowners-join-today",
         question: "Can homeowners join WHOMA today?",
         answer:
-          "Seller access is available selectively. WHOMA currently prioritises agent quality, profile depth, and structured collaboration."
+          "Homeowner access is currently selective. WHOMA is prioritising agent quality and trusted profile depth first."
       }
     ]
   },
@@ -111,13 +111,13 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         id: "how-do-i-sign-in-to-whoma",
         question: "How do I sign in to WHOMA?",
         answer:
-          "Use the public sign-in flow and continue with Google, Apple, or a secure email link."
+          "Go to sign in and continue with Google, Apple, or a secure email link."
       },
       {
         id: "do-i-need-approval-to-access-whoma",
         question: "Do I need approval to access WHOMA?",
         answer:
-          "You can authenticate first, then access is applied by account status. This keeps sign-in simple while maintaining profile quality and trust controls."
+          "You can sign in first. Access to some areas may still be reviewed so profile quality and trust standards stay high."
       }
     ]
   },
@@ -129,19 +129,19 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         id: "how-public-profiles-are-decided",
         question: "How do you decide which profiles are public?",
         answer:
-          "Public visibility depends on identity checks and profile review. WHOMA prioritises clear standards before directory visibility."
+          "Profiles become public when required checks are complete and the profile meets publication standards. The same quality bar is applied across the directory."
       },
       {
         id: "are-example-profiles-real",
         question: "Are the example profiles and proof records real?",
         answer:
-          "Some public examples are illustrative and clearly labelled, while live verified profiles are shown as they pass review."
+          "Some examples are clearly marked as samples so the platform stays easy to explore. Live verified profiles are shown as they pass review."
       },
       {
         id: "how-can-i-contact-whoma",
         question: "How can I contact WHOMA?",
         answer:
-          "Contact WHOMA through support@whoma.co.uk or the support form on the Contact page."
+          "Email support@whoma.co.uk or use the contact form, and the team will route your enquiry quickly."
       }
     ]
   }

@@ -283,6 +283,12 @@ Phase 1 delivery focus:
 - Added a compact homepage FAQ preview block near the bottom of `/` with a direct `View all FAQs` CTA.
 - Consolidated trust/help discovery links by adding `/faqs` to the public footer support section and sitemap page, and by wiring contact-page quick FAQ content from one shared FAQ source (`src/lib/faqs.ts`).
 
+34. FAQ copy approachability pass (2026-04-07) (new)
+
+- Rewrote all answers in `src/lib/faqs.ts` to be more inviting, less vague, and easier for first-time visitors to understand.
+- Kept the existing grouped IA and route structure unchanged while improving clarity and trust tone.
+- Preserved product-truth constraints in copy: agent-first positioning, profile trust before broad marketplace behavior, and selective seller access.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
