@@ -84,7 +84,7 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError(
       403,
       "FORBIDDEN_ROLE",
-      "Only real estate agents can submit proposals."
+      "Only estate agents can submit offers."
     );
   }
 

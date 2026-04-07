@@ -785,8 +785,8 @@ export function CompareClient({ initialData }: { initialData: CompareInstruction
 
         <EmptyState
           title="No offers yet"
-          description="Your sale request is open. Offers usually arrive as local agents review your request."
-          ctaLabel="Back to sale requests"
+          description="Your instruction is open. Offers usually arrive as local agents review it."
+          ctaLabel="Back to instructions"
           onCta={() => {
             router.push("/homeowner/instructions");
           }}
@@ -795,10 +795,10 @@ export function CompareClient({ initialData }: { initialData: CompareInstruction
               type="button"
               variant="secondary"
               onClick={() => {
-                router.push("/requests");
+                router.push("/agents");
               }}
             >
-              Browse open seller requests
+              Browse agent profiles
             </Button>
           }
         />
@@ -813,7 +813,7 @@ export function CompareClient({ initialData }: { initialData: CompareInstruction
               router.push(`/messages?instructionId=${encodeURIComponent(instruction.id)}`);
             }}
           >
-            {messagingUnlocked ? "Unlock contact" : "Contact locked until shortlist"}
+            {messagingUnlocked ? "Open messages" : "Messages open after shortlist"}
           </Button>
         </div>
       </div>
@@ -825,7 +825,7 @@ export function CompareClient({ initialData }: { initialData: CompareInstruction
       <Card className="sticky top-4 z-20 space-y-4 border-line bg-surface-0/95 shadow-soft backdrop-blur">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Sale request {instruction.id}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Instruction {instruction.id}</p>
             <h2 className="text-lg font-semibold text-text-strong">
               {instruction.addressLine1}, {instruction.city} {instruction.postcode}
             </h2>
@@ -1018,7 +1018,7 @@ export function CompareClient({ initialData }: { initialData: CompareInstruction
               router.push(`/messages?instructionId=${encodeURIComponent(instruction.id)}`);
             }}
           >
-            {messagingUnlocked ? "Unlock contact" : "Contact locked until shortlist"}
+            {messagingUnlocked ? "Open messages" : "Messages open after shortlist"}
           </Button>
           <Button
             type="button"
@@ -1027,7 +1027,7 @@ export function CompareClient({ initialData }: { initialData: CompareInstruction
               router.push("/homeowner/instructions");
             }}
           >
-            Back to sale requests
+            Back to instructions
           </Button>
         </div>
       </Card>

@@ -101,11 +101,11 @@ export default async function AgentProposalsPage(): Promise<JSX.Element> {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-text-strong">No offers submitted yet</h2>
               <p className="text-sm text-text-muted">
-                Browse open seller requests to submit your first structured offer.
+                Browse open instructions to submit your first structured offer.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link href="/agent/marketplace" className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
-                  Browse seller requests
+                  Browse open instructions
                 </Link>
                 <Link href="/agent/profile/edit" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
                   Complete profile
@@ -173,13 +173,13 @@ export default async function AgentProposalsPage(): Promise<JSX.Element> {
                           href={`/agent/marketplace/${offer.instruction.id}`}
                           className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
                         >
-                          View seller request
+                          View instruction
                         </Link>
                         <Link
                           href={`/messages?instructionId=${encodeURIComponent(offer.instruction.id)}`}
                           className={cn(buttonVariants({ variant: "tertiary", size: "sm" }))}
                         >
-                          {offer.contactThreadStatus === "OPEN" ? "Open contact" : "Contact locked"}
+                          {offer.contactThreadStatus === "OPEN" ? "Open messages" : "Messaging locked"}
                         </Link>
                       </div>
                     </Card>

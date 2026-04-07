@@ -114,7 +114,7 @@ test("marketplace forms are interactive on first load after preview sign-in", as
   await homeownerPage.getByLabel("Bid window end").fill(toDateTimeLocal(bidWindowEndAt));
   await homeownerPage.getByLabel("Bid window hours").fill("24");
 
-  await homeownerPage.getByRole("button", { name: "Launch instruction" }).click();
+  await homeownerPage.getByRole("button", { name: "Create instruction" }).click();
   const instructionSuccess = homeownerPage.locator(
     "text=/Instruction\\s+\\S+\\s+was created successfully/i"
   );
@@ -134,11 +134,10 @@ test("marketplace forms are interactive on first load after preview sign-in", as
     .first()
     .waitFor({ timeout: 20_000 });
 
-  await agentPage.getByRole("button", { name: "Submit Proposal" }).click();
+  await agentPage.getByRole("button", { name: "Submit offer" }).click();
   await expect(
-    agentPage.locator("text=/Proposal sent successfully/i").first()
+    agentPage.locator("text=/Offer sent successfully/i").first()
   ).toBeVisible({ timeout: 20_000 });
 
   await agentPage.close();
 });
-

@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "WHOMA | Open instructions",
   description:
-    "Selective seller access and open instruction areas on WHOMA.",
+    "Area summaries for invited seller access on WHOMA.",
   robots: {
     index: false,
     follow: false
@@ -66,18 +66,18 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
             Seller access
           </p>
-          <h1>Open instructions appear selectively.</h1>
+          <h1>Seller access opens selectively.</h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            WHOMA keeps seller access tightly controlled so agent quality and
-            transaction clarity stay high. This page shows where invited
-            instructions are currently visible.
+            WHOMA is built around verified agent profiles. This page simply
+            shows where invited instructions are currently visible once seller
+            access is in place.
           </p>
         </section>
 
         <Card className="space-y-3 bg-surface-0">
           <p className="text-sm text-text-muted">
-            Start with verified agent profiles, then use these instruction areas
-            as supporting context once access is in place.
+            Start with verified agent profiles, then use these area summaries as
+            supporting context once seller access is approved.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -170,7 +170,7 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                   href={`/requests/${location.postcodeDistrict}` as Route}
                   className={cn(buttonVariants({ variant: "secondary" }))}
                 >
-                  View instructions in {location.postcodeDistrict}
+                  View area overview
                 </Link>
               </Card>
             ))
@@ -180,9 +180,10 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl">Current open instructions</h2>
+              <h2 className="text-xl">Current visible instructions</h2>
               <p className="text-sm text-text-muted">
-                A selective view of seller access currently open on WHOMA.
+                A selective view of invited seller access currently visible on
+                WHOMA.
               </p>
             </div>
             <Link
@@ -244,6 +245,7 @@ export default async function LocationsIndexPage(): Promise<ReactElement> {
                 <InstructionCard
                   key={instruction.id}
                   instruction={instruction}
+                  mode="public"
                 />
               ))}
             </div>

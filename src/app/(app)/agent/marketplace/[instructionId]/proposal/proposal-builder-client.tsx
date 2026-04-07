@@ -265,10 +265,10 @@ export function ProposalBuilderClient({
       setBanner({
         tone: "success",
         label: "Submitted",
-        title: "Proposal sent successfully",
+        title: "Offer sent successfully",
         message: proposalId
-          ? `Proposal ${proposalId} is now submitted and waiting in the marketplace.`
-          : "Your proposal is now submitted and waiting in the marketplace."
+          ? `Offer ${proposalId} has been submitted successfully.`
+          : "Your offer has been submitted successfully."
       });
     } catch {
       setBanner({
@@ -304,10 +304,9 @@ export function ProposalBuilderClient({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
             Instruction {instructionId}
           </p>
-          <h2 className="text-lg">Proposal Builder</h2>
+          <h2 className="text-lg">Offer Builder</h2>
           <p className="text-sm text-text-muted">
-            Structured real estate agent proposal form with live preview and
-            server-side validation.
+            Structured offer form with live preview and server-side validation.
           </p>
         </div>
 
@@ -508,30 +507,17 @@ export function ProposalBuilderClient({
 
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={!isFormInteractive}>
-                {isSubmitting ? "Submitting..." : "Submit Proposal"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled
-                title="Draft saving is not wired in this slice."
-              >
-                Save Draft
-              </Button>
-              <Button
-                type="button"
-                variant="tertiary"
-                disabled
-                title="Chat unlock remains gated by shortlist/award."
-              >
-                Ask a question (chat gated)
+                {isSubmitting ? "Submitting..." : "Submit offer"}
               </Button>
             </div>
+            <p className="text-xs text-text-muted">
+              Messages open once you are shortlisted or chosen.
+            </p>
           </fieldset>
         </form>
       </Card>
 
-      <ProposalCard title="Live Preview" proposal={previewProposal} />
+      <ProposalCard title="Offer Preview" proposal={previewProposal} />
     </div>
   );
 }

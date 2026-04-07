@@ -143,7 +143,7 @@ export default async function PublicAgentProfilePage({
       note: "Structured specialties published on profile"
     },
     {
-      label: "Profile quality",
+      label: "Profile readiness",
       value: `${profile.profileCompleteness}% complete`,
       note: "Structured profile completeness"
     },

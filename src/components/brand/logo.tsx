@@ -26,12 +26,12 @@ export function Logo({
     <span className={cn("inline-flex items-center gap-3", className)}>
       {mark}
       {!compact ? (
-        <span className="flex items-baseline gap-3 leading-none">
+        <span className="flex flex-col leading-tight">
           <span className="text-sm font-semibold tracking-[0.12em] text-brand-ink">
             WHOMA
           </span>
           {subtitle ? (
-            <span className="hidden text-[0.72rem] font-medium text-text-muted sm:inline">
+            <span className="mt-0.5 text-[0.68rem] font-medium tracking-[0.02em] text-text-muted">
               {subtitle}
             </span>
           ) : null}

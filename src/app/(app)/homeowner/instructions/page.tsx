@@ -53,7 +53,7 @@ export default async function HomeownerInstructionsIndexPage(): Promise<JSX.Elem
   ).length;
 
   return (
-    <AppShell role="HOMEOWNER" title="My Sale Requests">
+    <AppShell role="HOMEOWNER" title="My Instructions">
       <div className="space-y-6">
         <section className="grid gap-3 md:grid-cols-3">
           <Card className="space-y-1">
@@ -86,11 +86,11 @@ export default async function HomeownerInstructionsIndexPage(): Promise<JSX.Elem
           <Card className="border-dashed">
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-text-strong">
-                No sale requests yet
+                No instructions yet
               </h2>
               <p className="text-sm text-text-muted">
-                Post your first sale request to start receiving agent offers
-                side by side.
+                Create your first instruction to start receiving comparable
+                agent offers.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link
@@ -99,15 +99,15 @@ export default async function HomeownerInstructionsIndexPage(): Promise<JSX.Elem
                     buttonVariants({ variant: "primary", size: "sm" })
                   )}
                 >
-                  Post sale request
+                  Create instruction
                 </Link>
                 <Link
-                  href="/requests"
+                  href="/agents"
                   className={cn(
                     buttonVariants({ variant: "secondary", size: "sm" })
                   )}
                 >
-                  Browse seller-request areas
+                  Browse agent profiles
                 </Link>
               </div>
             </div>
@@ -123,7 +123,7 @@ export default async function HomeownerInstructionsIndexPage(): Promise<JSX.Elem
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Sale request {instruction.id}
+                      Instruction {instruction.id}
                     </p>
                     <h2 className="text-lg font-semibold text-text-strong">
                       {instruction.addressLine1}, {instruction.city}{" "}
@@ -193,8 +193,8 @@ export default async function HomeownerInstructionsIndexPage(): Promise<JSX.Elem
                     )}
                   >
                     {instruction.contactUnlocked
-                      ? "Open contact"
-                      : "View message status"}
+                      ? "Open messages"
+                      : "Messaging locked"}
                   </Link>
                 </div>
               </Card>
@@ -207,7 +207,7 @@ export default async function HomeownerInstructionsIndexPage(): Promise<JSX.Elem
             href="/homeowner/instructions/new"
             className={cn(buttonVariants({ variant: "primary" }))}
           >
-            Post new sale request
+            Create new instruction
           </Link>
           <Link
             href="/agents"

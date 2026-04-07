@@ -406,8 +406,8 @@ export default async function LandingPage(): Promise<JSX.Element> {
               <p className="public-kicker">Seller access</p>
               <h2>Seller access stays selective so quality stays high.</h2>
               <p className="text-sm text-text-muted sm:text-base">
-                WHOMA stays centred on agent quality, profile depth, and
-                clearer transaction visibility. {sellerAccessNote}
+                WHOMA stays centred on agent quality, profile depth, and more
+                structured collaboration. {sellerAccessNote}
               </p>
             </div>
             <Link

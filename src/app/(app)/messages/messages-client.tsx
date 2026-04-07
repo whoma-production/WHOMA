@@ -644,7 +644,8 @@ export function MessagesClient({
               <div className="space-y-3">
                 {threadDetailStatus === "LOCKED" ? (
                   <p className="rounded-md border border-state-warning/20 bg-state-warning/5 p-3 text-sm text-state-warning">
-                    Messaging is locked until the homeowner shortlists or awards this proposal.
+                    Messaging opens once the homeowner shortlists or chooses
+                    this offer.
                   </p>
                 ) : null}
 
@@ -656,7 +657,7 @@ export function MessagesClient({
                   placeholder={
                     threadDetailStatus === "OPEN"
                       ? "Write a message..."
-                      : "Messaging is locked for this thread."
+                      : "Messaging opens once this thread is unlocked."
                   }
                   disabled={threadDetailStatus !== "OPEN" || sendPending}
                   maxLength={2000}
@@ -690,7 +691,7 @@ export function MessagesClient({
             <EmptyState
               title="Pick a thread"
               description="Choose a thread on the left to read and send messages."
-              ctaLabel={role === "HOMEOWNER" ? "Review instructions" : "Browse marketplace"}
+              ctaLabel={role === "HOMEOWNER" ? "Review instructions" : "Browse open instructions"}
               onCta={() => {
                 window.location.href =
                   role === "HOMEOWNER"

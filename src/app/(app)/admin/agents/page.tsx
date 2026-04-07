@@ -67,13 +67,13 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
   const error = resolvedSearchParams?.error;
 
   return (
-    <AppShell role="ADMIN" title="Real Estate Agent Verification">
+    <AppShell role="ADMIN" title="Estate Agent Verification">
       <div className="space-y-6">
         <Card className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-text-strong">Phase 1 activation metrics</h2>
+            <h2 className="text-lg font-semibold text-text-strong">Activation metrics</h2>
             <p className="text-sm text-text-muted">
-              Track the behaviors WHOMA needs to validate before broader marketplace expansion.
+              Track profile progress from onboarding through verification.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

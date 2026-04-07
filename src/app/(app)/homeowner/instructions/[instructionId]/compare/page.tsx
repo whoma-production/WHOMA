@@ -146,7 +146,7 @@ export default async function ProposalComparePage({ params }: PageProps): Promis
       };
     }
   } catch {
-    loadError = process.env.DATABASE_URL ? "We could not load this compare view right now." : "Database access is not configured in this environment.";
+    loadError = "We could not load this compare view right now.";
   }
 
   return (

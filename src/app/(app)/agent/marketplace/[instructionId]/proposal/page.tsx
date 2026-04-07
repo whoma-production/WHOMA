@@ -13,7 +13,7 @@ export default async function ProposalBuilderPage({
   const { instructionId } = await params;
 
   return (
-    <AppShell role="AGENT" title="Submit Proposal">
+    <AppShell role="AGENT" title="Submit Offer">
       <ProposalBuilderClient instructionId={instructionId} />
     </AppShell>
   );

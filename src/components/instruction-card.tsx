@@ -17,7 +17,17 @@ export interface InstructionCardModel {
   bidWindowEndAtIso: string;
 }
 
-export function InstructionCard({ instruction }: { instruction: InstructionCardModel }): JSX.Element {
+interface InstructionCardProps {
+  instruction: InstructionCardModel;
+  mode?: "agent" | "public";
+}
+
+export function InstructionCard({
+  instruction,
+  mode = "agent"
+}: InstructionCardProps): JSX.Element {
+  const isPublic = mode === "public";
+
   return (
     <Card className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -35,22 +45,30 @@ export function InstructionCard({ instruction }: { instruction: InstructionCardM
       <div className="flex flex-wrap gap-2">
         <Badge>{instruction.proposalsCount} offers</Badge>
         <Badge variant="accent">{instruction.sellerTimelineGoal}</Badge>
+        {isPublic ? <Badge variant="warning">Access by invitation</Badge> : null}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href={`/agent/marketplace/${instruction.id}/proposal`}
-          className={cn(buttonVariants({ variant: "primary" }))}
-        >
-          Submit offer
-        </Link>
-        <Link
-          href={`/agent/marketplace/${instruction.id}`}
-          className={cn(buttonVariants({ variant: "secondary" }))}
-        >
-          View instruction
-        </Link>
-      </div>
+      {isPublic ? (
+        <p className="text-sm text-text-muted">
+          Detailed instruction access is opened selectively once seller access is
+          approved.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/agent/marketplace/${instruction.id}/proposal`}
+            className={cn(buttonVariants({ variant: "primary" }))}
+          >
+            Submit offer
+          </Link>
+          <Link
+            href={`/agent/marketplace/${instruction.id}`}
+            className={cn(buttonVariants({ variant: "secondary" }))}
+          >
+            View instruction
+          </Link>
+        </div>
+      )}
     </Card>
   );
 }

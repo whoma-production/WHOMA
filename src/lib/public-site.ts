@@ -18,7 +18,6 @@ export interface PublicSiteConfig {
 export const PUBLIC_AGENT_CTA_HREF = "/sign-up?role=AGENT";
 export const PUBLIC_AGENT_DIRECTORY_HREF = "/agents";
 export const PUBLIC_REQUESTS_PILOT_HREF = "/requests";
-export const PUBLIC_AGENT_TRANSACTIONS_HREF = "/sign-in?next=/agent/marketplace";
 export const PUBLIC_COLLABORATION_PILOT_HREF = "/contact";
 
 export function getPublicSiteConfig(): PublicSiteConfig {
@@ -28,10 +27,7 @@ export function getPublicSiteConfig(): PublicSiteConfig {
       process.env.NEXT_PUBLIC_COMPANY_LEGAL_NAME,
       "WHOMA"
     ),
-    logoSubtitle: readEnvValue(
-      process.env.NEXT_PUBLIC_LOGO_SUBTITLE,
-      "The professional layer for independent estate agents"
-    ),
+    logoSubtitle: "Where homeowners meet estate agents",
     supportEmail: readEnvValue(
       process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
       "support@whoma.co.uk"
@@ -50,7 +46,7 @@ export function getPublicSiteConfig(): PublicSiteConfig {
     ),
     pilotSummary: readEnvValue(
       process.env.NEXT_PUBLIC_PILOT_SUMMARY,
-      "WHOMA helps independent estate agents build a verified profile, show real transaction depth, and open the right collaboration opportunities."
+      "WHOMA helps independent estate agents build a verified profile, present professional substance clearly, and open the right collaboration opportunities."
     ),
     operatingRegion: readEnvValue(
       process.env.NEXT_PUBLIC_OPERATING_REGION,

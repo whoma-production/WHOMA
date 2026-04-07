@@ -165,7 +165,7 @@ function requireAgentSession(session: Session | null):
   if (session.user.role !== "AGENT") {
     return {
       ok: false,
-      response: jsonError(403, "FORBIDDEN_ROLE", "Only real estate agents can upload resumes.")
+      response: jsonError(403, "FORBIDDEN_ROLE", "Only estate agents can upload resumes.")
     };
   }
 

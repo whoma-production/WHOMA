@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Newsreader } from "next/font/google";
+import { Montserrat } from "next/font/google";
 
 import { Providers } from "@/app/providers";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
@@ -7,15 +7,15 @@ import { getPublicSiteConfig } from "@/lib/public-site";
 
 import "@/app/globals.css";
 
-const newsreader = Newsreader({
+const montserratUi = Montserrat({
   subsets: ["latin"],
-  variable: "--font-display",
+  variable: "--font-ui",
   display: "swap"
 });
 
-const manrope = Manrope({
+const montserratDisplay = Montserrat({
   subsets: ["latin"],
-  variable: "--font-ui",
+  variable: "--font-display",
   display: "swap"
 });
 
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
   return (
     <html lang="en-GB">
-      <body className={`${newsreader.variable} ${manrope.variable}`}>
+      <body className={`${montserratUi.variable} ${montserratDisplay.variable}`}>
         <a className="sr-only" href={`mailto:${site.supportEmail}`}>
           Contact {site.brandName} support
         </a>

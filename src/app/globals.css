@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --font-display: "Newsreader";
-  --font-ui: "Manrope";
+  --font-display: "Montserrat";
+  --font-ui: "Montserrat";
 
   --color-brand-ink: #191713;
   --color-brand-accent: #1f5c58;
   --color-brand-brass: #a8844a;
 
-  --color-surface-0: #fbf8f2;
-  --color-surface-1: #f6f1e8;
-  --color-surface-2: #efe7da;
+  --color-surface-0: #ffffff;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f6f7f9;
   --color-surface-inverse: #211d18;
 
   --color-line: #d9d0c2;
@@ -47,9 +47,7 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(circle at top, rgba(168, 132, 74, 0.08), transparent 28%),
-    linear-gradient(180deg, #fbf8f2 0%, #f6f1e8 100%);
+  background: #ffffff;
   color: var(--color-text-base);
   font-family: var(--font-ui), system-ui, sans-serif;
   text-rendering: optimizeLegibility;
@@ -97,26 +95,26 @@ a {
   h5,
   h6 {
     color: var(--color-text-strong);
-    font-family: var(--font-display), Georgia, serif;
-    letter-spacing: -0.03em;
+    font-family: var(--font-display), system-ui, sans-serif;
+    letter-spacing: -0.025em;
   }
 
   h1 {
     font-size: clamp(3rem, 6vw, 4.75rem);
-    line-height: 0.96;
-    font-weight: 500;
+    line-height: 0.98;
+    font-weight: 600;
   }
 
   h2 {
     font-size: clamp(2rem, 4vw, 3rem);
-    line-height: 1.02;
-    font-weight: 500;
+    line-height: 1.06;
+    font-weight: 600;
   }
 
   h3 {
     font-size: 1.4rem;
-    line-height: 1.12;
-    font-weight: 500;
+    line-height: 1.16;
+    font-weight: 600;
   }
 
   p {
@@ -189,7 +187,7 @@ a {
   .public-record {
     border: 1px solid var(--color-line);
     border-radius: var(--radius-lg);
-    background: rgba(251, 248, 242, 0.92);
+    background: #ffffff;
     padding: clamp(1.25rem, 2vw, 2rem);
     box-shadow: var(--shadow-soft);
   }

@@ -46,16 +46,16 @@ export default async function AgentMarketplacePage({
     await getLiveInstructionCards(filters);
 
   return (
-    <AppShell role="AGENT" title="Marketplace">
+    <AppShell role="AGENT" title="Open Instructions">
       <div className="space-y-6">
         <Card className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-text-strong">
-              LIVE Instructions
+              Open instructions
             </h2>
             <p className="text-sm text-text-muted">
-              Filter by postcode district, property type, and bedrooms. Primary
-              CTA is structured real estate agent proposal submission.
+              Filter by postcode district, property type, and bedrooms, then
+              open the instruction to submit a structured offer.
             </p>
           </div>
           <form className="grid gap-3 md:grid-cols-3" method="GET">
@@ -111,12 +111,11 @@ export default async function AgentMarketplacePage({
           <Card className="border-dashed bg-surface-0">
             <div className="space-y-2">
               <h2 className="text-lg font-semibold text-text-strong">
-                No LIVE instructions right now
+                No open instructions right now
               </h2>
               <p className="text-sm text-text-muted">
-                Active bid windows will appear here automatically. If the
-                database is not configured yet, this page still renders with a
-                usable empty state.
+                Instructions appear here automatically when a response window is
+                live.
               </p>
             </div>
           </Card>

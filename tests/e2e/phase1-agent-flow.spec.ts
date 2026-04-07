@@ -53,7 +53,7 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   const languages = "English, French";
 
   const agentPage = await signInAsPreviewRole(page, "AGENT", workEmail);
-  await expect(agentPage.getByRole("heading", { name: /real estate agent onboarding/i })).toBeVisible();
+  await expect(agentPage.getByRole("heading", { name: /agent onboarding/i })).toBeVisible();
 
   await agentPage.getByLabel("Full name").fill(fullName);
   await agentPage.getByLabel("Work email for verification").fill(workEmail);
@@ -88,7 +88,7 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
     agentPage.getByRole("button", { name: /save onboarding details/i }).click()
   ]);
 
-  await expect(agentPage.getByRole("heading", { name: /agent cv builder/i })).toBeVisible();
+  await expect(agentPage.getByRole("heading", { name: /your profile/i })).toBeVisible();
 
   await agentPage.getByLabel("Agency").fill(agencyName);
   await agentPage.getByLabel("Job title").fill(jobTitle);
@@ -121,11 +121,12 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   const preVerificationResponse = await publicPage.goto(`/agents/${slug}`, {
     waitUntil: "domcontentloaded"
   });
-  expect(preVerificationResponse?.status()).toBe(404);
+  expect(preVerificationResponse?.ok()).toBeTruthy();
+  await expect(publicPage).toHaveTitle(/agent profile not found/i);
 
   const adminEmail = `qa-admin-${runId}@example.test`;
   const adminPage = await signInAsPreviewRole(page, "ADMIN", adminEmail);
-  await expect(adminPage.getByRole("heading", { name: /real estate agent verification/i })).toBeVisible();
+  await expect(adminPage.getByRole("heading", { name: /estate agent verification/i })).toBeVisible();
 
   const agentRow = adminPage.locator("li", { hasText: fullName });
   await expect(agentRow).toBeVisible();
@@ -136,7 +137,7 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   await adminPage.goto("/agents?verified=true", { waitUntil: "domcontentloaded" });
   await expect(
     adminPage.getByRole("heading", {
-      name: /browse estate agent profiles before you choose who to trust with your sale/i
+      name: /verified independent estate agents/i
     })
   ).toBeVisible();
   await expect(adminPage.getByText(fullName)).toBeVisible();
@@ -145,13 +146,13 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   await expect(publicPage.getByRole("heading", { name: new RegExp(fullName, "i") })).toBeVisible();
   await expect(publicPage.getByText(/verified profile/i)).toBeVisible();
   await expect(
-    publicPage.getByRole("heading", { name: /why this profile is public/i })
+    publicPage.getByRole("heading", { name: /profile standards/i })
   ).toBeVisible();
   await expect(
     publicPage.getByRole("heading", { name: /trust and contact/i })
   ).toBeVisible();
-  await expect(publicPage.getByText(/profile quality/i)).toBeVisible();
-  await expect(publicPage.getByText(/admin verified/i)).toBeVisible();
+  await expect(publicPage.getByText(/profile readiness/i)).toBeVisible();
+  await expect(publicPage.getByText("Admin verified", { exact: true })).toBeVisible();
   await expect(publicPage.getByText(/work email:/i)).toBeVisible();
 
   await adminPage.close();

@@ -99,7 +99,8 @@ export function ProposalCompareTable({
     return (
       <Card>
         <p className="text-sm text-text-muted">
-          No offers yet. Share the sale request and wait for agent offers to arrive.
+          No offers yet. Your instruction is live and agents can respond while
+          the window is open.
         </p>
       </Card>
     );

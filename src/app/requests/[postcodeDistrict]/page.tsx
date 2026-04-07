@@ -41,7 +41,7 @@ export async function generateMetadata({
 
   return {
     title: `WHOMA | Open instructions in ${normalizedDistrict}`,
-    description: `Selective seller access and open instruction activity in ${normalizedDistrict}.`,
+    description: `Area summary for invited seller access in ${normalizedDistrict}.`,
     robots: {
       index: false,
       follow: false
@@ -79,7 +79,7 @@ export default async function LocationPage({
                 buttonVariants({ variant: "secondary", size: "sm" })
               )}
             >
-              All collaboration areas
+              All instruction areas
             </Link>
             <Link
               href={PUBLIC_AGENT_CTA_HREF}
@@ -96,13 +96,11 @@ export default async function LocationPage({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
             Seller access
           </p>
-          <h1>
-            Open instructions in {city} · {normalizedDistrict}
-          </h1>
+          <h1>Seller access in {city} · {normalizedDistrict}</h1>
           <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-            This page shows instruction activity currently visible in{" "}
-            {normalizedDistrict}. WHOMA keeps seller access selective so the
-            verified profile network remains the primary public layer.
+            This page shows invited instruction activity currently visible in{" "}
+            {normalizedDistrict}. Verified profiles remain the primary public
+            layer.
           </p>
         </section>
 
@@ -117,7 +115,7 @@ export default async function LocationPage({
           </Card>
           <Card className="space-y-1 bg-surface-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-              Open instructions
+              Visible instructions
             </p>
             <p className="text-lg font-semibold text-text-strong">
               {instructions.length}
@@ -125,7 +123,7 @@ export default async function LocationPage({
           </Card>
           <Card className="space-y-1 bg-surface-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-              Responses submitted
+              Offers submitted
             </p>
             <p className="text-lg font-semibold text-text-strong">
               {totalOffers}
@@ -136,7 +134,7 @@ export default async function LocationPage({
         <Card className="space-y-3 bg-surface-0">
           <p className="text-sm text-text-muted">
             Start with verified profiles, then use this page as supporting
-            context once seller access is in place.
+            context once seller access is approved.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -158,7 +156,9 @@ export default async function LocationPage({
 
         <section className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl">Open instructions in {normalizedDistrict}</h2>
+            <h2 className="text-xl">
+              Visible instructions in {normalizedDistrict}
+            </h2>
             <Link
               href={PUBLIC_COLLABORATION_PILOT_HREF}
               className={cn(buttonVariants({ variant: "secondary" }))}
@@ -219,6 +219,7 @@ export default async function LocationPage({
                 <InstructionCard
                   key={instruction.id}
                   instruction={instruction}
+                  mode="public"
                 />
               ))}
             </div>

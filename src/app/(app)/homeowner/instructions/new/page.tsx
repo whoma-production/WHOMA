@@ -341,11 +341,10 @@ export default function CreateInstructionPage(): ReactElement {
     <AppShell role="HOMEOWNER" title="Create Instruction">
       <div className="space-y-6">
         <InlineToast>
-          <InlineToastLabel>Ready to launch</InlineToastLabel>
+          <InlineToastLabel>One clear brief</InlineToastLabel>
           <p className="text-sm text-text-muted">
-            Build the property brief, seller goals, and bid window in one pass.
-            The submission sends a structured payload directly to the
-            instruction API.
+            Describe the property, your goals, and the response window in one
+            pass.
           </p>
         </InlineToast>
         {!clientReady ? (
@@ -393,11 +392,11 @@ export default function CreateInstructionPage(): ReactElement {
         <Card className="space-y-6">
           <div className="space-y-2">
             <h2 className="text-xl font-semibold text-text-strong">
-              Create a homeowner brief
+              Create your sale brief
             </h2>
             <p className="text-sm text-text-muted">
-              Keep the structure lean: property details, seller brief, and a bid
-              window that agents can compare against.
+              Keep the structure lean: property details, your goals, and a
+              response window that agents can answer against.
             </p>
           </div>
 
@@ -415,7 +414,7 @@ export default function CreateInstructionPage(): ReactElement {
                 </h3>
                 <p className="text-sm text-text-muted">
                   Describe the home accurately so agents can respond with
-                  comparable proposals.
+                  comparable offers.
                 </p>
               </div>
 
@@ -559,8 +558,8 @@ export default function CreateInstructionPage(): ReactElement {
                   Seller brief
                 </h3>
                 <p className="text-sm text-text-muted">
-                  Keep the goals specific and the must-haves comma-separated so
-                  the instruction stays comparable.
+                  Keep the goals specific and the must-haves clear so each
+                  offer can be compared like for like.
                 </p>
               </div>
 
@@ -621,7 +620,7 @@ export default function CreateInstructionPage(): ReactElement {
                     }
                   />
                   <p className="text-xs text-text-muted">
-                    These are parsed into a structured array before submission.
+                    Separate each must-have with a comma.
                   </p>
                 </label>
               </div>
@@ -684,7 +683,7 @@ export default function CreateInstructionPage(): ReactElement {
               <Button type="submit" disabled={!isFormInteractive}>
                 {submission.kind === "submitting"
                   ? "Submitting..."
-                  : "Launch instruction"}
+                  : "Create instruction"}
               </Button>
               <Button
                 type="button"
@@ -698,8 +697,8 @@ export default function CreateInstructionPage(): ReactElement {
                 Reset form
               </Button>
               <p className="text-sm text-text-muted">
-                The API creates a property and instruction together, then
-                returns the persisted instruction envelope.
+                The instruction will appear in your dashboard once it has been
+                created.
               </p>
             </div>
           </form>
@@ -708,20 +707,18 @@ export default function CreateInstructionPage(): ReactElement {
         <Card className="space-y-3">
           <div>
             <h2 className="text-lg font-semibold text-text-strong">
-              Payload shape
+              What agents will receive
             </h2>
             <p className="text-sm text-text-muted">
-              This form submits the structured instruction payload expected by
-              the API with no freeform-only shortcuts.
+              Every response is anchored to the same instruction structure so
+              offers stay easy to compare.
             </p>
           </div>
           <ul className="grid gap-2 text-sm text-text-muted sm:grid-cols-2">
-            <li>
-              Property fields: address, city, postcode, type, rooms, summary.
-            </li>
+            <li>Property details: address, city, postcode, type, rooms, summary.</li>
             <li>Seller brief: goals plus comma-separated must-haves.</li>
-            <li>Bid window: start, end, and whole-hour duration.</li>
-            <li>Photos remain an empty array for this MVP slice.</li>
+            <li>Response window: start, end, and whole-hour duration.</li>
+            <li>Comparable offers returned in a consistent structure.</li>
           </ul>
         </Card>
       </div>
