@@ -3088,3 +3088,360 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Redeploy and verify live public production no longer exposes the preview provider (`/api/auth/providers` and attempted preview callback auth).
 2. Replace any non-local QA or smoke path that still relies on preview callback auth against a production-like target.
 3. Re-run one browser-level public-surface check in an unrestricted runtime to capture end-to-end evidence for the cleaned trust surfaces.
+
+---
+
+## Session: 2026-04-03 / 21:34 (CEST) — Gate 1 production deploy + live sign-off
+
+**Author:** Codex  
+**Context:** User asked to deploy the Gate 1 trust changes and verify them live.  
+**Branch/PR:** `codex-phase1-public-release`
+
+### Goal
+
+- Deploy the Gate 1 trust fix safely to Railway production and verify the exact live behaviours: auth provider exposure, preview callback rejection, synthetic public profile suppression, and scaffold-route retirement.
+
+### Changes Made
+
+- Built a clean Railway release bundle from branch `HEAD` in `/tmp/whoma-gate1-deploy.*` to avoid shipping unrelated dirty worktree changes from parallel streams.
+- Overlaid the two live release fixes still outside `HEAD` that were required for the release bundle:
+  - `src/app/[slug]/page.tsx` (production build lint fix already present locally),
+  - `src/app/agents/[slug]/page.tsx` (label consistency tweak).
+- Deployed the bundle to Railway production with:
+  - `railway up --ci -p f022373e-a9ea-4a4f-a651-efe34201f09c -e production -s whoma-web`
+- First deploy failed on a production ESLint build error (`react/no-unescaped-entities` in `src/app/[slug]/page.tsx`); after overlaying the already-fixed local file into the release bundle, the retry deploy completed successfully.
+- Verified production auth lock and trust posture after deploy.
+
+### Verification
+
+- Live health:
+  - `curl -sS https://whoma-web-production.up.railway.app/api/health`
+  - result: `{"status":"ok",...,"checks":{"database":"up"}}`
+- Live auth providers:
+  - `curl -sS https://whoma-web-production.up.railway.app/api/auth/providers`
+  - result: `{}`
+- Live preview callback rejection:
+  - fetched CSRF from `/api/auth/csrf`
+  - posted to `/api/auth/callback/preview`
+  - result: `{"url":"https://whoma-web-production.up.railway.app/api/auth/error?error=Configuration"}`
+  - follow-up `/api/auth/session` result: `null`
+- Live scaffold-route retirement:
+  - `curl -sS -o /dev/null -D - https://whoma-web-production.up.railway.app/agent/marketplace/ins_1`
+  - result: `307 -> /sign-in?next=%2Fagent%2Fmarketplace%2Fins_1`
+- Production DB verification through Railway Postgres shell:
+  - `SELECT "dataOrigin", COUNT(*) FROM "User" GROUP BY 1 ORDER BY 1;`
+  - result: `PRODUCTION=2`, `PREVIEW=5`
+  - `SELECT email, "dataOrigin" FROM "User" WHERE email LIKE 'pilot.agent%@whoma.local';`
+  - result: no rows
+  - `SELECT ... FROM "AgentProfile" ...;`
+  - result: no public agent profiles currently exist in production DB
+- Synthetic public profile path check:
+  - `/agents/pilot-agent-01` now resolves to the not-found fallback content (`Agent profile not found | WHOMA`) rather than a real profile, even though the raw HTML response still arrives through the App Router streaming shell.
+
+### Decisions (and why)
+
+- **Decision:** Deploy from a clean temp bundle instead of the repo root.
+  - **Why:** The main worktree contained unrelated parallel changes that were out of scope for the Gate 1 release.
+- **Decision:** Treat the live `preview callback -> error=Configuration -> session=null` chain as the decisive auth-backdoor proof.
+  - **Why:** It verifies both provider removal and failed session creation, not just public UI hiding.
+- **Decision:** Verify production data directly in Railway Postgres rather than assuming migration/backfill success from code alone.
+  - **Why:** The remaining seeded-profile concern was a live trust-signoff item, so DB-grounded proof mattered more than inference.
+
+### Status
+
+- `GATE 1 — TRUST`: `GREEN`
+
+### Next Steps
+
+1. Start `GATE 2 — TRUTH` and keep scope tight: CTA routing, public proof labels, `/requests*` card split, and docs/tests drift.
+2. Do not begin `GATE 3 — MEASUREMENT` until the Gate 2 public-truth pass is signed off.
+
+---
+
+## Session: 2026-04-02 / 23:18 (CEST) — Launch-surface language + state cleanup
+
+**Author:** Codex  
+**Context:** User asked to begin implementing the launch-readiness audit across public and signed-in surfaces, with emphasis on premium positioning, UK-consistent terminology, and removal of provisional product language.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Turn the audit into code by replacing launch-weakening language and unfinished-feeling states across the public site and the main signed-in agent/homeowner flows.
+
+### Changes Made
+
+- Reframed signed-in agent surfaces away from `Marketplace`, `Proposal`, and `CV builder` language toward `Open Instructions`, `Offer`, and `Your Profile`.
+- Rewrote homeowner instruction creation, instruction dashboard, compare, and messaging states so they read as polished product flows rather than API scaffolding or temporary beta tooling.
+- Cleaned user-facing API error language to prefer `estate agent` / `offer` terminology.
+- Updated request-area copy to `open instructions` / `seller access` on the district route and aligned remaining public request-route tests to the new wording.
+- Removed dead disabled CTA placeholders from the offer builder so the primary submission path is the only visible action.
+- Added/verified branded state handling across public routes and captured the launch-facing terminology shift in task and platform docs.
+- Diagnosed agent onboarding runtime failure as a database migration-history issue, then fixed it non-destructively by:
+  - marking `20260321194500_agent_work_email_verification` as applied,
+  - deploying `20260322130500_agent_work_email_anti_abuse`.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `env PLAYWRIGHT_BASE_URL=http://localhost:3012 AUTH_URL=http://localhost:3012 NEXTAUTH_URL=http://localhost:3012 npx playwright test tests/e2e/public-routing.spec.ts tests/e2e/marketplace-hydration.spec.ts --project=chromium --workers=1` — both flows passed during the combined verification run.
+- `env PLAYWRIGHT_BASE_URL=http://localhost:3012 AUTH_URL=http://localhost:3012 NEXTAUTH_URL=http://localhost:3012 npx playwright test tests/e2e/public-routing.spec.ts tests/e2e/marketplace-hydration.spec.ts tests/e2e/phase1-agent-flow.spec.ts --project=chromium --workers=1` — public routing and hydration passed; the longer Phase 1 agent flow required separate follow-up after DB sync and remains the one residual verification item from this session.
+- `npx prisma migrate status` initially showed two pending agent work-email migrations; resolved via:
+  - `npx prisma migrate resolve --applied 20260321194500_agent_work_email_verification`
+  - `npx prisma migrate deploy`
+
+### Decisions (and why)
+
+- **Decision:** Normalize user-facing product language inside the app shell now, not after public marketing cleanup.
+  - **Why:** Leaving `Marketplace`, `Proposal`, or `CV builder` in signed-in flows would keep the product feeling transitional even after public pages improved.
+- **Decision:** Remove disabled future-feature CTAs from the offer builder instead of relabeling them.
+  - **Why:** Dead controls are a stronger launch-readiness penalty than absent controls.
+- **Decision:** Fix the local DB migration/history drift non-destructively rather than resetting the development database.
+  - **Why:** The drift was traceable to already-present schema state, and a reset would have been both unnecessary and destructive.
+- **Decision:** Align Playwright auth runs to a single localhost origin.
+  - **Why:** Preview-auth cookie persistence breaks when browser navigation and Auth.js canonical origin diverge between `localhost` and `127.0.0.1`.
+
+### Status
+
+- Launch-surface implementation pass: `AMBER`
+
+### Remaining Sign-off Work
+
+1. Finish a clean single-run verification of `tests/e2e/phase1-agent-flow.spec.ts` now that the auth-origin and migration blockers are fixed.
+2. Continue the audit implementation into any remaining public/system components still carrying old pilot-marketplace language.
+3. Re-run the full launch-surface browser sweep once the remaining long-form agent flow passes cleanly.
+
+---
+
+## Session: 2026-04-02 / 23:20 (CEST) — Railway redeploy + live auth-hardening verification
+
+**Author:** Codex  
+**Context:** User asked to finish the last blocked verification run and then deploy the current launch-readiness pass live.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Clear the remaining browser verification, prove the production build is clean, deploy the verified workspace to Railway, and verify the live trust posture directly.
+
+### Changes Made
+
+- Finished the previously blocked local verification path:
+  - `tests/e2e/phase1-agent-flow.spec.ts` now passes after the earlier auth-origin and migration-history fixes.
+- Fixed the final production build blocker in `src/app/[slug]/page.tsx` by escaping the sitemap apostrophe that was failing `react/no-unescaped-entities`.
+- Ran a full local production build before deploy so Railway would receive a known-good artifact set.
+- Deployed the current workspace to Railway production service `whoma-web`.
+- Verified the live release directly against production:
+  - `/api/health` returns `{"status":"ok", ... "checks":{"database":"up"}}`
+  - `/api/auth/providers` returns `{}`
+  - `/sign-in` serves the invitation-only support-routed auth experience
+  - `/requests/SW1A` returns `200`
+  - direct POST to `/api/auth/callback/preview` resolves to `error=Configuration` instead of creating a live session
+- Confirmed the existing smoke script now refuses remote preview-auth against production by design, which is the expected hardened behavior after the Gate 1 trust pass.
+
+### Verification
+
+- `env PLAYWRIGHT_BASE_URL=http://localhost:3012 AUTH_URL=http://localhost:3012 NEXTAUTH_URL=http://localhost:3012 npx playwright test tests/e2e/phase1-agent-flow.spec.ts --project=chromium --workers=1` — passed.
+- `npm run build` — passed.
+- `railway up --ci -p f022373e-a9ea-4a4f-a651-efe34201f09c -e production -s whoma-web` — deploy complete.
+- `curl -sS https://whoma-web-production.up.railway.app/api/health` — `database=up`.
+- `curl -sS https://whoma-web-production.up.railway.app/api/auth/providers` — `{}`.
+- `curl -sS -o /dev/null -D - https://whoma-web-production.up.railway.app/requests/SW1A` — `HTTP/2 200`.
+- `env SMOKE_BASE_URL=https://whoma-web-production.up.railway.app node scripts/smoke-marketplace-flow.mjs` — exits with the expected refusal to run remote preview-auth against production.
+- `curl -sS -i -X POST https://whoma-web-production.up.railway.app/api/auth/callback/preview ...` — returns `{"url":"https://whoma-web-production.up.railway.app/api/auth/error?error=Configuration"}`.
+
+### Decisions (and why)
+
+- **Decision:** Treat the smoke script’s refusal to run against the Railway URL as correct production behavior, not a failed verification.
+  - **Why:** Remote preview callback auth is now explicitly outside the allowed production trust model.
+- **Decision:** Run a local production build and fix the last lint blocker before deploying.
+  - **Why:** It is faster and safer to catch deterministic build issues locally than discover them mid-release.
+- **Decision:** Verify live auth hardening with direct health/provider/callback probes instead of trying to revive hidden preview UI.
+  - **Why:** The trust goal is to prove the old shortcut is gone, not to preserve it.
+
+### Status
+
+- Launch deploy + live trust verification: `GREEN`
+
+### Remaining Sign-off Work
+
+1. Replace or supplement `npm run smoke:marketplace` with a production-safe live verification path that does not depend on preview callback auth.
+2. Continue the remaining launch-audit implementation across any surfaces still carrying weaker legacy messaging or visual polish debt.
+
+---
+
+## Session: 2026-04-04 / 15:35 (CEST) — Montserrat restore + pure-white site base + stacked subtitle follow-up
+
+**Author:** Codex  
+**Context:** User liked the calmer editorial direction, but asked for a cleaner baseline: restore the original font family, return the site to a pure white base on every page, and bring back a stacked subtitle under `WHOMA`.  
+**Branch/PR:** `codex-phase1-public-release`
+
+### Goal
+
+- Apply a restrained visual follow-up to the live public brand pass so WHOMA keeps the calmer profile-first structure while feeling more familiar, brighter, and cleaner across the whole site.
+
+### Changes Made
+
+- Replaced the serif/sans editorial font mix with the original `Montserrat` family for both display and UI/body text.
+- Returned the global site base from the cream/off-white brand wash to a pure white background across public and signed-in pages.
+- Restored the stacked logo lockup so the subtitle sits underneath `WHOMA` again instead of appearing inline.
+- Updated the shared logo subtitle baseline to:
+  - `Where homeowners meet estate agents`
+- Redeployed Railway production after the visual follow-up and verified the live site and health endpoint.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `railway up -d -m "Revert to original font, white site background, and stacked logo subtitle"` — deploy complete.
+- `curl -sS https://whoma-web-production.up.railway.app/api/health` — `{"status":"ok",...,"checks":{"database":"up"}}`
+- `curl -sS https://whoma-web-production.up.railway.app/ | rg "Where homeowners meet estate agents"` — live HTML includes the stacked subtitle.
+
+### Decisions (and why)
+
+- **Decision:** Apply the white-base/font reversion site-wide instead of limiting it to the homepage.
+  - **Why:** The request explicitly called for the visual baseline to change on every page, and partial rollout would have left the product feeling inconsistent.
+- **Decision:** Normalize the requested subtitle to `Where homeowners meet estate agents`.
+  - **Why:** The user-provided phrasing read like a rough spoken draft, and this version preserves the intended meaning while staying UK-consistent with the rest of the product language.
+- **Decision:** Hardcode the shared subtitle baseline in public site config for this pass.
+  - **Why:** It guarantees the live brand lockup reflects the requested wording immediately instead of depending on deployment-env drift.
+
+### Status
+
+- Visual baseline follow-up + live deploy: `GREEN`
+
+### Remaining Sign-off Work
+
+1. Continue the smaller public-consistency cleanup on any routes that can still reintroduce beta/portal tone.
+2. Decide whether the current white-base + Montserrat treatment is now the stable brand baseline for future public surface work.
+
+---
+
+## Session: 2026-04-06 / 17:36 (CEST) — BV004 public request-surface split + truthfulness closeout
+
+**Author:** Codex  
+**Context:** User asked to pick up where the prior launch-readiness thread left off and continue the next highest-value public-surface cleanup.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Finish the remaining BV004 public-truthfulness work by removing the last public-to-internal marketplace CTA leak and tightening `/requests*` so it reads as invited seller access, not the product's main category story.
+
+### Changes Made
+
+- Updated shared public-site copy to remove the lingering `real transaction depth` claim from the homepage/public config baseline.
+- Extended `src/components/instruction-card.tsx` with a public presentation mode:
+  - public cards now show invitation-only context,
+  - public cards no longer link into `/agent/marketplace/${instructionId}` or `/agent/marketplace/${instructionId}/proposal`.
+- Reframed `/requests` and `/requests/[postcodeDistrict]` so they now:
+  - lead with `Seller access` rather than marketplace-style browse wording,
+  - present area summaries as supporting context,
+  - use calmer public CTA language such as `View area overview`,
+  - render public-mode instruction cards instead of agent-marketplace action cards.
+- Tightened the homepage seller-access section so it stays within profile-first, collaboration-safe language instead of implying deeper transaction proof.
+- Added an E2E regression guard to `tests/e2e/public-routing.spec.ts` asserting redirected `/locations*` pages contain no `/agent/marketplace` links.
+
+### Verification
+
+- `npm run build` — passed.
+- `npm run typecheck` — passed.
+- `env PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3012 npx playwright test tests/e2e/public-routing.spec.ts --project=chromium --workers=1` — passed.
+
+### Decisions (and why)
+
+- **Decision:** Split the shared instruction card into public and agent behaviors instead of introducing a second nearly-identical component.
+  - **Why:** The trust leak was behavioral, not structural; one shared component with explicit modes keeps the distinction obvious and testable.
+- **Decision:** Keep `/requests*` live, but remove all agent-marketplace actions from it.
+  - **Why:** This preserves the invited seller-access layer without flattening WHOMA into a public comparison portal.
+- **Decision:** Add the no-marketplace-link assertion to the public redirect E2E rather than relying on copy review alone.
+  - **Why:** The original issue was easy to reintroduce accidentally through shared card reuse.
+
+### Status
+
+- BV004 public truthfulness cleanup: `GREEN`
+
+### Remaining Sign-off Work
+
+1. Replace or supplement the current local/internal preview-auth smoke path with a production-safe live verification route.
+2. Continue into the next highest-value open gap: first-class measurement/logging primitives (`BV001`-`BV003`) or A010 production email delivery, depending on whether the next priority is trust instrumentation or operational readiness.
+
+---
+
+## Session: 2026-04-06 / 19:20 (CEST) — Estate-agent self-serve auth unblock
+
+**Author:** Codex  
+**Context:** User wants to use WHOMA live and unblock real estate-agent account creation instead of routing public visitors into invitation/support gating.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Make estate-agent account creation and sign-in genuinely usable with live public auth paths, while keeping preview access hidden from public users and removing infra-heavy provider explanations from support pages.
+
+### Changes Made
+
+- Added a DB-backed email/password registration path at `POST /api/auth/register`.
+- Extended `User` with `passwordHash` and `passwordSetAt`, plus checked-in migration `20260406183000_email_password_auth`.
+- Added password hashing/verification helpers using `scrypt`.
+- Expanded Auth.js provider setup to support:
+  - Google OAuth when configured,
+  - Apple OAuth when configured on an HTTPS deployment origin,
+  - email/password credentials auth whenever `DATABASE_URL` is available,
+  - preview credentials only in internal QA/E2E mode.
+- Centralized public auth capability detection in `src/lib/auth/provider-config.ts` so sign-in/sign-up render from one shared availability model.
+- Reworked public sign-in/sign-up UX to show real public auth methods for estate agents instead of request-access copy whenever any public auth path is live.
+- Removed the end-user-facing `Key service providers` grid from static contact/trust pages and replaced it with direct account-access/help language.
+- Generalized onboarding role sign-out copy from “different Google account” to “different account”.
+- Added/updated focused auth tests for multi-method public auth UI and password hashing verification.
+
+### Files / Modules Touched (high signal only)
+
+- `src/auth.ts`
+- `src/lib/auth/provider-config.ts`
+- `src/lib/auth/password-auth.ts`
+- `src/lib/auth/password-auth.test.ts`
+- `src/app/api/auth/register/route.ts`
+- `prisma/schema.prisma`
+- `prisma/migrations/20260406183000_email_password_auth/migration.sql`
+- `src/components/auth/google-auth-button.tsx`
+- `src/components/auth/google-auth-button.test.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/[slug]/page.tsx`
+- `src/app/onboarding/role/page.tsx`
+
+### Decisions (and why)
+
+- **Decision:** Add email/password account creation instead of waiting for Google/Apple secrets to be present everywhere.
+  - **Why:** It gives estate agents a real self-serve path immediately and avoids keeping account access blocked on external OAuth configuration.
+- **Decision:** Keep Apple and Google in code as first-class providers, but guard them strictly behind live env availability.
+  - **Why:** That keeps the product launch-safe and prevents fake or broken OAuth buttons from appearing publicly.
+- **Decision:** Remove the public “Key service providers” grid from contact pages.
+  - **Why:** End users need account help and trust clarity, not a developer-facing list of auth/storage vendors.
+
+### Data / Schema Notes
+
+- New `User` fields:
+  - `passwordHash`
+  - `passwordSetAt`
+- New migration:
+  - `prisma/migrations/20260406183000_email_password_auth/migration.sql`
+- Public auth provider availability now resolves from env-aware helpers instead of inline page checks.
+
+### How to Run / Test
+
+- `npm run prisma:generate`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run test -- src/components/auth/google-auth-button.test.tsx src/lib/auth/password-auth.test.ts`
+- `npm run build`
+
+### Known Issues / Risks
+
+- Live Google sign-in still requires production `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`.
+- Live Apple sign-in still requires production `AUTH_APPLE_ID` + `AUTH_APPLE_SECRET` on an HTTPS deployment origin.
+- Work-email verification delivery for onboarding still depends on `RESEND_API_KEY` + `RESEND_FROM_EMAIL` and remains tracked separately under A010.
+- Local Prisma migration reconciliation was previously flaky in this sandbox, so production deploy verification should explicitly confirm the new migration lands cleanly.
+
+### Next Steps
+
+1. Deploy this auth slice from a clean release state and verify public sign-in/sign-up on the live Railway app.
+2. Add the missing live OAuth provider secrets in Railway if Google and Apple should be visible immediately in production.
+3. Pick the long-term managed Postgres service strategy for scale so the app does not outgrow the current operational baseline.

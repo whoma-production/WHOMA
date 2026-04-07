@@ -75,11 +75,15 @@ export function getAuthErrorMessage(
     case "OAuthAccountNotLinked":
       return "This email is linked to a different sign-in method. Use the original provider.";
     case "AccessDenied":
-      return "Sign-in was denied. Please try again or use a different Google account.";
+      return "Sign-in was denied. Please try again or use a different account.";
+    case "CredentialsSignin":
+      return "That email and password did not match an existing account.";
     case "Configuration":
-      return "Google sign-in is currently unavailable. Contact support if you need access.";
+      return "That sign-in method is not configured correctly right now. Try another method or contact support.";
     case "Callback":
-      return "Google sign-in failed during callback. Please try again.";
+      return "The sign-in provider did not complete correctly. Please try again.";
+    case "Verification":
+      return "That sign-in link is invalid or has expired. Request a new one and try again.";
     default:
       return "Sign-in failed. Please try again.";
   }

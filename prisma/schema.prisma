@@ -99,6 +99,8 @@ model User {
   name             String?
   email            String           @unique
   emailVerified    DateTime?
+  passwordHash     String?
+  passwordSetAt    DateTime?
   image            String?
   createdAt        DateTime         @default(now())
   homeownerProfile HomeownerProfile?

@@ -1141,5 +1141,175 @@
       "Carry the same brand system through any remaining public profile/detail pages that still feel utility-first.",
       "Decide whether authenticated app chrome should inherit more of the new visual language in a follow-up pass."
     ]
+  },
+  {
+    "session_id": "2026-04-02-2318-launch-surface-language-state-cleanup",
+    "timestamp": "2026-04-02T23:18:00+02:00",
+    "summary": "Implemented the next launch-readiness pass across signed-in agent/homeowner surfaces, request-area language, system states, and verification plumbing so WHOMA reads more like a finished high-trust product and less like an internal marketplace build.",
+    "files_changed": [
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/app/(app)/agent/profile/edit/page.tsx",
+      "src/app/(app)/agent/marketplace/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/proposal/page.tsx",
+      "src/app/(app)/agent/marketplace/[instructionId]/proposal/proposal-builder-client.tsx",
+      "src/app/(app)/agent/proposals/page.tsx",
+      "src/app/(app)/homeowner/instructions/page.tsx",
+      "src/app/(app)/homeowner/instructions/new/page.tsx",
+      "src/app/(app)/homeowner/instructions/[instructionId]/compare/page.tsx",
+      "src/app/(app)/homeowner/instructions/[instructionId]/compare/compare-client.tsx",
+      "src/app/(app)/messages/messages-client.tsx",
+      "src/app/(app)/admin/agents/page.tsx",
+      "src/app/api/proposals/route.ts",
+      "src/app/api/agent/onboarding/resume-suggestions/route.ts",
+      "src/app/requests/[postcodeDistrict]/page.tsx",
+      "src/components/proposal-compare-table.tsx",
+      "tests/e2e/public-routing.spec.ts",
+      "tests/e2e/marketplace-hydration.spec.ts",
+      "tests/e2e/phase1-agent-flow.spec.ts",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Shifted signed-in UI vocabulary to `instruction` and `offer` rather than leaving old marketplace/proposal language in place.",
+      "Removed disabled future-feature controls from the offer builder instead of keeping visibly unfinished CTAs in the primary path.",
+      "Reconciled Prisma migration history non-destructively so the agent onboarding route could render again without resetting local data.",
+      "Aligned Playwright auth verification to a single localhost origin because Auth.js session cookies were being lost across localhost/127.0.0.1 splits."
+    ],
+    "next_steps": [
+      "Finish a clean standalone verification of the long Phase 1 agent flow after the auth-origin and migration fixes.",
+      "Continue the launch-audit implementation into any remaining public/system surfaces still carrying pre-launch wording.",
+      "Run a broader browser review once the last long-form agent E2E path is fully green."
+    ]
+  },
+  {
+    "session_id": "2026-04-02-2320-railway-redeploy-live-auth-hardening-verification",
+    "timestamp": "2026-04-02T23:20:00+02:00",
+    "summary": "Finished the final local Phase 1 agent-flow verification, fixed the last production build blocker, redeployed Railway production, and verified live health plus hardened invitation-only auth behavior on the public WHOMA URL.",
+    "files_changed": [
+      "src/app/[slug]/page.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Fixed the production lint/build blocker locally before deployment so the Railway release path stayed deterministic.",
+      "Treated remote preview-auth smoke refusal as the expected production trust posture rather than overriding it for convenience.",
+      "Verified live auth hardening with direct health, providers, sign-in, public-route, and callback probes instead of depending on hidden preview UI."
+    ],
+    "next_steps": [
+      "Replace or supplement the current preview-auth smoke script with a production-safe live verification path.",
+      "Continue the remaining launch-audit implementation across surfaces that still need copy or visual polish."
+    ]
+  },
+  {
+    "session_id": "2026-04-03-2134-gate1-production-deploy-signoff",
+    "timestamp": "2026-04-03T21:34:00+02:00",
+    "summary": "Deployed the Gate 1 trust release to Railway production from a clean release bundle, fixed the build-blocking legal-page lint issue in that bundle, and verified live provider lockdown, preview callback rejection, scaffold-route retirement, and production data absence for seeded pilot profiles.",
+    "files_changed": [
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Used a clean temporary deploy bundle built from branch HEAD so unrelated dirty worktree changes from parallel streams would not ship accidentally.",
+      "Verified the production auth-backdoor closure with both provider discovery (`/api/auth/providers -> {}`) and failed callback session creation (`error=Configuration`, `/api/auth/session -> null`).",
+      "Verified the seeded-profile concern directly in Railway Postgres instead of relying only on page behaviour."
+    ],
+    "next_steps": [
+      "Start Gate 2 truth cleanup: CTA routing, public proof labels, /requests public-card split, and docs/tests drift.",
+      "Do not begin Gate 3 measurement work until Gate 2 is signed off."
+    ]
+  },
+  {
+    "session_id": "2026-04-04-1535-white-base-montserrat-brand-followup",
+    "timestamp": "2026-04-04T15:35:00+02:00",
+    "summary": "Restored the original Montserrat font family, returned the site-wide background to pure white, updated the stacked WHOMA subtitle to `Where homeowners meet estate agents`, and redeployed Railway production with live verification.",
+    "files_changed": [
+      "src/app/layout.tsx",
+      "src/app/globals.css",
+      "src/lib/tokens.ts",
+      "src/lib/public-site.ts",
+      "src/components/brand/logo.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Applied the font and background change globally so the requested visual baseline stayed consistent across every page.",
+      "Normalized the requested subtitle to `Where homeowners meet estate agents` so the live brand line stayed clear and UK-consistent.",
+      "Hardcoded the shared subtitle baseline in public-site config for this pass to avoid environment drift on production."
+    ],
+    "next_steps": [
+      "Run a small public-surface consistency pass on any remaining routes that can still reintroduce beta or utilitarian tone.",
+      "Decide whether the current white-base + Montserrat treatment is the stable visual baseline for future public work."
+    ]
+  },
+  {
+    "session_id": "2026-04-06-1736-bv004-public-request-surface-split",
+    "timestamp": "2026-04-06T17:36:00+02:00",
+    "summary": "Closed the remaining BV004 public-truthfulness gap by splitting public request cards from agent-marketplace actions, tightening seller-access route copy, removing the last shared transaction-depth claim, and adding an E2E guard against marketplace links on redirected public routes.",
+    "files_changed": [
+      "src/lib/public-site.ts",
+      "src/components/instruction-card.tsx",
+      "src/app/page.tsx",
+      "src/app/requests/page.tsx",
+      "src/app/requests/[postcodeDistrict]/page.tsx",
+      "tests/e2e/public-routing.spec.ts",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Used a public-mode variant on the shared instruction card instead of creating a duplicate component so the trust distinction stays explicit and maintainable.",
+      "Kept /requests* live as invited seller-access context while removing all agent-marketplace actions from the public surface.",
+      "Added a no-marketplace-link browser assertion to the public redirect test so this exact CTA leak cannot quietly return."
+    ],
+    "next_steps": [
+      "Design a production-safe live verification path that does not depend on preview callback auth.",
+      "Choose whether the next workstream should be Phase 1 measurement primitives (BV001-BV003) or A010 production email delivery."
+    ]
+  },
+  {
+    "session_id": "2026-04-06-1920-estate-agent-self-serve-auth-unblock",
+    "timestamp": "2026-04-06T19:20:00+02:00",
+    "summary": "Unblocked estate-agent self-serve auth by adding DB-backed email/password registration and sign-in, wiring Apple alongside Google in Auth.js when configured, updating public auth pages to show real account-access methods, and removing the end-user-facing service-provider grid from trust pages.",
+    "files_changed": [
+      ".env.example",
+      "prisma/schema.prisma",
+      "prisma/migrations/20260406183000_email_password_auth/migration.sql",
+      "src/auth.ts",
+      "src/lib/auth/provider-config.ts",
+      "src/lib/auth/password-auth.ts",
+      "src/lib/auth/password-auth.test.ts",
+      "src/lib/auth/session.ts",
+      "src/app/api/auth/register/route.ts",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/components/auth/google-auth-button.tsx",
+      "src/components/auth/google-auth-button.test.tsx",
+      "src/app/[slug]/page.tsx",
+      "src/app/onboarding/role/page.tsx",
+      "docs/TASKS.md",
+      "docs/ARCHITECTURE.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Added email/password auth instead of waiting on third-party OAuth credentials so estate agents have a real self-serve path immediately.",
+      "Kept Google and Apple in the provider stack, but only expose them when live env configuration is present to avoid broken public buttons.",
+      "Removed the public service-provider grid from contact/trust pages because it was infra-facing and confusing for end users."
+    ],
+    "next_steps": [
+      "Deploy the auth release from a clean scoped commit and verify the live sign-in/sign-up routes.",
+      "Add Google and Apple provider secrets in Railway if those OAuth buttons should appear immediately in production.",
+      "Choose the long-term managed Postgres strategy for scale beyond the current baseline."
+    ]
   }
 ]

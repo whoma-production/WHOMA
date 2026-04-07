@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
+import Apple from "next-auth/providers/apple";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -9,9 +10,15 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { isPreviewAccessEnabled } from "@/lib/auth/preview-access";
-
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+import {
+  emailPasswordSignInSchema,
+  verifyPassword
+} from "@/lib/auth/password-auth";
+import {
+  getAppleAuthProviderConfig,
+  getGoogleAuthProviderConfig,
+  isEmailPasswordAuthEnabled
+} from "@/lib/auth/provider-config";
 
 const authSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? (process.env.NODE_ENV !== "production" ? "dev-only-nextauth-secret-change-me" : undefined);
 
@@ -22,19 +29,83 @@ const previewCredentialsSchema = z.object({
 
 const previewDisplayNames: Record<UserRole, string> = {
   HOMEOWNER: "Preview Homeowner",
-  AGENT: "Preview Real Estate Agent",
+  AGENT: "Preview Estate Agent",
   ADMIN: "Preview Admin"
 };
 
+const googleProviderConfig = getGoogleAuthProviderConfig();
+const appleProviderConfig = getAppleAuthProviderConfig();
+
 const googleProviders =
-  googleClientId && googleClientSecret
+  googleProviderConfig
     ? [
         Google({
-          clientId: googleClientId,
-          clientSecret: googleClientSecret
+          clientId: googleProviderConfig.clientId,
+          clientSecret: googleProviderConfig.clientSecret
         })
       ]
     : [];
+
+const appleProviders =
+  appleProviderConfig
+    ? [
+        Apple({
+          clientId: appleProviderConfig.clientId,
+          clientSecret: appleProviderConfig.clientSecret
+        })
+      ]
+    : [];
+
+const emailPasswordProviders = isEmailPasswordAuthEnabled()
+  ? [
+      Credentials({
+        id: "email-login",
+        name: "Email and Password",
+        credentials: {
+          email: { label: "Email", type: "email" },
+          password: { label: "Password", type: "password" }
+        },
+        async authorize(rawCredentials) {
+          const parsed = emailPasswordSignInSchema.safeParse(rawCredentials);
+
+          if (!parsed.success || !process.env.DATABASE_URL) {
+            return null;
+          }
+
+          const user = await prisma.user.findUnique({
+            where: { email: parsed.data.email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              role: true,
+              passwordHash: true
+            }
+          });
+
+          if (!user?.passwordHash) {
+            return null;
+          }
+
+          const passwordMatches = await verifyPassword(
+            parsed.data.password,
+            user.passwordHash
+          );
+
+          if (!passwordMatches) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role
+          };
+        }
+      })
+    ]
+  : [];
 
 const previewAccessEnabled = isPreviewAccessEnabled();
 
@@ -93,7 +164,12 @@ const previewProviders =
       ]
     : [];
 
-const providers = [...googleProviders, ...previewProviders];
+const providers = [
+  ...googleProviders,
+  ...appleProviders,
+  ...emailPasswordProviders,
+  ...previewProviders
+];
 const authAdapter = PrismaAdapter(prisma) as Adapter;
 
 type TokenWithRole = {

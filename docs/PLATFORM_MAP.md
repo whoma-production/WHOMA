@@ -15,20 +15,17 @@ Phase 1 delivery focus:
 
 ## Current Validation Risk (Audit 2026-04-02)
 
-- Public story is mostly identity-first, but several live surfaces still leak the earlier tender-marketplace thesis:
-  - homepage transaction CTA routes to the agent marketplace,
-  - `/requests*` reuses internal marketplace cards/CTAs,
-  - public profile transaction/collaboration proof is still derived from proposal states rather than first-class logging models.
+- Public story and route-level CTA behavior are now aligned to the identity-first thesis; the main remaining truth risk is no longer surface copy but missing first-class measurement/logging primitives behind Phase 1 proof claims.
 - Phase 1 can currently measure profile activation only; it cannot yet cleanly measure qualified agents, verified historic transaction logging, live transaction logging, interaction velocity, or monthly active engagement.
 - Preview/seed/demo traffic still shares the main runtime data path, so current counters and proof surfaces are vulnerable to synthetic-data contamination unless source tagging/exclusion is added.
-- Backend preview auth remains a trust-sensitive control point because hidden public UI is not the same thing as hardened backend access.
+- Production auth is hardened, but live verification still lacks a production-safe write-path smoke that does not depend on local/internal preview callback tooling.
 
 ## Feature Relationship Map
 
 1. Identity and access
 
-- Sign in (`Google OAuth` + preview credentials fallback) -> role selection (`HOMEOWNER` / `AGENT` / `ADMIN`) -> gated app routes
-- Preview fallback still exists for QA/E2E when `ENABLE_PREVIEW_AUTH=true`, but public auth pages now hide preview-role UI and instead show a beta gate when Google is unavailable.
+- Sign in (`Google OAuth`, `Apple OAuth`, or DB-backed `email/password` when configured) -> role selection (`HOMEOWNER` / `AGENT`) -> gated app routes
+- Preview fallback still exists for QA/E2E when `ENABLE_PREVIEW_AUTH=true`, but public auth pages never expose preview-role UI and now prefer live self-serve account access for agents whenever any public auth method is available.
 
 2. Agent onboarding and trust
 
@@ -105,12 +102,12 @@ Phase 1 delivery focus:
 
 - Production service is deployed on Railway at `https://whoma-web-production.up.railway.app` with managed Postgres in the same project.
 - Runtime start command now runs `prisma migrate deploy` before `next start`, so schema migrations are applied during service boot.
-- Auth fallback for staging/demo is env-gated (`ENABLE_PREVIEW_AUTH=true`) while Google remains the production-first auth path.
+- Auth fallback for staging/demo is env-gated (`ENABLE_PREVIEW_AUTH=true`) while public production auth now supports Google, Apple, and email/password when the corresponding live credentials are configured.
 - Preview auth UI now uses a compact role selector + email input flow (`Continue with Preview Email`) to avoid long-button overflow and support personal-email demo sessions.
 - Middleware now reads Auth.js v5 cookie names (`__Secure-authjs.session-token` in production) so authenticated sessions resolve correctly on protected routes.
 - Location district pre-generation now avoids build-time database dependency (`generateStaticParams` returns `[]`), preventing remote build failures when DB private networking is unavailable at build time.
 - Production build now passes with strict type checks and `next.config.ts` no longer uses `typescript.ignoreBuildErrors`.
-- Latest production deploy (`2026-04-02`) includes logged-in lifecycle dashboards (`/homeowner/instructions`, `/agent/proposals`), signed cookie-consent controls, and trust-signal fallback labeling on public profiles; live smoke writes remain green.
+- Latest production deploy (`2026-04-03`) includes the public brand reset, signed-in launch-language cleanup, logged-in lifecycle dashboards (`/homeowner/instructions`, `/agent/proposals`), signed cookie-consent controls, and Gate 1 trust verification (`/api/auth/providers -> {}`, preview callback returns `error=Configuration`, old scaffold route no longer renders as a real page).
 
 15. Public-facing copy and empty-state polish
 
@@ -131,8 +128,19 @@ Phase 1 delivery focus:
 - Public landing, metadata, footer, auth entry, directory, profile, and legal/support pages now position WHOMA first as a verified estate agent identity platform rather than a broad homeowner tender marketplace.
 - Homepage and sign-up paths now lead with work-email verification, structured profile depth, publish readiness, and admin-reviewed trust; homeowner tendering is framed as a controlled secondary pilot.
 - `/requests` and `/requests/[postcodeDistrict]` remain live for pilot visibility, but both now use Phase 1 pilot framing and `noindex` metadata.
-- Public auth pages now have two explicit public states: Google sign-in when configured, or a clean beta gate/contact path when Google is unavailable.
+- Public auth pages now have two explicit public states: live self-serve account access for estate agents when any public auth method is configured, or a clean support path when none are available.
 - `GoogleAuthButton` now supports explicit public vs internal UX modes so preview-role UI remains available for QA/E2E without leaking onto public pages.
+
+18. Estate-agent self-serve auth unblock (2026-04-06) (new)
+
+- `src/auth.ts` now registers three public estate-agent auth paths:
+  - Google OAuth when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are present,
+  - Apple OAuth when `AUTH_APPLE_ID` and `AUTH_APPLE_SECRET` are present on an HTTPS deployment origin,
+  - DB-backed email/password credentials auth when `DATABASE_URL` is available.
+- `src/app/api/auth/register/route.ts` now creates `User` records with `passwordHash`, `passwordSetAt`, and `dataOrigin=PRODUCTION`, giving WHOMA a self-serve account-creation path that does not depend on external OAuth being configured first.
+- `src/lib/auth/provider-config.ts` centralizes provider availability checks so public auth, support copy, and tests all read the same live capability model.
+- `src/components/auth/google-auth-button.tsx` now renders Google, Apple, and email/password states for public agents while keeping preview-role access hidden behind internal-only mode for QA/E2E.
+- `src/app/[slug]/page.tsx` no longer exposes the end-user-facing `Key service providers` grid on contact pages; auth/help copy now talks about account access and support instead of raw infra components.
 
 18. Activation checklist + stronger Phase 1 counters (new)
 
@@ -192,7 +200,7 @@ Phase 1 delivery focus:
   - profile journey,
   - collaboration flow,
   - sample profile/comparison records.
-- Global public styling now uses `Newsreader` display typography, `Manrope` UI/body typography, a warmer stone/off-white palette, flatter shadows, and calmer public section spacing.
+- Global public styling now uses the original `Montserrat` family across display and UI/body text, a pure-white site base, flatter shadows, and calmer public section spacing.
 - Shared public brand scaffolding (`public-site`, `public-footer`, `logo`) now uses shorter descriptors so homepage/header/footer no longer reintroduce the old internal thesis language.
 - `/requests` and `/requests/[postcodeDistrict]` remain available, but now present as a secondary homeowner collaboration pilot rather than the primary public category story.
 - `/sign-in`, `/sign-up`, and `/agents` now speak to profile-building, proof, and selective professional presence rather than access mechanics or empty pilot supply.
@@ -203,8 +211,32 @@ Phase 1 delivery focus:
 - Preview credentials are now hard-disabled in production code regardless of `ENABLE_PREVIEW_AUTH`; `src/lib/auth/preview-access.test.ts` covers that contract.
 - Public directory/profile reads and admin activation counts now exclude non-production actors in production runtime.
 - Public live-instruction reads now exclude non-production homeowner and agent activity in production runtime so public proof counts do not absorb preview or seed traffic.
+- Live production verification now confirms no seeded pilot-agent rows exist in the production database and `/agents/pilot-agent-01` resolves to the not-found fallback content instead of a public profile.
 - `/agent/marketplace/[instructionId]` no longer renders a hardcoded scaffold and now redirects to the real proposal route.
 - `scripts/smoke-marketplace-flow.mjs` now refuses remote preview callback auth unless an explicit internal override is supplied.
+
+26. Launch-language and state cleanup (new)
+
+- Shared app chrome now uses `Onboarding`, `Your Profile`, `Open Instructions`, `My Offers`, and `Messages` so signed-in navigation reads like a finished product rather than an internal workflow map.
+- Agent/homeowner execution surfaces now prefer `instruction` and `offer` vocabulary over `sale request`, `seller request`, `proposal builder`, and `marketplace` wording.
+- Dead disabled future-feature CTAs were removed from the offer builder, and the remaining primary actions now read as clear, single-path submission flows.
+- Public and signed-in recovery states are now branded: `src/app/not-found.tsx`, `src/app/loading.tsx`, and `src/app/error.tsx` provide intentional fallback UX instead of generic framework defaults.
+- Local browser QA now depends on a same-origin Auth.js setup (`PLAYWRIGHT_BASE_URL`, `AUTH_URL`, `NEXTAUTH_URL` aligned to the same host) so preview-auth cookies persist during Playwright runs.
+- Local DB migration history for agent work-email verification was reconciled non-destructively by marking `20260321194500_agent_work_email_verification` applied and deploying `20260322130500_agent_work_email_anti_abuse`, which unblocked the agent onboarding route at runtime.
+
+27. Public visual-baseline follow-up (2026-04-04) (new)
+
+- The experimental serif/cream variant was rolled back in production so the site now presents the profile-first brand reset on a cleaner, more familiar baseline.
+- `src/app/layout.tsx`, `src/app/globals.css`, and `src/lib/tokens.ts` now restore `Montserrat` across headings and body/UI while keeping the calmer spacing and flatter component feel from the broader brand pass.
+- Shared site surfaces now use a pure white base across public and signed-in pages rather than the earlier stone/off-white wash.
+- The shared logo lockup in `src/components/brand/logo.tsx` now renders a stacked subtitle again, using `Where homeowners meet estate agents` as the current public brand line.
+
+28. Gate 2 public request-surface split (2026-04-06) (new)
+
+- Shared `InstructionCard` now supports a public presentation mode so `/requests*` can show invited seller-access context without exposing agent-only marketplace actions.
+- `/requests` and `/requests/[postcodeDistrict]` now describe seller access as a selective supporting layer, and their area-level CTAs no longer route public visitors into `/agent/marketplace/*`.
+- Shared public site summary copy no longer claims `real transaction depth`; the homepage seller-access section now stays within profile-first, collaboration-safe language.
+- `tests/e2e/public-routing.spec.ts` now asserts that redirected `/locations*` routes contain no links into `/agent/marketplace`, preventing this trust leak from reappearing silently.
 
 ## Frontend/Backend Map
 
@@ -221,7 +253,7 @@ Phase 1 delivery focus:
 
 ## Backend
 
-- Auth/session: `next-auth` + middleware route guards + preview credentials (`HOMEOWNER` / `AGENT` / `ADMIN`) reserved for QA/E2E and direct callback flows
+- Auth/session: `next-auth` + middleware route guards + public Google/Apple/email-password auth for agents when configured, with preview credentials (`HOMEOWNER` / `AGENT` / `ADMIN`) reserved for local QA/E2E only; Railway production no longer exposes preview providers and rejects preview callback sign-in attempts with `error=Configuration`
 - Dev host consistency: middleware redirects sign-in/app route traffic to the canonical `AUTH_URL` host in development
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)
@@ -241,15 +273,17 @@ Phase 1 delivery focus:
 - Migration: `prisma/migrations/20260321194500_agent_work_email_verification/migration.sql`
 - Migration: `prisma/migrations/20260322130500_agent_work_email_anti_abuse/migration.sql`
 - Migration: `prisma/migrations/20260402124000_gate1_trust_data_origin/migration.sql`
+- Migration: `prisma/migrations/20260406183000_email_password_auth/migration.sql`
 - DB-backed service test: `src/server/agent-profile/phase1-flow.test.ts`
 - API safety tests: `src/server/http/idempotency.test.ts`, `src/server/http/rate-limit.test.ts`
 - Gate 1 auth contract test: `src/lib/auth/preview-access.test.ts`
+- Auth UI tests: `src/components/auth/google-auth-button.test.tsx`, `src/lib/auth/password-auth.test.ts`
 - T004 decision guard tests: `src/server/marketplace/service.test.ts`
 - T005 persistence tests: `src/server/marketplace/service.persistence.test.ts`, `src/server/marketplace/messages.persistence.test.ts`
 - End-to-end flow test: `tests/e2e/phase1-agent-flow.spec.ts`
 - Homeowner decision flow E2E: `tests/e2e/homeowner-compare-decision.spec.ts`
 - Playwright runtime controls: `PLAYWRIGHT_SKIP_WEB_SERVER=1`, `PLAYWRIGHT_BASE_URL`, `PLAYWRIGHT_WEB_SERVER_COMMAND`
-- Marketplace smoke gate: `npm run smoke:marketplace` (direct preview callback auth -> create LIVE instruction -> submit proposal), keeping deployment verification compatible with hidden public preview UI
+- Marketplace smoke gate: `npm run smoke:marketplace` (direct preview callback auth -> create LIVE instruction -> submit proposal) is now local/internal only; live production verification must use health/public-route/auth-hardening checks instead of remote preview callback auth
 - Pilot seed command: `npm run seed:phase1:pilot`
 - Weekly demo command: `npm run demo:phase1:weekly`
 - Migration recovery runbook: `docs/DB_MIGRATION_RUNBOOK.md`

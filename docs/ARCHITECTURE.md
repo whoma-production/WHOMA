@@ -28,6 +28,7 @@ Migration + QA evidence:
 - `prisma/migrations/20260321190500_api_safety_idempotency/migration.sql`
 - `prisma/migrations/20260321194500_agent_work_email_verification/migration.sql`
 - `prisma/migrations/20260322130500_agent_work_email_anti_abuse/migration.sql`
+- `prisma/migrations/20260406183000_email_password_auth/migration.sql`
 - `src/server/agent-profile/phase1-flow.test.ts`
 - `tests/e2e/phase1-agent-flow.spec.ts`
 
@@ -57,7 +58,7 @@ Migration + QA evidence:
 - Marketplace write APIs use service-layer domain guards and typed operational error codes.
 - Marketplace write APIs require idempotency keys and apply route-level rate limits.
 - Public agent visibility is trust-gated to `PUBLISHED` + `VERIFIED`; material profile edits after verification return status to `PENDING`.
-- Public auth uses Google when configured; preview auth remains backend-only for QA/E2E and is not exposed on public pages.
+- Public auth supports Google, Apple, and database-backed email/password account access when configured; preview auth remains backend-only for QA/E2E and is not exposed on public pages.
 - Phase 1 activation metrics track `started`, `workEmailVerified`, `completed`, `publishReady`, `published`, `pendingVerification`, and `verified`.
 - Work-email verification uses one-time code checks in onboarding with server-side resend cooldown, verification-attempt lockout, and onboarding verification rate limits; non-production surfaces `devCode`, while production delivery requires configured Resend credentials.
 - UK-ready defaults: GBP formatting, postcode handling.
@@ -76,7 +77,7 @@ Migration + QA evidence:
 
 ## Data Flow (Phase 1 Real Estate Agent Identity)
 
-1. User signs in with Google and selects `AGENT`.
+1. User signs in with Google, Apple, or email/password and selects `AGENT`.
 2. Agent verifies business work email with a one-time code in onboarding.
 3. Agent completes onboarding (`agency`, `job title`, `work email`, `phone`, `service areas`, `specialties`, `bio`).
 4. Server validates and persists onboarding details to `AgentProfile`, sets verification to `PENDING`.
@@ -90,7 +91,7 @@ Migration + QA evidence:
 ## Key Routes / Surfaces (current scaffold)
 
 - `/` — public Phase 1 landing (verified identity first, tendering secondary)
-- `/sign-in`, `/sign-up` — public auth entry with Google-or-beta-gate states
+- `/sign-in`, `/sign-up` — public auth entry with Google / Apple / email-password states for estate agents and support-routed homeowner access
 - `/onboarding/role` — post-auth role assignment
 - `/agent/onboarding` — guided real estate agent onboarding flow
 - `/agent/profile/edit` — agent CV builder with draft/publish actions (requires completed onboarding)
@@ -106,6 +107,7 @@ Migration + QA evidence:
 - `/agent/marketplace/[instructionId]/proposal` — structured proposal builder with client-side submit wiring + live preview + hydration-ready marker for automation (`data-form-ready`)
 - `/api/instructions` — persisted homeowner write boundary (`Property + Instruction` transaction + `DRAFT/LIVE` inference)
 - `/api/proposals` — persisted agent write boundary (eligibility checks + duplicate guard + request-time expiry reconciliation)
+- `/api/auth/register` — DB-backed public email/password account creation boundary for estate agents
 - `/api/health` — operational health endpoint with DB readiness checks
 - `/api/messages/threads` — participant-scoped thread list read boundary (optional instruction filter)
 - `/api/messages/[threadId]` — participant-scoped thread read + idempotent message write boundary
@@ -120,8 +122,8 @@ Migration + QA evidence:
 - Backend: Next Route Handlers + Server Actions + service layers (`src/server/agent-profile/service.ts`, `src/server/marketplace/service.ts`)
 - API safety: idempotency + rate-limiting helpers (`src/server/http/idempotency.ts`, `src/server/http/rate-limit.ts`) with optional Upstash Redis shared backing and fallback local stores
 - DB: Postgres + Prisma
-- Auth: NextAuth (Google OAuth + preview credentials provider reserved for QA/E2E)
-- Public auth pages now present a beta gate when Google is unavailable instead of exposing preview roles.
+- Auth: NextAuth (Google OAuth, Apple OAuth, email/password credentials auth, and preview credentials reserved for QA/E2E)
+- Public auth pages now present live self-serve account access when any public auth method is configured and never expose preview roles.
 - Dev auth host rule: use one canonical dev origin (from `AUTH_URL`) to avoid callback/cookie mismatches
 - Tests: Vitest + Playwright
 

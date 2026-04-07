@@ -146,7 +146,7 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
               className="pt-2"
             >
               <Button type="submit" variant="tertiary" fullWidth>
-                Sign out and use a different Google account
+                Sign out and use a different account
               </Button>
             </form>
           </CardContent>

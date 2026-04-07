@@ -4,11 +4,11 @@ import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Logo } from "@/components/brand/logo";
 import { Card } from "@/components/ui/card";
 import { normalizeRedirectPath } from "@/lib/auth/session";
+import { getPublicAuthProviderAvailability } from "@/lib/auth/provider-config";
 import { PUBLIC_AGENT_JOURNEY } from "@/lib/public-proof";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF,
-  PUBLIC_AGENT_DIRECTORY_HREF,
   PUBLIC_COLLABORATION_PILOT_HREF
 } from "@/lib/public-site";
 
@@ -61,37 +61,25 @@ function normalizeRole(
 export default async function SignUpPage({
   searchParams
 }: SignUpPageProps): Promise<JSX.Element> {
-  const providerConfigured = Boolean(
-    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-  );
+  const providerAvailability = getPublicAuthProviderAvailability();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const nextParam = normalizeRedirectPath(resolvedSearchParams?.next) ?? null;
   const role = normalizeRole(resolvedSearchParams?.role);
   const content = role ? roleContent[role] : null;
   const site = getPublicSiteConfig();
 
-  const betaCtaHref =
+  const entryTitle =
     role === "HOMEOWNER"
-      ? PUBLIC_COLLABORATION_PILOT_HREF
-      : PUBLIC_AGENT_DIRECTORY_HREF;
-  const betaCtaLabel =
+      ? "Request seller access"
+      : providerAvailability.any
+        ? "Create your account"
+        : "Contact support to create your account";
+  const entryDescription =
     role === "HOMEOWNER"
-      ? "Contact support"
-      : "Browse verified agents";
-  const entryTitle = providerConfigured
-    ? role === "HOMEOWNER"
-      ? "Request seller access"
-      : "Create your profile"
-    : role === "HOMEOWNER"
-      ? "Request seller access"
-      : "Request agent access";
-  const entryDescription = providerConfigured
-    ? role === "HOMEOWNER"
-      ? "If your access is already approved, continue with Google. Otherwise contact support."
-      : "Continue with Google to create your profile, add professional detail, and publish it."
-    : role === "HOMEOWNER"
-      ? "Seller access is handled through support. Tell us which area or brief you are asking about and we will route you correctly."
-      : "Agent access is opened through support. Tell us where you work and how you plan to use WHOMA.";
+      ? "Seller access is still handled through support. Tell us which area or brief you are asking about and we will route you correctly."
+      : providerAvailability.any
+        ? "Choose Google, Apple, or email to create your account, then continue to role selection and onboarding."
+        : "Self-serve account creation is not configured right now. Contact support and we will help directly.";
 
   return (
     <main className="min-h-screen bg-surface-1 px-4 py-10">
@@ -212,20 +200,40 @@ export default async function SignUpPage({
             <h2 className="text-xl">{entryTitle}</h2>
             <p className="text-sm text-text-muted">{entryDescription}</p>
           </div>
-          <GoogleAuthButton
-            providerConfigured={providerConfigured}
-            uxMode="public"
-            betaSupportEmail={site.supportEmail}
-            betaCtaHref={betaCtaHref}
-            betaCtaLabel={betaCtaLabel}
-            betaMessage={
-              role === "HOMEOWNER"
-                ? `If you need seller access, email ${site.supportEmail} and we will point you in the right direction.`
-                : `If you need access, email ${site.supportEmail} with your role and area.`
-            }
-            nextParam={nextParam}
-            oauthError={resolvedSearchParams?.error ?? null}
-          />
+          {role === "HOMEOWNER" ? (
+            <div className="rounded-md border border-line bg-surface-1 p-4 text-left">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-text-strong">Access</p>
+                <p className="text-sm text-text-muted">
+                  If you need seller access, email {site.supportEmail} and we
+                  will point you in the right direction.
+                </p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a
+                  href={`mailto:${site.supportEmail}`}
+                  className="inline-flex h-9 items-center justify-center rounded-md bg-brand-accent px-3 text-sm font-medium text-white transition-colors hover:bg-[#018e85]"
+                >
+                  Email support
+                </a>
+                <Link
+                  href={PUBLIC_COLLABORATION_PILOT_HREF}
+                  className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-surface-0 px-3 text-sm font-medium text-text-strong transition-colors hover:bg-surface-1"
+                >
+                  Contact page
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <GoogleAuthButton
+              providerAvailability={providerAvailability}
+              authMode="sign-up"
+              uxMode="public"
+              supportEmail={site.supportEmail}
+              nextParam={nextParam}
+              oauthError={resolvedSearchParams?.error ?? null}
+            />
+          )}
         </Card>
       </div>
     </main>

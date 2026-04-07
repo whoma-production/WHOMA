@@ -28,13 +28,7 @@ interface LegalPageContent {
   sections: LegalSection[];
 }
 
-interface OperationalProcessor {
-  name: string;
-  purpose: string;
-  status: string;
-}
-
-const LAST_UPDATED_LABEL = "April 2, 2026";
+const LAST_UPDATED_LABEL = "April 6, 2026";
 
 const legalSlugs: readonly LegalSlug[] = [
   "privacy",
@@ -51,54 +45,9 @@ const sitemapPublicPages: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/", label: "Home" },
   { href: "/agents", label: "Agents" },
   { href: "/sign-in", label: "Sign in" },
-  { href: "/sign-up?role=AGENT", label: "Create profile" },
+  { href: "/sign-up?role=AGENT", label: "Create account" },
   { href: "/contact", label: "Contact" }
 ];
-
-function getOperationalProcessors(): OperationalProcessor[] {
-  return [
-    {
-      name: "Auth.js + Google OAuth",
-      purpose:
-        "public sign-in, session handling, and role-aware access control",
-      status:
-        process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-          ? "Enabled for live Google sign-in"
-          : "Configured as the primary auth path when credentials are available"
-    },
-    {
-      name: "Railway + Postgres + Prisma",
-      purpose:
-        "application hosting, persistence, and structured workflow records",
-      status: "Current operational stack"
-    },
-    {
-      name: "Resend",
-      purpose: "business work-email verification delivery for agents",
-      status:
-        process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL
-          ? "Configured for production delivery"
-          : "Used when production email credentials are configured"
-    },
-    {
-      name: "Upstash Redis",
-      purpose: "shared rate limiting and idempotency storage when enabled",
-      status:
-        process.env.UPSTASH_REDIS_REST_URL &&
-        process.env.UPSTASH_REDIS_REST_TOKEN
-          ? "Enabled as shared API safety infrastructure"
-          : "Optional shared infrastructure"
-    },
-    {
-      name: "OpenAI resume intake",
-      purpose: "optional resume suggestion extraction during agent onboarding",
-      status:
-        process.env.ENABLE_RESUME_AI_PREFILL === "true"
-          ? "Enabled for opted-in resume processing"
-          : "Disabled by default"
-    }
-  ];
-}
 
 function getLegalContent(
   site: ReturnType<typeof getPublicSiteConfig>
@@ -127,6 +76,7 @@ function getLegalContent(
           heading: "Sharing, retention, and contact",
           paragraphs: [
             "We do not sell personal data. Operational providers only receive the minimum information required to run authentication, hosting, storage, work-email verification, or optional resume processing.",
+            "Current operational providers include Auth.js for authentication, Railway/Postgres/Prisma for hosting and persistence, Resend for work-email delivery when enabled, and optional Upstash or OpenAI services where those features are turned on.",
             `Privacy requests should be sent to ${site.supportEmail}. Include the account email, profile slug, or request reference so the team can locate the relevant record quickly.`
           ]
         }
@@ -219,13 +169,20 @@ function getLegalContent(
     contact: {
       title: "Contact",
       intro:
-        "Contact WHOMA for support, profile questions, partnerships, or seller access enquiries.",
+        "Contact WHOMA for account access, profile questions, verification help, partnerships, or seller access enquiries.",
       sections: [
         {
           heading: "Support",
           paragraphs: [
             `Email ${site.supportEmail}.`,
             `Typical response window: ${site.supportResponseWindow}. ${site.supportCoverage}`
+          ]
+        },
+        {
+          heading: "Account access",
+          paragraphs: [
+            "Estate agents can sign in with Google, Apple, or email whenever those methods are enabled on the live service.",
+            "If a sign-in method fails, or an email is already linked to a different provider, contact support and include the account email you tried to use."
           ]
         },
         {
@@ -239,7 +196,7 @@ function getLegalContent(
           heading: "Operating status",
           paragraphs: [
             `${site.companyLegalName} operates WHOMA in the ${site.operatingRegion}.`,
-            "Some services are issued by invitation while WHOMA maintains review and support standards through the same monitored route."
+            "Seller access may still be selective, but estate-agent account creation and sign-in are handled through the live auth routes."
           ]
         }
       ]
@@ -295,7 +252,6 @@ export default async function StaticPage({
   const { slug } = await params;
   const site = getPublicSiteConfig();
   const legalContent = getLegalContent(site);
-  const operationalProcessors = getOperationalProcessors();
 
   if (!isStaticPageSlug(slug)) {
     notFound();
@@ -309,6 +265,9 @@ export default async function StaticPage({
     slug === "sitemap"
       ? getLiveInstructionLocationSummaries(liveInstructions)
       : [];
+  const accessLabel = slug === "contact" ? "Seller access" : "Access";
+  const accessValue =
+    slug === "contact" ? "Selective homeowner access" : site.betaStatusLabel;
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -333,7 +292,7 @@ export default async function StaticPage({
             <h1>{getPageTitle(slug, legalContent)}</h1>
             {slug === "sitemap" ? (
               <p className="text-sm text-text-muted">
-                HTML sitemap for WHOMA's public pages and selective seller
+                HTML sitemap for WHOMA&apos;s public pages and selective seller
                 access routes.
               </p>
             ) : (
@@ -422,10 +381,10 @@ export default async function StaticPage({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                      Access
+                      {accessLabel}
                     </p>
                     <p className="text-sm font-medium text-text-strong">
-                      {site.betaStatusLabel}
+                      {accessValue}
                     </p>
                   </div>
                   <div>
@@ -490,34 +449,6 @@ export default async function StaticPage({
                   >
                     Complaints route
                   </Link>
-                </div>
-              </Card>
-
-              <Card className="space-y-3 bg-surface-1">
-                <div className="space-y-1">
-                  <h2 className="text-lg">Key service providers</h2>
-                  <p className="text-sm text-text-muted">
-                    These providers support authentication, hosting, storage,
-                    email verification, and related operations.
-                  </p>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {operationalProcessors.map((processor) => (
-                    <div
-                      key={processor.name}
-                      className="rounded-md border border-line bg-surface-0 px-3 py-3"
-                    >
-                      <p className="text-sm font-medium text-text-strong">
-                        {processor.name}
-                      </p>
-                      <p className="mt-1 text-sm text-text-muted">
-                        {processor.purpose}
-                      </p>
-                      <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-text-muted">
-                        {processor.status}
-                      </p>
-                    </div>
-                  ))}
                 </div>
               </Card>
 
