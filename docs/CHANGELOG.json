@@ -1454,5 +1454,32 @@
       "Do one manual screenshot QA pass across `/`, `/contact`, and signed-in `/agent/onboarding` to confirm visual tone matches the latest reference set.",
       "If needed, continue softening roadmap wording (`liquidity`, `proof`) on the homepage strip in a dedicated copy pass."
     ]
+  },
+  {
+    "session_id": "2026-04-07-1853-faq-system-utility-strip",
+    "timestamp": "2026-04-07T18:53:00+02:00",
+    "summary": "Implemented a production-ready FAQ IA layer: added a thin top utility strip above main public nav, shipped grouped `/faqs`, added homepage FAQ preview, and consolidated support/FAQ links across footer, contact, and sitemap surfaces.",
+    "files_changed": [
+      "src/lib/faqs.ts",
+      "src/app/faqs/page.tsx",
+      "src/components/layout/public-header.tsx",
+      "src/components/layout/public-footer.tsx",
+      "src/lib/public-site.ts",
+      "src/app/page.tsx",
+      "src/app/[slug]/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Centralized FAQ copy and topic structure in one shared source (`src/lib/faqs.ts`) to prevent drift between `/faqs`, homepage preview, and contact quick FAQ content.",
+      "Implemented the utility strip in the shared `PublicHeader` component to keep behavior site-wide and avoid route-level duplication.",
+      "Used semantic `<details>` blocks for FAQ interaction to keep the implementation lightweight, accessible, and easy to scan without extra client-side JS."
+    ],
+    "next_steps": [
+      "Run a quick manual visual sweep on desktop/mobile to validate utility-strip wrapping and FAQ spacing.",
+      "Optionally add FAQ route coverage to public routing E2E if regression frequency on public IA increases."
+    ]
   }
 ]

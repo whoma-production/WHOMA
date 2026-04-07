@@ -10,7 +10,12 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { getPublicSiteConfig, getSupportMailto } from "@/lib/public-site";
+import { getContactFaqPreview } from "@/lib/faqs";
+import {
+  PUBLIC_FAQS_HREF,
+  getPublicSiteConfig,
+  getSupportMailto
+} from "@/lib/public-site";
 import { cn } from "@/lib/utils";
 import {
   getLiveInstructionCards,
@@ -46,6 +51,7 @@ const staticPageSlugs: readonly StaticPageSlug[] = [
 const sitemapPublicPages: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/", label: "Home" },
   { href: "/agents", label: "Agents" },
+  { href: PUBLIC_FAQS_HREF, label: "FAQs" },
   { href: "/sign-in", label: "Sign in" },
   { href: "/sign-up?role=AGENT", label: "Create account" },
   { href: "/contact", label: "Contact" }
@@ -318,6 +324,7 @@ export default async function StaticPage({
       ? getLiveInstructionLocationSummaries(liveInstructions)
       : [];
   const contactStatus = slug === "contact" ? resolvedSearchParams?.contact : null;
+  const contactFaqPreview = slug === "contact" ? getContactFaqPreview() : [];
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -535,25 +542,21 @@ export default async function StaticPage({
                   <div className="space-y-2 rounded-md border border-line bg-surface-0 px-4 py-3">
                     <p className="text-sm font-semibold text-text-strong">Quick FAQ</p>
                     <div className="space-y-2 text-sm text-text-muted">
-                      <p>
-                        <span className="font-medium text-text-strong">
-                          Which sign-in methods are live?
-                        </span>{" "}
-                        Sign in with Google, Apple, or secure email link.
-                      </p>
-                      <p>
-                        <span className="font-medium text-text-strong">
-                          Can I start onboarding now?
-                        </span>{" "}
-                        Yes. You can complete your profile, verification, and sharing steps right away.
-                      </p>
-                      <p>
-                        <span className="font-medium text-text-strong">
-                          Where should complaints go?
-                        </span>{" "}
-                        Use this form with category `Complaint` or visit the complaints route for response windows.
-                      </p>
+                      {contactFaqPreview.map((item) => (
+                        <p key={item.id}>
+                          <span className="font-medium text-text-strong">
+                            {item.question}
+                          </span>{" "}
+                          {item.answer}
+                        </p>
+                      ))}
                     </div>
+                    <Link
+                      href={PUBLIC_FAQS_HREF}
+                      className="inline-flex text-sm font-medium text-brand-ink underline"
+                    >
+                      View all FAQs
+                    </Link>
                   </div>
 
                   <div className="flex flex-wrap gap-3">

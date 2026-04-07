@@ -13,8 +13,10 @@ export interface PublicSiteConfig {
 
 export const PUBLIC_AGENT_CTA_HREF = "/sign-up?role=AGENT";
 export const PUBLIC_AGENT_DIRECTORY_HREF = "/agents";
+export const PUBLIC_FAQS_HREF = "/faqs";
+export const PUBLIC_SUPPORT_HREF = "/contact";
 export const PUBLIC_REQUESTS_PILOT_HREF = "/requests";
-export const PUBLIC_COLLABORATION_PILOT_HREF = "/contact";
+export const PUBLIC_COLLABORATION_PILOT_HREF = PUBLIC_SUPPORT_HREF;
 
 export function getPublicSiteConfig(): PublicSiteConfig {
   return {

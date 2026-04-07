@@ -3680,3 +3680,60 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 ### Remaining Sign-off Work
 
 1. Final manual visual QA with browser screenshots on `/`, `/contact`, and signed-in `/agent/onboarding` after cache clears.
+
+---
+
+## Session: 2026-04-07 / 18:53 (CEST) — FAQ system + top utility strip (public IA polish)
+
+**Author:** Codex  
+**Context:** User requested a Purplebricks-inspired information architecture pattern for WHOMA (structure only): a thin utility strip above main nav, dedicated `/faqs` page with grouped topics, and a compact homepage FAQ preview, all in premium agent-first language.
+**Branch/PR:** current working tree
+
+### Goal
+
+- Improve clarity and trust by making high-intent help routes easier to find and by introducing a dedicated FAQ system that matches WHOMA's agent-first story.
+
+### Changes Made
+
+- Added shared FAQ content model in `src/lib/faqs.ts`:
+  - six grouped categories,
+  - launch-ready question/answer copy,
+  - reusable homepage and contact preview selectors.
+- Added new public route: `/faqs` (`src/app/faqs/page.tsx`):
+  - grouped sections by topic,
+  - clean jump-link row,
+  - collapsible question blocks for scanability.
+- Added top utility strip to the shared public header (`src/components/layout/public-header.tsx`) with:
+  - `Create profile`,
+  - `FAQs`,
+  - `Support`.
+- Kept main nav focused by removing the primary-nav `Support` item and keeping platform-story links (`Platform`, `How it works`, `Agents`).
+- Added homepage FAQ preview block near bottom (`src/app/page.tsx`) with top questions and `View all FAQs` CTA.
+- Consolidated support/discovery links:
+  - Added `FAQs` to footer support links.
+  - Added `FAQs` to sitemap public pages.
+  - Contact quick FAQ now reuses shared FAQ content and links to `/faqs`.
+- Extended public-site constants to include shared FAQ/support hrefs (`src/lib/public-site.ts`).
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm run build` — passed.
+
+### Decisions (and why)
+
+- **Decision:** Implement FAQ copy in one central data file and reuse it across `/faqs`, homepage preview, and contact quick FAQ.
+  - **Why:** Prevents copy drift and keeps trust-critical wording consistent site-wide.
+- **Decision:** Add utility strip in shared `PublicHeader` rather than route-level inserts.
+  - **Why:** Guarantees site-wide consistency and avoids regressions when new public pages are added.
+- **Decision:** Use semantic `<details>` for FAQ entries.
+  - **Why:** Provides a lightweight, accessible, no-JS expand/collapse pattern that is easy to scan.
+
+### Status
+
+- FAQ system + utility-strip IA pass: `GREEN` (local verification complete).
+
+### Remaining Sign-off Work
+
+1. Run a quick visual pass on mobile widths to confirm utility-strip wrapping and FAQ-page spacing feel premium on smaller screens.

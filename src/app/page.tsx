@@ -5,12 +5,14 @@ import { ArrowRight } from "lucide-react";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicHeader } from "@/components/layout/public-header";
 import { buttonVariants } from "@/components/ui/button";
+import { getHomepageFaqPreview } from "@/lib/faqs";
 import {
   getPublicSiteConfig,
   getSupportMailto,
   PUBLIC_AGENT_CTA_HREF,
   PUBLIC_AGENT_DIRECTORY_HREF,
-  PUBLIC_COLLABORATION_PILOT_HREF
+  PUBLIC_COLLABORATION_PILOT_HREF,
+  PUBLIC_FAQS_HREF
 } from "@/lib/public-site";
 import {
   PUBLIC_COLLABORATION_FLOW,
@@ -85,6 +87,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
           locationSummaries.length === 1 ? "area" : "areas"
         }.`
       : "Seller access opens carefully as matching supply and moderation come into place.";
+  const homepageFaqPreview = getHomepageFaqPreview();
 
   const featuredProfileFacts = [
     {
@@ -455,6 +458,38 @@ export default async function LandingPage(): Promise<JSX.Element> {
               className={cn(buttonVariants({ variant: "secondary" }))}
             >
               Request seller access
+            </Link>
+          </div>
+        </section>
+
+        <section className="border-y border-line bg-surface-1 py-12 sm:py-14">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-3">
+              <p className="public-kicker">FAQs</p>
+              <h2>Quick answers before you start.</h2>
+              <p className="max-w-3xl text-sm text-text-muted sm:text-base">
+                A short overview of what WHOMA is, how profile trust works, and
+                how access is handled.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {homepageFaqPreview.map((item) => (
+                <article
+                  key={item.id}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <h3 className="text-base">{item.question}</h3>
+                  <p className="mt-2 text-sm text-text-muted">{item.answer}</p>
+                </article>
+              ))}
+            </div>
+
+            <Link
+              href={PUBLIC_FAQS_HREF}
+              className={cn(buttonVariants({ variant: "secondary" }))}
+            >
+              View all FAQs
             </Link>
           </div>
         </section>

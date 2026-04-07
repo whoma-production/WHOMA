@@ -276,11 +276,19 @@ Phase 1 delivery focus:
 - Updated static contact page account-access copy so it no longer uses conditional internal phrasing (`when enabled`, `as each route is live`) and instead reads as clear product-facing guidance.
 - Softened onboarding/profile progress copy (`Profile checklist`, progress tracker, success/error helper lines) so agent-facing pages feel premium and user-centric rather than internal operations-driven.
 
+33. Public FAQ IA layer + utility strip (2026-04-07) (new)
+
+- Added a thin utility strip above the shared public nav in `src/components/layout/public-header.tsx` with high-intent links: `Create profile`, `FAQs`, `Support`.
+- Added a dedicated grouped FAQ route at `/faqs` (`src/app/faqs/page.tsx`) using topic sections and collapsible question blocks for fast scanning.
+- Added a compact homepage FAQ preview block near the bottom of `/` with a direct `View all FAQs` CTA.
+- Consolidated trust/help discovery links by adding `/faqs` to the public footer support section and sitemap page, and by wiring contact-page quick FAQ content from one shared FAQ source (`src/lib/faqs.ts`).
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
 
-- Public: `/`, `/agents`, `/agents/[slug]`, trust/legal pages
+- Public: `/`, `/faqs`, `/agents`, `/agents/[slug]`, trust/legal pages
+- Shared public header now includes a utility strip above the main nav (`Create profile`, `FAQs`, `Support`) so help/access links are discoverable without cluttering primary navigation.
 - Public trust page `/cookies` now includes live consent controls (`#manage-consent`) backed by `/api/consent`.
 - Public landing now includes proof-led modules (featured verified profile, pilot case-study narrative, workflow demo) instead of relying on strategy copy alone.
 - Public homeowner-collaboration browse: `/requests`, `/requests/[postcodeDistrict]` as a secondary noindex pilot surface (with `/locations*` compatibility redirects)

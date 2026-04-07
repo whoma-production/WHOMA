@@ -2,7 +2,11 @@ import Link from "next/link";
 import type { Route } from "next";
 
 import { Logo } from "@/components/brand/logo";
-import { getPublicSiteConfig, getSupportMailto } from "@/lib/public-site";
+import {
+  PUBLIC_FAQS_HREF,
+  getPublicSiteConfig,
+  getSupportMailto
+} from "@/lib/public-site";
 
 const footerSections = [
   {
@@ -17,6 +21,7 @@ const footerSections = [
   {
     title: "Support",
     links: [
+      { href: PUBLIC_FAQS_HREF, label: "FAQs" },
       { href: "/contact", label: "Contact" },
       { href: "/complaints", label: "Complaints" }
     ]
