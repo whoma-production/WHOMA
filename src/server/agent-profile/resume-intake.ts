@@ -17,12 +17,32 @@ const SUPPORTED_RESUME_MIME_TYPES = new Set([
   "application/pdf",
   "application/rtf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
   "text/markdown",
   "text/plain",
   "text/rtf"
 ]);
 
-const SUPPORTED_RESUME_EXTENSIONS = new Set([".pdf", ".docx", ".md", ".markdown", ".txt", ".rtf"]);
+const SUPPORTED_RESUME_EXTENSIONS = new Set([
+  ".docx",
+  ".gif",
+  ".heic",
+  ".heif",
+  ".jpeg",
+  ".jpg",
+  ".md",
+  ".markdown",
+  ".pdf",
+  ".png",
+  ".rtf",
+  ".txt",
+  ".webp"
+]);
 
 const POSTCODE_DISTRICT_PATTERN = /\b[A-Z]{1,2}\d[A-Z\d]?\b/g;
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
@@ -289,6 +309,10 @@ function isAllowedResumeType(file: File): boolean {
   const extension = getResumeExtension(file.name);
 
   return SUPPORTED_RESUME_MIME_TYPES.has(mimeType) || SUPPORTED_RESUME_EXTENSIONS.has(extension);
+}
+
+function isImageResumeType(meta: ResumeUploadFileMeta): boolean {
+  return meta.mimeType.startsWith("image/") || [".gif", ".heic", ".heif", ".jpeg", ".jpg", ".png", ".webp"].includes(meta.extension);
 }
 
 function findLastIndexOfSequence(buffer: Buffer, sequence: Buffer, startIndex = buffer.length - sequence.length): number {
@@ -605,7 +629,7 @@ export function validateResumeUploadFile(
   if (!isAllowedResumeType(file)) {
     throw new ResumeExtractionError(
       "UNSUPPORTED_TYPE",
-      "Unsupported resume format. Upload a PDF, DOCX, TXT, MD, or RTF file.",
+      "Unsupported resume format. Upload a PDF, DOCX, TXT, MD, RTF, or image file.",
       {
         allowedMimeTypes: Array.from(SUPPORTED_RESUME_MIME_TYPES),
         allowedExtensions: Array.from(SUPPORTED_RESUME_EXTENSIONS)
@@ -627,6 +651,17 @@ export async function extractResumeTextFromFile(
 ): Promise<string> {
   const meta = validateResumeUploadFile(file, options);
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (isImageResumeType(meta)) {
+    throw new ResumeExtractionError(
+      "PARSE_FAILED",
+      "The uploaded image requires OCR fallback before we can extract text.",
+      {
+        mimeType: meta.mimeType,
+        extension: meta.extension
+      }
+    );
+  }
 
   if (meta.mimeType === "application/pdf" || meta.extension === ".pdf") {
     return extractPdfTextFromBuffer(buffer);
@@ -923,7 +958,7 @@ export async function createResumeSuggestionsFromFile(file: File): Promise<Resum
   ].slice(0, 8);
 
   return {
-    version: 2,
+    version: 3,
     suggestionId: `legacy_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
     sourceFileName: meta.name,
     sourceMimeType: meta.mimeType,
@@ -931,6 +966,60 @@ export async function createResumeSuggestionsFromFile(file: File): Promise<Resum
     extractedTextLength: normalizedText.length,
     summary,
     highlights,
+    profile: {
+      full_name: prefill.fullName ?? null,
+      preferred_display_name: prefill.fullName ?? null,
+      email: prefill.workEmail ?? null,
+      phone: prefill.phone ?? null,
+      agency: prefill.agencyName ?? null,
+      job_title: prefill.jobTitle ?? null,
+      years_experience: prefill.yearsExperience ?? null,
+      service_areas: prefill.serviceAreas ?? [],
+      specialties: prefill.specialties ?? [],
+      credentials: [],
+      languages: [],
+      professional_summary: prefill.bio ?? null,
+      longer_bio: prefill.bio ?? null,
+      notable_experience: [],
+      education: [],
+      awards_or_memberships: [],
+      social_links: {
+        linkedin: null,
+        website: null,
+        instagram: null
+      },
+      headshot_present: false,
+      source_documents: [
+        {
+          document_id: `doc_${crypto.createHash("sha256").update(meta.name).digest("hex").slice(0, 24)}`,
+          type: "resume"
+        }
+      ],
+      confidence: {
+        full_name: prefill.fullName ? 0.78 : 0,
+        preferred_display_name: prefill.fullName ? 0.65 : 0,
+        email: prefill.workEmail ? 0.92 : 0,
+        phone: prefill.phone ? 0.86 : 0,
+        agency: prefill.agencyName ? 0.72 : 0,
+        job_title: prefill.jobTitle ? 0.74 : 0,
+        years_experience: prefill.yearsExperience !== undefined ? 0.75 : 0,
+        service_areas: prefill.serviceAreas?.length ? 0.82 : 0,
+        specialties: prefill.specialties?.length ? 0.8 : 0,
+        credentials: 0,
+        languages: 0,
+        professional_summary: prefill.bio ? 0.7 : 0,
+        longer_bio: prefill.bio ? 0.7 : 0,
+        notable_experience: 0,
+        education: 0,
+        awards_or_memberships: 0,
+        social_links: 0,
+        headshot_present: 0
+      },
+      missing_fields: [],
+      needs_confirmation: [],
+      publish_readiness_score: 0,
+      recommended_next_steps: []
+    },
     prefill,
     confidence: {},
     evidence: {},

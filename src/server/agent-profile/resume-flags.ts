@@ -6,6 +6,7 @@ export type ResumeFeatureFlags = {
   enableResumeOcrFallback: boolean;
   resumeLlmProvider: "openai";
   resumeLlmModel: string;
+  resumeCleanupModel: string;
   resumeLlmTimeoutMs: number;
   resumeMinConfidence: number;
   resumeAiShadowMode: boolean;
@@ -78,30 +79,31 @@ export function getResumeFeatureFlags(): ResumeFeatureFlags {
   return {
     enableResumeAiPrefill: parseBooleanFlag(process.env.ENABLE_RESUME_AI_PREFILL, {
       dev: true,
-      prod: false
+      prod: true
     }),
     resumePrefillMode: parseMode(
       process.env.RESUME_PREFILL_MODE,
-      isProduction() ? "heuristic" : "hybrid"
+      "llm_only"
     ),
     enableResumeOcrFallback: parseBooleanFlag(
       process.env.ENABLE_RESUME_OCR_FALLBACK,
-      { dev: true, prod: false }
+      { dev: false, prod: false }
     ),
     resumeLlmProvider: "openai",
-    resumeLlmModel: process.env.RESUME_LLM_MODEL?.trim() || "gpt-5.4-mini",
+    resumeLlmModel: process.env.RESUME_LLM_MODEL?.trim() || "gpt-5.4",
+    resumeCleanupModel: process.env.RESUME_CLEANUP_MODEL?.trim() || "gpt-5.4-mini",
     resumeLlmTimeoutMs: parseIntegerFlag(process.env.RESUME_LLM_TIMEOUT_MS, 8000, {
       min: 1000,
       max: 60000
     }),
     resumeMinConfidence: parseFloatFlag(
       process.env.RESUME_MIN_CONFIDENCE,
-      isProduction() ? 0.78 : 0.72,
+      0.7,
       { min: 0, max: 1 }
     ),
     resumeAiShadowMode: parseBooleanFlag(process.env.RESUME_AI_SHADOW_MODE, {
       dev: false,
-      prod: true
+      prod: false
     }),
     resumeUploadLimitPerHour: parseIntegerFlag(
       process.env.RESUME_UPLOAD_LIMIT_PER_HOUR,

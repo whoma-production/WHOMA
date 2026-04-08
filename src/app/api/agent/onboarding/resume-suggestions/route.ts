@@ -127,6 +127,10 @@ async function getFileHash(file: File): Promise<string> {
   return crypto.createHash("sha256").update(buffer).digest("hex");
 }
 
+function getBioTextHash(bioText: string): string {
+  return crypto.createHash("sha256").update(bioText).digest("hex");
+}
+
 function setResumeSuggestionsCookie(response: NextResponse, suggestion: ResumeSuggestions): void {
   response.cookies.set({
     name: RESUME_SUGGESTIONS_COOKIE_NAME,
@@ -223,11 +227,15 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const resumeFile = formData.get("resumeFile");
-  if (!isFileLike(resumeFile)) {
+  const rawBioText = formData.get("bioText");
+  const bioText = typeof rawBioText === "string" ? rawBioText.trim() : "";
+  const uploadFile = isFileLike(resumeFile) ? resumeFile : null;
+
+  if (!uploadFile && bioText.length === 0) {
     return jsonError(
       400,
       "VALIDATION_FAILED",
-      "resumeFile is required.",
+      "resumeFile or bioText is required.",
       undefined,
       rateLimitHeaders(rateLimitResult)
     );
@@ -247,23 +255,30 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const fileHash = await getFileHash(resumeFile);
+    const fileHash = uploadFile ? await getFileHash(uploadFile) : null;
+    const bioHash = bioText.length > 0 ? getBioTextHash(bioText) : null;
 
     const idempotent = await executeIdempotentRequest<ResumeSuggestionEnvelope>({
       actorId: sessionResult.userId,
       route: "/api/agent/onboarding/resume-suggestions",
       idempotencyKey: request.headers.get("idempotency-key"),
       requestHash: createRequestHash({
-        fileName: resumeFile.name,
-        fileSize: resumeFile.size,
-        fileType: resumeFile.type,
+        inputType: fileHash ? "file" : "bioText",
+        fileName: fileHash && uploadFile ? uploadFile.name : undefined,
+        fileSize: fileHash && uploadFile ? uploadFile.size : undefined,
+        fileType: fileHash && uploadFile ? uploadFile.type : undefined,
         fileHash,
+        bioHash,
         mode: parsedMode.success ? parsedMode.data : undefined
       }),
       operation: async () => {
         const extractionInput = parsedMode.success
-          ? { file: resumeFile, mode: parsedMode.data }
-          : { file: resumeFile };
+          ? fileHash && uploadFile
+            ? { file: uploadFile, mode: parsedMode.data }
+            : { bioText, mode: parsedMode.data }
+          : fileHash && uploadFile
+            ? { file: uploadFile }
+            : { bioText };
 
         const result = await createResumeSuggestionsFromFile(extractionInput);
 
