@@ -1582,5 +1582,23 @@
       "Deploy the current branch to Railway production service (`whoma-web`) and verify `/api/health` plus `/agent/onboarding` route behavior.",
       "Run one post-deploy authenticated sanity pass to confirm CV upload, pasted-bio extraction, and publish-gate verification prompts on the live app."
     ]
+  },
+  {
+    "session_id": "2026-04-08-1238-railway-deploy-ai-onboarding",
+    "timestamp": "2026-04-08T12:38:00+02:00",
+    "summary": "Deployed AI-first onboarding release commit `fed36df` to Railway production (`whoma-web`) and verified live health plus protected onboarding route gating.",
+    "files_changed": [
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept deployment in CI log-stream mode (`railway up --ci`) to capture deterministic build output and completion status.",
+      "Verified route-level production behavior immediately after deploy using explicit health and auth-gate checks on the live Railway URL."
+    ],
+    "next_steps": [
+      "Run an authenticated production QA pass to confirm CV upload and pasted-bio extraction interactions under real session conditions."
+    ]
   }
 ]

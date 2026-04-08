@@ -4003,3 +4003,39 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 1. Commit and deploy current branch changes to Railway production service.
 2. Run post-deploy health + route checks for `/api/health` and `/agent/onboarding`.
+
+---
+
+## Session: 2026-04-08 / 12:38 (CEST) — Railway production deploy for AI-first onboarding release
+
+**Author:** Codex  
+**Context:** Follow-through deployment and live verification after committing AI-first onboarding + extraction updates.
+**Branch/PR:** `codex-phase1-public-release`
+
+### Goal
+
+- Deploy the shipped onboarding release to Railway production and verify core live route health.
+
+### Changes Made
+
+- Deployed current branch commit `fed36df` to Railway production service `whoma-web`.
+- Confirmed deployment status `SUCCESS` for Railway deployment id `d6398224-4162-46bc-ae9c-8d454853d14f`.
+- Ran live route checks against `https://whoma-web-production.up.railway.app`:
+  - `/api/health` returned `{"status":"ok", "checks":{"database":"up"}}`,
+  - `/` returned `200`,
+  - `/agent/onboarding` returned expected auth gate redirect (`307 -> /sign-in?next=%2Fagent%2Fonboarding`).
+
+### Verification
+
+- `railway up --service whoma-web --environment production --ci` — deploy complete.
+- `railway service status --service whoma-web --environment production` — `Status: SUCCESS`.
+- `curl -sS https://whoma-web-production.up.railway.app/api/health` — `database=up`.
+- `curl -sSI https://whoma-web-production.up.railway.app/agent/onboarding` — `307` auth redirect.
+
+### Status
+
+- Production deployment for AI-first onboarding release: `GREEN`.
+
+### Remaining Sign-off Work
+
+1. Optional: run one authenticated live sanity pass for CV upload + pasted-bio extraction once production QA credentials/session are available.

@@ -107,7 +107,7 @@ Phase 1 delivery focus:
 - Middleware now validates Supabase sessions and uses an internal access-hint cookie to preserve role/access-state routing without exposing roles publicly.
 - Location district pre-generation now avoids build-time database dependency (`generateStaticParams` returns `[]`), preventing remote build failures when DB private networking is unavailable at build time.
 - Production build now passes with strict type checks and `next.config.ts` no longer uses `typescript.ignoreBuildErrors`.
-- Latest production deploy (`2026-04-03`) includes the public brand reset, signed-in launch-language cleanup, logged-in lifecycle dashboards (`/homeowner/instructions`, `/agent/proposals`), signed cookie-consent controls, and Gate 1 trust verification (`/api/auth/providers -> {}`, preview callback returns `error=Configuration`, old scaffold route no longer renders as a real page).
+- Latest production deploy (`2026-04-08`, Railway deployment `d6398224-4162-46bc-ae9c-8d454853d14f`) includes the AI-first onboarding release (upload-first profile generation UX, pasted-bio extraction path, milestone framing, and publish-gate demotion), alongside GPT-first resume extraction defaults (`gpt-5.4` + `gpt-5.4-mini`) and onboarding UX E2E coverage additions.
 
 15. Public-facing copy and empty-state polish
 
