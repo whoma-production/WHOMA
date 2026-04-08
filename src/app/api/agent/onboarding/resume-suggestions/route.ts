@@ -1,10 +1,9 @@
 import crypto from "node:crypto";
 
 import { NextResponse } from "next/server";
-import type { Session } from "next-auth";
 import { z } from "zod";
 
-import { auth } from "@/auth";
+import { auth, type AuthSession } from "@/auth";
 import { assertCan } from "@/lib/auth/rbac";
 import {
   createRequestHash,
@@ -152,7 +151,7 @@ function clearResumeSuggestionsCookie(response: NextResponse): void {
   });
 }
 
-function requireAgentSession(session: Session | null):
+function requireAgentSession(session: AuthSession | null):
   | { ok: true; userId: string }
   | { ok: false; response: Response } {
   if (!session?.user) {

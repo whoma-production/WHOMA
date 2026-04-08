@@ -24,7 +24,7 @@ Phase 1 delivery focus:
 
 1. Identity and access
 
-- Sign in (`Google OAuth`, `Apple OAuth`, or DB-backed `email/password` when configured) -> role selection (`HOMEOWNER` / `AGENT`) -> gated app routes
+- Sign in (`Google OAuth` or `email magic link` via Supabase Auth) -> role selection (`HOMEOWNER` / `AGENT`) -> gated app routes
 - Preview fallback still exists for QA/E2E when `ENABLE_PREVIEW_AUTH=true`, but public auth pages never expose preview-role UI and now prefer live self-serve account access for agents whenever any public auth method is available.
 
 2. Agent onboarding and trust
@@ -80,7 +80,7 @@ Phase 1 delivery focus:
 11. Auth/session stability guardrails (new)
 
 - Middleware now canonicalizes dev host traffic to `AUTH_URL` origin to avoid `localhost` vs `127.0.0.1` callback/cookie mismatches during preview sign-in.
-- NextAuth route handler exports explicit `GET`/`POST` handlers with `runtime=nodejs` and `dynamic=force-dynamic` to reduce dev-time handler instability.
+- Auth callbacks now resolve through `/auth/callback` with Supabase PKCE exchange and post-auth routing, reducing provider/cookie drift across environments.
 
 12. Homeowner compare + decision persistence (T004)
 
@@ -102,9 +102,9 @@ Phase 1 delivery focus:
 
 - Production service is deployed on Railway at `https://whoma-web-production.up.railway.app` with managed Postgres in the same project.
 - Runtime start command now runs `prisma migrate deploy` before `next start`, so schema migrations are applied during service boot.
-- Auth fallback for staging/demo is env-gated (`ENABLE_PREVIEW_AUTH=true`) while public production auth now supports Google, Apple, and email/password when the corresponding live credentials are configured.
+- Public production auth now runs through Supabase Auth with Google OAuth and email magic-link sign-in; preview controls are no longer part of the public auth path.
 - Preview auth UI now uses a compact role selector + email input flow (`Continue with Preview Email`) to avoid long-button overflow and support personal-email demo sessions.
-- Middleware now reads Auth.js v5 cookie names (`__Secure-authjs.session-token` in production) so authenticated sessions resolve correctly on protected routes.
+- Middleware now validates Supabase sessions and uses an internal access-hint cookie to preserve role/access-state routing without exposing roles publicly.
 - Location district pre-generation now avoids build-time database dependency (`generateStaticParams` returns `[]`), preventing remote build failures when DB private networking is unavailable at build time.
 - Production build now passes with strict type checks and `next.config.ts` no longer uses `typescript.ignoreBuildErrors`.
 - Latest production deploy (`2026-04-03`) includes the public brand reset, signed-in launch-language cleanup, logged-in lifecycle dashboards (`/homeowner/instructions`, `/agent/proposals`), signed cookie-consent controls, and Gate 1 trust verification (`/api/auth/providers -> {}`, preview callback returns `error=Configuration`, old scaffold route no longer renders as a real page).
@@ -131,16 +131,13 @@ Phase 1 delivery focus:
 - Public auth pages now have two explicit public states: live self-serve account access for estate agents when any public auth method is configured, or a clean support path when none are available.
 - `GoogleAuthButton` now supports explicit public vs internal UX modes so preview-role UI remains available for QA/E2E without leaking onto public pages.
 
-18. Estate-agent self-serve auth unblock (2026-04-06) (new)
+18. Supabase auth migration for production readiness (2026-04-08) (new)
 
-- `src/auth.ts` now registers three public estate-agent auth paths:
-  - Google OAuth when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are present,
-  - Apple OAuth when `AUTH_APPLE_ID` and `AUTH_APPLE_SECRET` are present on an HTTPS deployment origin,
-  - DB-backed email/password credentials auth when `DATABASE_URL` is available.
-- `src/app/api/auth/register/route.ts` now creates `User` records with `passwordHash`, `passwordSetAt`, and `dataOrigin=PRODUCTION`, giving WHOMA a self-serve account-creation path that does not depend on external OAuth being configured first.
-- `src/lib/auth/provider-config.ts` centralizes provider availability checks so public auth, support copy, and tests all read the same live capability model.
-- `src/components/auth/google-auth-button.tsx` now renders Google, Apple, and email/password states for public agents while keeping preview-role access hidden behind internal-only mode for QA/E2E.
-- `src/app/[slug]/page.tsx` no longer exposes the end-user-facing `Key service providers` grid on contact pages; auth/help copy now talks about account access and support instead of raw infra components.
+- Replaced NextAuth runtime auth/session handling with Supabase Auth (`Google OAuth` + `email magic link`) for a faster, more reliable production path on Railway.
+- Removed Apple OAuth and removed public email/password auth flow (`/api/auth/register` deleted).
+- Added server/browser/middleware Supabase clients (`src/lib/supabase/*`) and callback exchange route (`/auth/callback`) with explicit failure handling.
+- Kept existing server-side authorization model by preserving `auth()` call sites and returning compatible session shape (`user.id`, `user.role`, `user.accessState`).
+- Added `/auth/sign-out` and updated shell sign-out behavior to clear Supabase + app access state cleanly.
 
 18. Activation checklist + stronger Phase 1 counters (new)
 
@@ -160,9 +157,9 @@ Phase 1 delivery focus:
 - Homepage CTAs now lead with the current Phase 1 priorities: `Build your verified profile`, `Log your first transactions`, and a clearly labeled limited collaboration-pilot route.
 - Homepage proof now includes a featured verified-agent block sourced from public profiles when available, a sample case-study narrative, and a workflow demo showing instruction -> structured proposals -> shortlist -> messaging.
 - Public directory and `/requests*` empty states now explain rollout stage, show one concrete proof/example element, and offer one strong next-step CTA instead of placeholder emptiness.
-- Public sign-in and sign-up now resolve `next` and `error` on the server and pass them into `GoogleAuthButton`, removing the Suspense-only loading fallback from the auth entry flow while keeping the same NextAuth backend architecture.
+- Public sign-in and sign-up now resolve `next` and `error` on the server and pass them into `GoogleAuthButton`, removing the Suspense-only loading fallback from the auth entry flow.
 - `GoogleAuthButton` now surfaces inline sign-in failure states for both Google and preview paths instead of silently resetting to idle.
-- Static trust/support routes now expose the concrete support inbox, operating entity/region, response-window expectations, and named operational provider stack (Auth.js/Google, Railway/Postgres/Prisma, Resend, optional Upstash, optional OpenAI resume intake).
+- Static trust/support routes now expose the concrete support inbox, operating entity/region, response-window expectations, and named operational provider stack (Supabase Auth, Railway/Postgres/Prisma, Resend, optional Upstash, optional OpenAI resume intake).
 - `/sitemap` now derives live pilot request-area summaries from the marketplace query layer at request time instead of reading mock data.
 
 21. Logged-in lifecycle dashboards beyond compare (new)
@@ -221,7 +218,7 @@ Phase 1 delivery focus:
 - Agent/homeowner execution surfaces now prefer `instruction` and `offer` vocabulary over `sale request`, `seller request`, `proposal builder`, and `marketplace` wording.
 - Dead disabled future-feature CTAs were removed from the offer builder, and the remaining primary actions now read as clear, single-path submission flows.
 - Public and signed-in recovery states are now branded: `src/app/not-found.tsx`, `src/app/loading.tsx`, and `src/app/error.tsx` provide intentional fallback UX instead of generic framework defaults.
-- Local browser QA now depends on a same-origin Auth.js setup (`PLAYWRIGHT_BASE_URL`, `AUTH_URL`, `NEXTAUTH_URL` aligned to the same host) so preview-auth cookies persist during Playwright runs.
+- Local browser QA now depends on same-origin auth callback settings (`PLAYWRIGHT_BASE_URL`, `AUTH_URL`, `NEXT_PUBLIC_APP_URL`) so Supabase callback/session cookies persist during browser runs.
 - Local DB migration history for agent work-email verification was reconciled non-destructively by marking `20260321194500_agent_work_email_verification` applied and deploying `20260322130500_agent_work_email_anti_abuse`, which unblocked the agent onboarding route at runtime.
 
 27. Public visual-baseline follow-up (2026-04-04) (new)
@@ -256,19 +253,17 @@ Phase 1 delivery focus:
   - removed `Operating status` section and reduced contact summary card fields to user-relevant support/access information.
 - Updated the shared public brand line to `Where Home Owners Meet Agents` across metadata, header logo subtitle, homepage hero, and footer context copy.
 - Changed featured-profile fallback content to a realistic sample completed profile so public surfaces feel inhabited before full live profile density.
-- Sign-in now clarifies provider readiness by showing that Google/Apple options appear when live OAuth credentials are configured, reducing ambiguity when email is the only available method.
+- Sign-in now clarifies provider readiness by showing that Google/email options appear when live auth credentials are configured, reducing ambiguity when one method is temporarily unavailable.
 
-31. Production auth readiness pass: method-first sign-in + post-auth access states (2026-04-07) (new)
+31. Production auth readiness pass: method-first sign-in + post-auth access states (2026-04-08) (new)
 
-- Public sign-in now prioritizes real authentication methods first: Google OAuth, Apple OAuth, and secure email magic-link sign-in (`next-auth` Email provider).
-- `src/auth.ts` replaced public password-credentials sign-in with magic-link delivery via Resend (`sendVerificationRequest`) and enables safe same-email account linking on Google/Apple providers.
-- Public auth UI (`src/components/auth/google-auth-button.tsx`, `/sign-in`, `/sign-up`) now presents all methods in one polished layout with intentional unavailable/error states; support/request-access is secondary only.
-- Auth/session tokens now carry an explicit post-auth access state (`APPROVED` / `PENDING` / `DENIED`) so approval logic happens after successful authentication.
-- Added dedicated authenticated review routes for agents:
+- Public sign-in now prioritizes real authentication methods first: `Continue with Google` and `Continue with email` (magic link).
+- `src/auth.ts` now resolves Supabase user identity into WHOMA DB users and preserves role/access-state-aware sessions for existing server routes.
+- Public auth UI (`src/components/auth/google-auth-button.tsx`, `/sign-in`, `/sign-up`) now presents only live methods with intentional unavailable/error states; support/request-access is secondary only.
+- Auth/session now keeps approval logic after authentication via explicit post-auth states (`APPROVED` / `PENDING` / `DENIED`), with dedicated authenticated review routes:
   - `/access/pending`
   - `/access/denied`
-- Middleware now enforces post-auth access-state routing for agent surfaces while keeping preview-role auth internal only.
-- Added `VerificationStatus.REJECTED` to support explicit denied-state workflows and admin controls (`Mark denied`) without exposing internal roles publicly.
+- Middleware enforces post-auth access-state routing for agent surfaces using Supabase session checks plus app access hints.
 
 32. Public language hardening follow-up (2026-04-07) (new)
 
@@ -294,6 +289,20 @@ Phase 1 delivery focus:
 - Set `/faqs` to dynamic rendering (`export const dynamic = "force-dynamic"`) so production copy updates are not blocked by long-lived static edge cache.
 - This keeps FAQ trust/copy updates immediately visible after deploy, while preserving the same IA and component structure.
 
+36. Agent onboarding UX shift: profile generation workflow (2026-04-08) (new)
+
+- `/agent/onboarding` now leads with one dominant action (`Upload CV / Resume`) and explicitly frames onboarding as profile generation rather than manual form completion.
+- Resume extraction output now appears as a generated draft with:
+  - visible parse/build state language,
+  - extracted field chips,
+  - confidence-aware confirmations,
+  - missing-fields publish checklist.
+- The page now follows a two-track architecture:
+  - `Profile preview` surface showing generated identity output (`name`, `agency`, `role`, `areas`, `specialties`, summary, shareable path preview),
+  - `Finish your profile` panel prioritizing only remaining inputs plus recommended enrichments.
+- Email verification remains enforced by backend policy but is visually demoted to a compact publish-gate module rather than a top-level onboarding block.
+- Activation language now uses milestone framing (`draft created`, `core details confirmed`, `public profile live`, `verification completed`) to keep progress tied to user-facing value.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
@@ -310,7 +319,7 @@ Phase 1 delivery focus:
 
 ## Backend
 
-- Auth/session: `next-auth` + middleware route guards + public Google/Apple/email magic-link auth for agents, with preview credentials (`HOMEOWNER` / `AGENT` / `ADMIN`) reserved for local QA/E2E only; Railway production no longer exposes preview providers and rejects preview callback sign-in attempts with `error=Configuration`
+- Auth/session: Supabase Auth (`Google OAuth` + `email magic link`) + middleware route guards + DB-backed role/access-state authorization in server routes
 - Dev host consistency: middleware redirects sign-in/app route traffic to the canonical `AUTH_URL` host in development
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)

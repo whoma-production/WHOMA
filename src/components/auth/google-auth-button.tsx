@@ -1,17 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
-import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthErrorMessage } from "@/lib/auth/session";
-import type { PublicAuthProviderAvailability } from "@/lib/auth/provider-config";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import type {
+  PublicAuthProviderAvailability,
+  PublicEmailAuthMethod
+} from "@/lib/auth/provider-config";
 
 interface GoogleAuthButtonProps {
   redirectTo?: string;
   fullWidth?: boolean;
   providerAvailability: PublicAuthProviderAvailability;
+  emailAuthMethod?: PublicEmailAuthMethod;
   authMode?: "sign-in" | "sign-up";
   uxMode?: "public" | "internal";
   allowPreviewAccess?: boolean;
@@ -20,16 +24,7 @@ interface GoogleAuthButtonProps {
   oauthError?: string | null;
 }
 
-type PreviewRole = "HOMEOWNER" | "AGENT" | "ADMIN";
-type PendingAction =
-  | "google"
-  | "apple"
-  | "email"
-  | "homeowner"
-  | "agent"
-  | "admin"
-  | "preview"
-  | null;
+type PendingAction = "google" | "email" | null;
 
 function GoogleMark(): JSX.Element {
   return (
@@ -54,14 +49,6 @@ function GoogleMark(): JSX.Element {
   );
 }
 
-function AppleMark(): JSX.Element {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 18 18" className="h-4 w-4 fill-current">
-      <path d="M12.61 9.62c.02 2.08 1.84 2.78 1.86 2.79-.02.05-.29 1-.97 1.98-.59.84-1.2 1.69-2.17 1.7-.95.02-1.26-.56-2.35-.56-1.09 0-1.44.54-2.33.58-.93.03-1.64-.92-2.24-1.76C3.08 12.2 2.07 8.3 3.43 5.94c.68-1.17 1.89-1.9 3.2-1.92.89-.02 1.73.6 2.35.6.62 0 1.79-.74 3.02-.63.51.02 1.95.21 2.88 1.56-.08.05-1.72 1-1.67 3.07ZM11.12 2.39c.49-.6.82-1.43.73-2.26-.71.03-1.58.48-2.08 1.08-.45.52-.84 1.36-.73 2.16.79.06 1.59-.4 2.08-.98Z" />
-    </svg>
-  );
-}
-
 function MailMark(): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 18 18" className="h-4 w-4 fill-none stroke-current">
@@ -81,37 +68,44 @@ function MailMark(): JSX.Element {
   );
 }
 
-function getDefaultPreviewEmail(role: PreviewRole): string {
-  if (role === "HOMEOWNER") {
-    return "homeowner.preview@whoma.local";
-  }
-
-  if (role === "AGENT") {
-    return "agent.preview@whoma.local";
-  }
-
-  return "admin.preview@whoma.local";
-}
-
 function isEmailCandidate(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function buildAuthCallbackUrl(target: string): string {
+  const callbackUrl = new URL("/auth/callback", window.location.origin);
+  callbackUrl.searchParams.set("next", target);
+  return callbackUrl.toString();
+}
+
+function mapSupabaseErrorMessage(message: string): string {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("provider") && normalized.includes("not enabled")) {
+    return "That sign-in method is unavailable right now. Try email instead.";
+  }
+
+  if (normalized.includes("rate limit")) {
+    return "Too many sign-in attempts right now. Please wait a moment and try again.";
+  }
+
+  if (normalized.includes("invalid email")) {
+    return "Enter a valid email address.";
+  }
+
+  return "We could not complete sign-in right now. Please try again.";
 }
 
 export function GoogleAuthButton({
   redirectTo = "/onboarding/role",
   fullWidth = true,
   providerAvailability,
-  authMode = "sign-in",
-  uxMode = "public",
-  allowPreviewAccess = false,
+  emailAuthMethod = "none",
   supportEmail,
   nextParam = null,
   oauthError = null
 }: GoogleAuthButtonProps): JSX.Element {
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [previewEmail, setPreviewEmail] = useState<string>("");
-  const [previewRole, setPreviewRole] = useState<PreviewRole>("AGENT");
-  const [previewError, setPreviewError] = useState<string | null>(null);
   const [emailAddress, setEmailAddress] = useState<string>("");
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [signInError, setSignInError] = useState<string | null>(null);
@@ -120,66 +114,42 @@ export function GoogleAuthButton({
   const target = nextParam ?? redirectTo;
   const isPending = pendingAction !== null;
   const hasPublicAuth = providerAvailability.any;
-  const showPreviewAccess = uxMode === "internal" && allowPreviewAccess;
 
-  async function runSignIn(
-    provider: "google" | "apple" | "email" | "preview",
-    options: Record<string, string | boolean>
-  ): Promise<void> {
-    const response = await signIn(provider, {
-      ...options,
-      redirect: false
-    });
-
-    if (response?.error) {
-      setSignInError(
-        getAuthErrorMessage(response.error) ??
-          "We could not complete sign-in. Please try again."
-      );
-      setPendingAction(null);
-      return;
-    }
-
-    if (provider === "email") {
-      setEmailSentTo(String(options.email ?? ""));
-      setPendingAction(null);
-      return;
-    }
-
-    if (response?.url) {
-      window.location.assign(response.url);
-      return;
-    }
-
-    setSignInError("We could not complete sign-in. Please try again.");
-    setPendingAction(null);
-  }
-
-  function handleOauthClick(provider: "google" | "apple"): void {
+  async function handleGoogleSignIn(): Promise<void> {
     if (isPending) {
       return;
     }
 
-    if (provider === "google" && !providerAvailability.google) {
+    if (!providerAvailability.google) {
       setSignInError("Google sign-in is temporarily unavailable.");
       return;
     }
 
-    if (provider === "apple" && !providerAvailability.apple) {
-      setSignInError("Apple sign-in is temporarily unavailable.");
+    setPendingAction("google");
+    setSignInError(null);
+    setEmailSentTo(null);
+
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: buildAuthCallbackUrl(target)
+      }
+    });
+
+    if (error) {
+      setSignInError(mapSupabaseErrorMessage(error.message));
+      setPendingAction(null);
       return;
     }
 
-    setSignInError(null);
-    setEmailSentTo(null);
-    setPendingAction(provider);
+    if (data.url) {
+      window.location.assign(data.url);
+      return;
+    }
 
-    void runSignIn(provider, { callbackUrl: target }).catch(() => {
-      setSignInError(
-        `${provider === "google" ? "Google" : "Apple"} sign-in failed before redirect.`
-      );
-      setPendingAction(null);
-    });
+    setSignInError("Google sign-in did not return a redirect URL.");
+    setPendingAction(null);
   }
 
   async function handleEmailSubmit(
@@ -187,7 +157,12 @@ export function GoogleAuthButton({
   ): Promise<void> {
     event.preventDefault();
 
-    if (!providerAvailability.email || isPending) {
+    if (isPending) {
+      return;
+    }
+
+    if (!providerAvailability.email || emailAuthMethod !== "magic-link") {
+      setSignInError("Email sign-in is currently unavailable.");
       return;
     }
 
@@ -198,70 +173,26 @@ export function GoogleAuthButton({
       return;
     }
 
+    setPendingAction("email");
     setSignInError(null);
     setEmailSentTo(null);
-    setPendingAction("email");
 
-    await runSignIn("email", {
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase.auth.signInWithOtp({
       email: trimmedEmail,
-      callbackUrl: target
-    }).catch(() => {
-      setSignInError(
-        "We could not send your sign-in link right now. Please try again."
-      );
-      setPendingAction(null);
+      options: {
+        emailRedirectTo: buildAuthCallbackUrl(target)
+      }
     });
-  }
 
-  function handlePreviewClick(role: PreviewRole, customEmail?: string): void {
-    if (isPending) {
+    if (error) {
+      setSignInError(mapSupabaseErrorMessage(error.message));
+      setPendingAction(null);
       return;
     }
 
-    setSignInError(null);
-    const resolvedCustomEmail = customEmail?.trim().toLowerCase();
-    const resolvedEmail = resolvedCustomEmail?.length
-      ? resolvedCustomEmail
-      : getDefaultPreviewEmail(role);
-    const previewRedirectTo =
-      role === "HOMEOWNER"
-        ? "/homeowner/instructions"
-        : role === "AGENT"
-          ? "/agent/onboarding"
-          : "/admin/agents";
-
-    setPendingAction(
-      role === "HOMEOWNER" ? "homeowner" : role === "AGENT" ? "agent" : "admin"
-    );
-
-    const destination = nextParam ?? previewRedirectTo;
-
-    void runSignIn("preview", {
-      email: resolvedEmail,
-      role,
-      callbackUrl: destination
-    }).catch(() => {
-      setSignInError(
-        "Preview sign-in failed. Check the email and role, then try again."
-      );
-      setPendingAction(null);
-    });
-  }
-
-  function handlePreviewSubmit(event: React.FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    setPreviewError(null);
-
-    const trimmedEmail = previewEmail.trim().toLowerCase();
-    if (trimmedEmail.length > 0 && !isEmailCandidate(trimmedEmail)) {
-      setPreviewError(
-        "Enter a valid email address or leave it empty for temporary preview email."
-      );
-      return;
-    }
-
-    setPendingAction("preview");
-    handlePreviewClick(previewRole, trimmedEmail || undefined);
+    setEmailSentTo(trimmedEmail);
+    setPendingAction(null);
   }
 
   return (
@@ -271,7 +202,9 @@ export function GoogleAuthButton({
           type="button"
           variant="secondary"
           fullWidth={fullWidth}
-          onClick={() => handleOauthClick("google")}
+          onClick={() => {
+            void handleGoogleSignIn();
+          }}
           disabled={isPending || !providerAvailability.google}
           aria-busy={isPending}
         >
@@ -283,32 +216,12 @@ export function GoogleAuthButton({
         {!providerAvailability.google ? (
           <p className="text-xs text-text-muted">Google sign-in is currently unavailable.</p>
         ) : null}
-
-        <Button
-          type="button"
-          variant="secondary"
-          fullWidth={fullWidth}
-          onClick={() => handleOauthClick("apple")}
-          disabled={isPending || !providerAvailability.apple}
-          aria-busy={isPending}
-          className={providerAvailability.apple ? "border-black bg-black text-white hover:bg-black/90" : undefined}
-        >
-          <AppleMark />
-          {pendingAction === "apple"
-            ? "Redirecting to Apple..."
-            : "Continue with Apple"}
-        </Button>
-        {!providerAvailability.apple ? (
-          <p className="text-xs text-text-muted">Apple sign-in is currently unavailable.</p>
-        ) : null}
       </div>
 
       <div className="rounded-md border border-line bg-surface-1 p-4">
         <div className="mb-3 flex items-center gap-2">
           <MailMark />
-          <p className="text-sm font-medium text-text-strong">
-            {authMode === "sign-up" ? "Continue with email" : "Continue with email"}
-          </p>
+          <p className="text-sm font-medium text-text-strong">Continue with email</p>
         </div>
 
         <form onSubmit={handleEmailSubmit} className="space-y-3">
@@ -335,11 +248,13 @@ export function GoogleAuthButton({
             disabled={isPending || !providerAvailability.email}
             aria-busy={isPending}
           >
-            {pendingAction === "email" ? "Sending sign-in link..." : "Continue with email"}
+            {pendingAction === "email"
+              ? "Sending secure sign-in link..."
+              : "Continue with email"}
           </Button>
         </form>
 
-        {!providerAvailability.email ? (
+        {!providerAvailability.email || emailAuthMethod !== "magic-link" ? (
           <p className="mt-2 text-xs text-text-muted">
             Email sign-in is currently unavailable.
           </p>
@@ -359,7 +274,7 @@ export function GoogleAuthButton({
       ) : null}
 
       <p className="text-xs text-text-muted">
-        Access control is applied after sign-in.{" "}
+        Access is reviewed after sign-in.{" "}
         {supportEmail ? (
           <>
             Need help?{" "}
@@ -371,81 +286,10 @@ export function GoogleAuthButton({
         ) : null}
       </p>
 
-      {!hasPublicAuth && uxMode === "public" ? (
+      {!hasPublicAuth ? (
         <p className="text-xs text-text-muted">
           Sign-in is temporarily unavailable. Please contact support for access help.
         </p>
-      ) : null}
-
-      {showPreviewAccess ? (
-        <div className="rounded-md border border-line bg-surface-1 p-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-strong">
-              Internal preview access
-            </p>
-            <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
-              QA only
-            </span>
-          </div>
-          <p className="mb-3 text-xs text-text-muted">
-            Use a temporary role session for local QA or automated tests.
-          </p>
-          <form onSubmit={handlePreviewSubmit} className="space-y-3">
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                Email (optional)
-              </span>
-              <Input
-                type="email"
-                placeholder="agent.preview@whoma.local"
-                value={previewEmail}
-                onChange={(event) => {
-                  setPreviewEmail(event.target.value);
-                  if (previewError) {
-                    setPreviewError(null);
-                  }
-                }}
-              />
-            </label>
-
-            <div className="grid gap-2 sm:grid-cols-3">
-              <Button
-                type="button"
-                variant={previewRole === "HOMEOWNER" ? "primary" : "secondary"}
-                onClick={() => setPreviewRole("HOMEOWNER")}
-                disabled={isPending}
-              >
-                Homeowner
-              </Button>
-              <Button
-                type="button"
-                variant={previewRole === "AGENT" ? "primary" : "secondary"}
-                onClick={() => setPreviewRole("AGENT")}
-                disabled={isPending}
-              >
-                Agent
-              </Button>
-              <Button
-                type="button"
-                variant={previewRole === "ADMIN" ? "primary" : "secondary"}
-                onClick={() => setPreviewRole("ADMIN")}
-                disabled={isPending}
-              >
-                Admin
-              </Button>
-            </div>
-
-            <Button type="submit" fullWidth disabled={isPending}>
-              {pendingAction === "preview"
-                ? "Entering preview..."
-                : "Continue with Preview Email"}
-            </Button>
-
-            {previewError ? (
-              <p className="text-sm text-state-danger">{previewError}</p>
-            ) : null}
-          </form>
-        </div>
       ) : null}
     </div>
   );

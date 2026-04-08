@@ -3819,3 +3819,125 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 ### Remaining Sign-off Work
 
 1. Deploy and re-check `/faqs` content on production.
+
+---
+
+## Session: 2026-04-08 / 11:58 (CEST) — Agent onboarding UX: profile-generation workflow refactor
+
+**Author:** Codex  
+**Context:** User requested a major UX shift for agent onboarding from form-first data entry to AI-assisted profile generation with document-first momentum.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Reframe `/agent/onboarding` as `Upload -> Parse -> Review -> Fill gaps -> Publish -> Share` while preserving existing backend validation, authorization, and verification guardrails.
+
+### Changes Made
+
+- Refactored onboarding page architecture in `src/app/(app)/agent/onboarding/page.tsx`:
+  - Introduced a dominant upload hero (`Upload CV / Resume`) with secondary manual actions (`Paste LinkedIn bio`, `Enter manually`).
+  - Converted scattered alert blocks into a single resolved status-notice model for cleaner surface messaging.
+  - Added generated draft-profile preview with readiness meter, core identity fields, specialty/area chips, and shareable path/code previews.
+  - Added a dedicated `Finish your profile` panel that separates:
+    - fields already ready,
+    - fields still needed to publish,
+    - recommended enrichments,
+    - low-confidence extracted fields with evidence hints.
+  - Demoted email verification to a compact publish-gate module while keeping verification actions available.
+  - Kept onboarding write path and server actions unchanged (`uploadResumeAction`, `send/confirm verification`, `submitAgentOnboardingAction`).
+- Updated milestone language:
+  - `src/lib/agent-activation.ts` now uses profile-generation milestone wording (`Contact channel verified`, `Profile draft created`, `Core details confirmed`, `Public profile live`, `Verification completed`).
+  - `src/components/agent/activation-checklist.tsx` now frames progress as milestone completion with updated labels.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm run test -- src/lib/agent-activation.test.ts` — passed (`2/2` tests).
+
+### Decisions (and why)
+
+- **Decision:** Preserve existing onboarding/verification server actions and schema rules while refactoring UX surface choreography.
+  - **Why:** User request targeted onboarding experience quality, not domain-policy changes; this keeps risk low and avoids backend regressions.
+- **Decision:** Keep manual full-form confirmation available but demoted beneath generated preview + fill-gaps guidance.
+  - **Why:** Ensures deterministic save behavior with existing contracts while making AI-assisted flow feel primary.
+- **Decision:** Surface confidence-aware confirmation prompts only when resume extraction confidence is low.
+  - **Why:** Supports trust and correction without forcing agents through unnecessary review friction.
+
+### Status
+
+- Agent onboarding profile-generation UX refactor: `GREEN` (local typecheck/lint/tests passed).
+
+### Remaining Sign-off Work
+
+1. Run a focused manual UX pass on `/agent/onboarding` desktop + mobile to validate information hierarchy and first-screen clarity.
+2. Optionally add Playwright coverage for the new upload-first onboarding choreography and publish-gate visibility rules.
+
+---
+
+## Session: 2026-04-08 / 12:08 (CEST) — Auth migration to Supabase (Google + magic link only)
+
+**Author:** Codex  
+**Context:** User requested fastest production-safe auth fix: migrate broken sign-in flow to Supabase Auth, keep Google + email, remove Apple + email/password, keep approval logic post-auth.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Replace NextAuth auth runtime with Supabase Auth in the smallest reliable patch set for Railway production.
+
+### Changes Made
+
+- Replaced auth runtime in `src/auth.ts`:
+  - Removed NextAuth provider stack and callbacks.
+  - Added Supabase-backed `auth()` compatibility layer so existing server pages/routes still work.
+  - Preserved session shape (`user.id`, `user.role`, `user.accessState`) and role/access-state resolution logic.
+- Added Supabase client infrastructure:
+  - `src/lib/supabase/config.ts`
+  - `src/lib/supabase/server.ts`
+  - `src/lib/supabase/browser.ts`
+  - `src/lib/supabase/middleware.ts`
+- Added auth routes:
+  - `src/app/auth/callback/route.ts` for Google + magic-link callback exchange and post-auth routing.
+  - `src/app/auth/sign-out/route.ts` for clean sign-out.
+- Replaced middleware auth checks in `src/middleware.ts` with Supabase session validation and app access-hint handling.
+- Updated public auth UI:
+  - `src/components/auth/google-auth-button.tsx` now supports Google OAuth + email magic link only.
+  - Removed Apple and email/password UI branches.
+  - Updated sign-in/sign-up copy to reflect current methods.
+- Removed deprecated auth endpoints and old flow code:
+  - Deleted `src/app/api/auth/[...nextauth]/route.ts`
+  - Deleted `src/app/api/auth/register/route.ts`
+  - Deleted `src/types/next-auth.d.ts`
+- Updated sign-out behavior in shell (`src/components/layout/app-shell.tsx`) to use the new sign-out route.
+- Updated env template and docs for Supabase-first auth setup.
+- Installed Supabase dependencies and removed unused NextAuth deps:
+  - Added `@supabase/supabase-js`, `@supabase/ssr`
+  - Removed `next-auth`, `@auth/prisma-adapter`
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm run test -- src/components/auth/google-auth-button.test.tsx` — passed (`3/3`).
+- `npm run build` — passed.
+
+### Decisions (and why)
+
+- **Decision:** Keep existing server authorization and route guards by preserving `auth()` compatibility shape instead of refactoring every route/page.
+  - **Why:** Fastest robust migration with lowest blast radius.
+- **Decision:** Remove Apple and email/password now, not feature-flagged.
+  - **Why:** Product decision is explicit and this reduces production auth complexity immediately.
+- **Decision:** Keep access approval as a post-auth state (`APPROVED` / `PENDING` / `DENIED`).
+  - **Why:** Matches requested model and keeps authentication separate from moderation/review policy.
+
+### Status
+
+- Supabase auth migration (Google + magic link): `GREEN` (local typecheck/lint/test/build complete).
+
+### Remaining Sign-off Work
+
+1. Configure Supabase + Google OAuth + Railway env vars and callback URLs in production.
+2. Validate live sign-in roundtrip on Railway:
+   - Google OAuth callback,
+   - email magic-link callback,
+   - pending/denied routing behavior for agent accounts.

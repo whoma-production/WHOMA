@@ -5,7 +5,10 @@ import { PublicHeader } from "@/components/layout/public-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeRedirectPath } from "@/lib/auth/session";
-import { getPublicAuthProviderAvailability } from "@/lib/auth/provider-config";
+import {
+  getPublicAuthProviderAvailability,
+  getPublicEmailAuthMethod
+} from "@/lib/auth/provider-config";
 import { PUBLIC_AGENT_JOURNEY } from "@/lib/public-proof";
 import {
   getPublicSiteConfig,
@@ -64,6 +67,7 @@ export default async function SignUpPage({
   searchParams
 }: SignUpPageProps): Promise<JSX.Element> {
   const providerAvailability = getPublicAuthProviderAvailability();
+  const emailAuthMethod = getPublicEmailAuthMethod();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const nextParam = normalizeRedirectPath(resolvedSearchParams?.next) ?? null;
   const role = normalizeRole(resolvedSearchParams?.role);
@@ -80,7 +84,7 @@ export default async function SignUpPage({
     role === "HOMEOWNER"
       ? "Seller access is still handled through support. Tell us which area or brief you are asking about and we will route you correctly."
       : providerAvailability.any
-        ? "Choose Google, Apple, or email to create your account, then continue to role selection and onboarding."
+        ? "Choose Google or email to create your account, then continue to role selection and onboarding."
         : "Sign-in is temporarily unavailable. Contact support and we will help you regain access quickly.";
 
   return (
@@ -231,6 +235,7 @@ export default async function SignUpPage({
             ) : (
               <GoogleAuthButton
                 providerAvailability={providerAvailability}
+                emailAuthMethod={emailAuthMethod}
                 authMode="sign-up"
                 uxMode="public"
                 supportEmail={site.supportEmail}

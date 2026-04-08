@@ -631,39 +631,6 @@
     ]
   },
   {
-    "session_id": "2026-03-22-1202-messages-ui-live-upstash-safety",
-    "timestamp": "2026-03-22T12:02:00+00:00",
-    "summary": "Wired /messages to live persisted APIs (thread list/read/send) and upgraded rate-limit/idempotency storage to optional shared Upstash Redis with safe fallback for multi-instance readiness.",
-    "files_changed": [
-      "src/app/(app)/messages/page.tsx",
-      "src/app/(app)/messages/messages-client.tsx",
-      "src/app/api/messages/threads/route.ts",
-      "src/app/api/messages/[threadId]/route.ts",
-      "src/app/(app)/homeowner/instructions/[instructionId]/compare/compare-client.tsx",
-      "src/server/marketplace/service.ts",
-      "src/server/http/upstash.ts",
-      "src/server/http/rate-limit.ts",
-      "src/server/http/idempotency.ts",
-      "src/server/http/rate-limit.test.ts",
-      "src/server/http/idempotency.test.ts",
-      ".env.example",
-      "docs/TASKS.md",
-      "docs/PLATFORM_MAP.md",
-      "docs/DEVLOG.md",
-      "docs/CHANGELOG.json"
-    ],
-    "decisions": [
-      "Added a dedicated /api/messages/threads read endpoint to support discoverable thread listing in /messages",
-      "Implemented Upstash REST-backed shared storage for rate limiting and idempotency while preserving local fallback behavior",
-      "Deep-linked compare CTA to /messages?instructionId=... so shortlist/award workflows hand off directly into relevant messaging context"
-    ],
-    "next_steps": [
-      "Add unread/read-state policy and lightweight revalidation for near-real-time message updates",
-      "Add durable outbox/audit events for message sends and unlock transitions",
-      "Define environment policy for requiring Upstash in non-development deployments"
-    ]
-  },
-  {
     "session_id": "2026-03-22-1235-railway-live-deployment-baseline",
     "timestamp": "2026-03-22T12:35:00+00:00",
     "summary": "Deployed WHOMA live on Railway with managed Postgres, startup Prisma migrations, production env wiring, auth/session hardening fixes, and verified end-to-end smoke flow on the public URL.",
@@ -1521,6 +1488,73 @@
     "next_steps": [
       "Deploy and verify `/faqs` on production reflects the latest copy without stale content.",
       "If needed, apply the same cache strategy to other copy-sensitive static trust pages."
+    ]
+  },
+  {
+    "session_id": "2026-04-08-1158-agent-onboarding-profile-generation-ux",
+    "timestamp": "2026-04-08T11:58:00+02:00",
+    "summary": "Refactored agent onboarding from form-first to AI-assisted profile generation with a dominant upload entry, generated draft preview, gap-focused completion panel, and milestone-oriented progress framing while preserving server-side onboarding/verification rules.",
+    "files_changed": [
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/lib/agent-activation.ts",
+      "src/components/agent/activation-checklist.tsx",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept onboarding and email-verification server actions unchanged to avoid domain-policy regressions while improving UX choreography.",
+      "Promoted resume upload as the singular hero action and demoted manual form entry to a secondary confirmation step.",
+      "Demoted verification UI to a compact publish gate while retaining the same backend requirement before onboarding completion/publish."
+    ],
+    "next_steps": [
+      "Run a manual desktop/mobile UX pass on /agent/onboarding to validate hierarchy and readability in real browser conditions.",
+      "Add Playwright coverage for upload-first onboarding flow, low-confidence guidance visibility, and publish-gate behavior."
+    ]
+  },
+  {
+    "session_id": "2026-04-08-1208-supabase-auth-migration",
+    "timestamp": "2026-04-08T12:08:00+02:00",
+    "summary": "Migrated production auth from NextAuth to Supabase Auth using Google OAuth + email magic links only, removed Apple and email/password flows, and preserved post-auth role/access-state gating for existing server routes.",
+    "files_changed": [
+      ".env.example",
+      "package.json",
+      "package-lock.json",
+      "src/auth.ts",
+      "src/middleware.ts",
+      "src/lib/auth/access-hint.ts",
+      "src/lib/auth/provider-config.ts",
+      "src/lib/supabase/config.ts",
+      "src/lib/supabase/server.ts",
+      "src/lib/supabase/browser.ts",
+      "src/lib/supabase/middleware.ts",
+      "src/app/auth/callback/route.ts",
+      "src/app/auth/sign-out/route.ts",
+      "src/components/auth/google-auth-button.tsx",
+      "src/components/auth/google-auth-button.test.tsx",
+      "src/components/layout/app-shell.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/app/api/agent/onboarding/resume-suggestions/route.ts",
+      "src/app/api/auth/[...nextauth]/route.ts",
+      "src/app/api/auth/register/route.ts",
+      "src/types/next-auth.d.ts",
+      "docs/ARCHITECTURE.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/SUPABASE_AUTH_SETUP.md",
+      "docs/DEVLOG.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept existing app-side auth call sites stable by implementing a Supabase-backed `auth()` compatibility layer instead of refactoring every route/page immediately.",
+      "Removed Apple and email/password auth entirely to match product direction and reduce failure modes during production rollout.",
+      "Kept account approval logic after authentication (`APPROVED/PENDING/DENIED`) so authentication remains independent from access review."
+    ],
+    "next_steps": [
+      "Configure Supabase project auth settings and Google OAuth credentials for Railway production callback URLs.",
+      "Run live production auth QA: Google sign-in, email magic-link sign-in, callback error handling, and pending/denied route outcomes."
     ]
   }
 ]

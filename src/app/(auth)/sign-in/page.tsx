@@ -18,7 +18,10 @@ import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF
 } from "@/lib/public-site";
-import { getPublicAuthProviderAvailability } from "@/lib/auth/provider-config";
+import {
+  getPublicAuthProviderAvailability,
+  getPublicEmailAuthMethod
+} from "@/lib/auth/provider-config";
 import { createSupportInquiry } from "@/server/support/inquiries";
 
 interface PageProps {
@@ -72,6 +75,7 @@ export default async function SignInPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const nextParam = normalizeRedirectPath(resolvedSearchParams?.next) ?? null;
   const providerAvailability = getPublicAuthProviderAvailability();
+  const emailAuthMethod = getPublicEmailAuthMethod();
   const site = getPublicSiteConfig();
 
   return (
@@ -83,12 +87,13 @@ export default async function SignInPage({
             <CardHeader>
               <CardTitle>Sign in to WHOMA</CardTitle>
               <CardDescription>
-                Continue with Google, Apple, or email. Access review happens after sign-in.
+                Continue with Google or email. Access review happens after sign-in.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <GoogleAuthButton
                 providerAvailability={providerAvailability}
+                emailAuthMethod={emailAuthMethod}
                 authMode="sign-in"
                 uxMode="public"
                 supportEmail={site.supportEmail}

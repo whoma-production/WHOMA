@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 
-import { signOut } from "next-auth/react";
 import { Logo } from "@/components/brand/logo";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -72,7 +71,7 @@ export function AppShell({ role, title, children }: { role: ShellRole; title: st
               variant="secondary"
               size="sm"
               onClick={() => {
-                void signOut({ redirectTo: "/sign-in" });
+                window.location.assign("/auth/sign-out?next=/sign-in");
               }}
             >
               Sign out

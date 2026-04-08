@@ -1,31 +1,28 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
-import type { UserRole } from "@prisma/client";
 
+import {
+  ACCESS_HINT_COOKIE_NAME,
+  decodeAccessHint,
+  type AccountAccessState
+} from "@/lib/auth/access-hint";
 import {
   canAccessPagePath,
   defaultRouteForRole,
   getPageRoutePolicy,
   normalizeRedirectPath
 } from "@/lib/auth/session";
-
-function getAuthSecret(): string | undefined {
-  return process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? (process.env.NODE_ENV !== "production" ? "dev-only-nextauth-secret-change-me" : undefined);
-}
-
-function getAuthSessionCookieName(): string {
-  return process.env.NODE_ENV === "production"
-    ? "__Secure-authjs.session-token"
-    : "authjs.session-token";
-}
+import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
 function getCanonicalDevOrigin(): URL | null {
   if (process.env.NODE_ENV === "production") {
     return null;
   }
 
-  const candidate = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+  const candidate =
+    process.env.AUTH_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.NEXTAUTH_URL;
 
   if (!candidate) {
     return null;
@@ -37,8 +34,6 @@ function getCanonicalDevOrigin(): URL | null {
     return null;
   }
 }
-
-type AccountAccessState = "APPROVED" | "PENDING" | "DENIED";
 
 export async function middleware(request: NextRequest): Promise<Response> {
   const { pathname, search } = request.nextUrl;
@@ -63,19 +58,21 @@ export async function middleware(request: NextRequest): Promise<Response> {
     return NextResponse.next();
   }
 
-  const authSecret = getAuthSecret();
-  const cookieName = getAuthSessionCookieName();
-  const token = await getToken(
-    authSecret
-      ? { req: request, secret: authSecret, cookieName }
-      : { req: request, cookieName }
-  );
-  const role = (token?.role as UserRole | null | undefined) ?? null;
-  const accessState =
-    (token?.accessState as AccountAccessState | null | undefined) ??
-    "APPROVED";
+  const response = NextResponse.next();
+  let authenticatedUserId: string | null = null;
 
-  if (!token) {
+  try {
+    const supabase = createSupabaseMiddlewareClient(request, response);
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+
+    authenticatedUserId = user?.id ?? null;
+  } catch {
+    authenticatedUserId = null;
+  }
+
+  if (!authenticatedUserId) {
     const signInUrl = new URL("/sign-in", request.url);
     const nextPath = normalizeRedirectPath(`${pathname}${search}`);
 
@@ -86,9 +83,20 @@ export async function middleware(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(signInUrl);
   }
 
+  const accessHint = decodeAccessHint(
+    request.cookies.get(ACCESS_HINT_COOKIE_NAME)?.value
+  );
+
+  if (!accessHint || accessHint.userId !== authenticatedUserId) {
+    return response;
+  }
+
+  const role = accessHint.role;
+  const accessState: AccountAccessState = accessHint.accessState;
+
   if (!role) {
     if (pathname === "/onboarding/role") {
-      return NextResponse.next();
+      return response;
     }
 
     return NextResponse.redirect(new URL("/onboarding/role", request.url));
@@ -122,7 +130,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(fallbackUrl);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
