@@ -3,9 +3,23 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { normalizeRedirectPath } from "@/lib/auth/session";
-import { defaultRouteForRole } from "@/lib/auth/session";
+import { defaultRouteForRole, normalizeRedirectPath } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+function resolveAppOrigin(request: NextRequest): string {
+  const configuredOrigin =
+    process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+
+  if (configuredOrigin) {
+    try {
+      return new URL(configuredOrigin).origin;
+    } catch {
+      // Fall back to request origin.
+    }
+  }
+
+  return request.nextUrl.origin;
+}
 
 function mapCallbackErrorCode(message: string): string {
   const normalized = message.toLowerCase();
@@ -30,10 +44,10 @@ function mapCallbackErrorCode(message: string): string {
 }
 
 function buildSignInRedirect(
-  request: NextRequest,
+  appOrigin: string,
   options: { code: string; next: string | null }
 ): URL {
-  const destination = new URL("/sign-in", request.url);
+  const destination = new URL("/sign-in", appOrigin);
   destination.searchParams.set("error", options.code);
 
   if (options.next) {
@@ -56,6 +70,7 @@ function isOtpType(value: string): value is EmailOtpType {
 
 export async function GET(request: NextRequest): Promise<Response> {
   const requestUrl = new URL(request.url);
+  const appOrigin = resolveAppOrigin(request);
   const nextParam = normalizeRedirectPath(requestUrl.searchParams.get("next"));
 
   let supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -64,7 +79,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     supabase = await createSupabaseServerClient();
   } catch {
     return NextResponse.redirect(
-      buildSignInRedirect(request, { code: "Configuration", next: nextParam })
+      buildSignInRedirect(appOrigin, { code: "Configuration", next: nextParam })
     );
   }
 
@@ -74,7 +89,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   if (providerError) {
     return NextResponse.redirect(
-      buildSignInRedirect(request, {
+      buildSignInRedirect(appOrigin, {
         code: mapCallbackErrorCode(providerError),
         next: nextParam
       })
@@ -90,7 +105,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     if (error) {
       return NextResponse.redirect(
-        buildSignInRedirect(request, {
+        buildSignInRedirect(appOrigin, {
           code: mapCallbackErrorCode(error.message),
           next: nextParam
         })
@@ -104,7 +119,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     if (error) {
       return NextResponse.redirect(
-        buildSignInRedirect(request, {
+        buildSignInRedirect(appOrigin, {
           code: mapCallbackErrorCode(error.message),
           next: nextParam
         })
@@ -112,7 +127,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   } else {
     return NextResponse.redirect(
-      buildSignInRedirect(request, { code: "Callback", next: nextParam })
+      buildSignInRedirect(appOrigin, { code: "Callback", next: nextParam })
     );
   }
 
@@ -120,25 +135,25 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   if (!session?.user.id) {
     return NextResponse.redirect(
-      buildSignInRedirect(request, { code: "AccessDenied", next: nextParam })
+      buildSignInRedirect(appOrigin, { code: "AccessDenied", next: nextParam })
     );
   }
 
   if (!session.user.role) {
-    return NextResponse.redirect(new URL("/onboarding/role", request.url));
+    return NextResponse.redirect(new URL("/onboarding/role", appOrigin));
   }
 
   if (session.user.role === "AGENT") {
     if (session.user.accessState === "DENIED") {
-      return NextResponse.redirect(new URL("/access/denied", request.url));
+      return NextResponse.redirect(new URL("/access/denied", appOrigin));
     }
 
     if (session.user.accessState === "PENDING") {
-      return NextResponse.redirect(new URL("/access/pending", request.url));
+      return NextResponse.redirect(new URL("/access/pending", appOrigin));
     }
   }
 
   const destination = nextParam ?? defaultRouteForRole(session.user.role);
 
-  return NextResponse.redirect(new URL(destination, request.url));
+  return NextResponse.redirect(new URL(destination, appOrigin));
 }
