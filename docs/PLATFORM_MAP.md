@@ -303,6 +303,23 @@ Phase 1 delivery focus:
 - Email verification remains enforced by backend policy but is visually demoted to a compact publish-gate module rather than a top-level onboarding block.
 - Activation language now uses milestone framing (`draft created`, `core details confirmed`, `public profile live`, `verification completed`) to keep progress tied to user-facing value.
 
+37. Agent onboarding intake + QA hardening (2026-04-08) (new)
+
+- Onboarding extraction intake now supports two first-class inputs through the same server pipeline:
+  - uploaded CV/resume/document (`resumeFile`),
+  - pasted professional bio (`bioText`).
+- AI intake defaults were aligned to GPT-first operation:
+  - `ENABLE_RESUME_AI_PREFILL=true`,
+  - `RESUME_PREFILL_MODE=llm_only`,
+  - default extraction model `gpt-5.4`,
+  - default cleanup model `gpt-5.4-mini`,
+  - OCR fallback remains optional and disabled by default unless explicitly enabled.
+- Upload affordances/messages now include image formats (`PNG/JPG/WEBP`) while preserving explicit OCR-unavailable feedback when image extraction is attempted without OCR fallback.
+- Added dedicated onboarding UX E2E coverage:
+  - `tests/e2e/agent-onboarding-ux.spec.ts` asserts upload-first hierarchy, publish-gate visibility, and milestone framing,
+  - mobile viewport variant ensures hierarchy/readability on small screens,
+  - shared auth seeding helper lives in `tests/e2e/support/mock-auth.ts`.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

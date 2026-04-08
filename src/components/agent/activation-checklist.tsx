@@ -47,8 +47,8 @@ function StepIcon({
 
 export function ActivationChecklist({
   profile,
-  title = "Profile checklist",
-  description = "Complete these steps to publish your profile with confidence."
+  title = "Profile milestones",
+  description = "Complete these milestones to move from draft to a trusted public profile."
 }: ActivationChecklistProps): JSX.Element {
   const checklist = getAgentActivationChecklist(profile);
   const state = getAgentActivationState(profile);
@@ -63,10 +63,10 @@ export function ActivationChecklist({
 
       <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
         <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-          Progress
+          Milestone progress
         </p>
         <p className="mt-1 text-2xl font-semibold text-text-strong">
-          {completedCount}/5 complete
+          {completedCount}/5 milestones complete
         </p>
         <p className="mt-1 text-sm text-text-muted">
           Profile completeness: {state.profileCompleteness}%
@@ -87,7 +87,7 @@ export function ActivationChecklist({
                     {item.title}
                   </p>
                   <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                    {item.done ? "Done" : item.current ? "Current" : "Next"}
+                    {item.done ? "Done" : item.current ? "Current" : "Upcoming"}
                   </span>
                 </div>
                 <p className="text-sm text-text-muted">{item.description}</p>

@@ -3941,3 +3941,65 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
    - Google OAuth callback,
    - email magic-link callback,
    - pending/denied routing behavior for agent accounts.
+
+---
+
+## Session: 2026-04-08 / 12:32 (CEST) — AI-first agent onboarding polish, GPT-5.4 extraction defaults, and UX E2E coverage
+
+**Author:** Codex  
+**Context:** User requested shipping the onboarding redesign as document-first profile generation, with GPT-5.4 structured extraction, mobile/desktop UX checks, commit, and deploy readiness.
+**Branch/PR:** `codex-phase1-public-release`
+
+### Goal
+
+- Ship a production-ready onboarding flow that feels like profile generation (not form filling), supports CV or pasted-bio ingestion, and validates hierarchy/readability with new Playwright coverage.
+
+### Changes Made
+
+- Refined `/agent/onboarding` into a cleaner AI-first workflow with:
+  - dominant hero action (`Upload CV / Resume`),
+  - secondary pasted-bio extraction path (`Build from pasted bio`),
+  - generated profile preview + gap-focused completion panel,
+  - confidence-aware confirmations,
+  - compact publish-gate verification module,
+  - milestone-first copy (`Profile milestones`, `Finish your profile`, publish-readiness framing).
+- Extended server action intake so onboarding extraction accepts either uploaded file or `bioText` input (same extraction pipeline).
+- Expanded accepted upload format messaging to include image inputs (`PNG/JPG/WEBP`) while keeping OCR fallback optional/flagged.
+- Aligned `.env.example` resume-AI defaults to the current product posture:
+  - `ENABLE_RESUME_AI_PREFILL=true`
+  - `RESUME_PREFILL_MODE=llm_only`
+  - `RESUME_LLM_MODEL=gpt-5.4`
+  - `RESUME_CLEANUP_MODEL=gpt-5.4-mini`
+  - `RESUME_MIN_CONFIDENCE=0.70`
+  - `RESUME_AI_SHADOW_MODE=false`
+- Added dedicated onboarding UX Playwright coverage:
+  - desktop hierarchy/assertions for upload-first + publish gate,
+  - mobile viewport hierarchy/assertions for the same flow.
+- Coordinated subagents in parallel:
+  - backend extraction hardening and schema/prompt upgrades,
+  - E2E test scaffolding for the new onboarding UX assertions.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm run test -- src/server/agent-profile/resume-ai.test.ts src/server/agent-profile/resume-suggestions-cookie.test.ts src/app/api/agent/onboarding/resume-suggestions/route.test.ts src/lib/agent-activation.test.ts` — passed.
+- `PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=http://localhost:3012 PLAYWRIGHT_SUPABASE_URL=http://127.0.0.1:54321 AUTH_URL=http://localhost:3012 NEXTAUTH_URL=http://localhost:3012 npx playwright test tests/e2e/agent-onboarding-ux.spec.ts --project=chromium --workers=1` — passed.
+
+### Decisions (and why)
+
+- **Decision:** Keep onboarding writes and verification policy in existing server actions while reordering the UX around extraction-first flow.
+  - **Why:** Preserves validated authorization/rate-limit/verification contracts while delivering the intended user experience shift.
+- **Decision:** Treat pasted bio as a first-class extraction path through the same GPT pipeline.
+  - **Why:** Low-friction high-signal input for agents without a polished CV file at hand.
+- **Decision:** Keep email verification visually quiet until publish milestones.
+  - **Why:** Maintains compliance/trust requirements without exposing system plumbing at first impression.
+
+### Status
+
+- AI-first onboarding redesign + extraction-intake polish + UX E2E coverage: `GREEN` (local verification complete).
+
+### Remaining Sign-off Work
+
+1. Commit and deploy current branch changes to Railway production service.
+2. Run post-deploy health + route checks for `/api/health` and `/agent/onboarding`.

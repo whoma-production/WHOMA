@@ -1556,5 +1556,31 @@
       "Configure Supabase project auth settings and Google OAuth credentials for Railway production callback URLs.",
       "Run live production auth QA: Google sign-in, email magic-link sign-in, callback error handling, and pending/denied route outcomes."
     ]
+  },
+  {
+    "session_id": "2026-04-08-1232-ai-onboarding-gpt54-bio-e2e",
+    "timestamp": "2026-04-08T12:32:00+02:00",
+    "summary": "Completed AI-first agent onboarding delivery: upload-dominant UX, pasted-bio extraction path, GPT-5.4/GPT-5.4-mini extraction defaults, confidence-aware completion framing, and dedicated desktop/mobile onboarding UX Playwright coverage.",
+    "files_changed": [
+      ".env.example",
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/components/agent/activation-checklist.tsx",
+      "src/lib/agent-activation.ts",
+      "tests/e2e/agent-onboarding-ux.spec.ts",
+      "tests/e2e/support/mock-auth.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept onboarding writes and verification enforcement in existing server actions while redesigning the UX around extraction-first profile generation to minimize backend risk.",
+      "Added pasted-bio as a first-class extraction input through the same pipeline so agents can start without a file upload when needed.",
+      "Aligned resume-AI defaults to GPT-first operation (gpt-5.4 extraction + gpt-5.4-mini cleanup) with optional OCR fallback disabled by default."
+    ],
+    "next_steps": [
+      "Deploy the current branch to Railway production service (`whoma-web`) and verify `/api/health` plus `/agent/onboarding` route behavior.",
+      "Run one post-deploy authenticated sanity pass to confirm CV upload, pasted-bio extraction, and publish-gate verification prompts on the live app."
+    ]
   }
 ]

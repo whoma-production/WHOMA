@@ -57,40 +57,40 @@ export function getAgentActivationChecklist(
   const items: AgentActivationChecklistItem[] = [
     {
       key: "workEmailVerified",
-      title: "Email verified",
+      title: "Contact channel verified",
       description:
-        "Use your preferred email address and confirm the 6-digit code to continue.",
+        "Confirm the 6-digit code so WHOMA can route trust and publish actions securely.",
       done: state.workEmailVerified,
       current: false
     },
     {
       key: "onboardingCompleted",
-      title: "Onboarding completed",
+      title: "Profile draft created",
       description:
-        "Save your core profile details so the essentials are in place.",
+        "Save your core professional details so the profile draft is generated.",
       done: state.onboardingCompleted,
       current: false
     },
     {
       key: "profileReadyForPublish",
-      title: `Profile ready for publish (${MIN_AGENT_PUBLISH_COMPLETENESS}%+)`,
-      description: `Your current completeness is ${state.profileCompleteness}%. Add enough structured detail to become publish-ready.`,
+      title: `Core details confirmed (${MIN_AGENT_PUBLISH_COMPLETENESS}%+)`,
+      description: `Current readiness is ${state.profileCompleteness}%. Add enough structured depth to clear publish threshold.`,
       done: state.profileReadyForPublish,
       current: false
     },
     {
       key: "profilePublished",
-      title: "Profile published",
+      title: "Public profile live",
       description:
-        "Publish your profile so it becomes eligible for public visibility.",
+        "Publish your profile to activate your public WHOMA identity.",
       done: state.profilePublished,
       current: false
     },
     {
       key: "adminVerified",
-      title: "Admin verified",
+      title: "Verification completed",
       description:
-        "Profile review unlocks directory visibility and the verification mark.",
+        "Review completion unlocks directory visibility and verified trust markers.",
       done: state.adminVerified,
       current: false
     }

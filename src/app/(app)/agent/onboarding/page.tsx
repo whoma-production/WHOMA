@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { ActivationChecklist } from "@/components/agent/activation-checklist";
-import { HeartbeatProgress } from "@/components/agent/heartbeat-progress";
 import { AppShell } from "@/components/layout/app-shell";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ import {
   type ResumePrefillValues
 } from "@/server/agent-profile/resume-suggestions-cookie";
 import {
+  calculateAgentProfileCompleteness,
   WorkEmailVerificationError,
   completeAgentOnboarding,
   confirmAgentWorkEmailVerificationCode,
@@ -39,7 +40,6 @@ import {
   isAgentWorkEmailVerified,
   requestAgentWorkEmailVerificationCode
 } from "@/server/agent-profile/service";
-import { getAgentHeartbeatProgressState } from "@/server/agent-heartbeat";
 import { checkRateLimit, clientIpFromRequestHeaders } from "@/server/http/rate-limit";
 
 interface PageProps {
@@ -72,7 +72,7 @@ function mapWorkEmailVerificationErrorToQuery(error: WorkEmailVerificationError)
 function mapResumeUploadErrorToQuery(error: ResumeExtractionError): string {
   switch (error.code) {
     case "FILE_MISSING":
-      return "resume_file_missing";
+      return "resume_input_missing";
     case "FILE_EMPTY":
       return "resume_file_empty";
     case "FILE_TOO_LARGE":
@@ -111,22 +111,237 @@ function formatCsvDefault(values?: string[] | null): string {
   return values?.length ? values.join(", ") : "";
 }
 
-function countResumePrefillFields(prefill?: ResumePrefillValues): number {
-  if (!prefill) {
-    return 0;
+type NoticeTone = "danger" | "warning" | "success";
+
+interface NoticeMessage {
+  tone: NoticeTone;
+  message: string;
+}
+
+const noticeToneClasses: Record<NoticeTone, string> = {
+  danger: "border-state-danger/20 bg-state-danger/10 text-state-danger",
+  warning: "border-state-warning/20 bg-state-warning/10 text-state-warning",
+  success: "border-state-success/20 bg-state-success/10 text-state-success"
+};
+
+type ResumeFieldKey = keyof ResumePrefillValues;
+
+const resumeFieldLabels: Record<ResumeFieldKey, string> = {
+  fullName: "Name",
+  workEmail: "Email",
+  phone: "Phone",
+  agencyName: "Agency",
+  jobTitle: "Role",
+  yearsExperience: "Experience",
+  bio: "Professional summary",
+  serviceAreas: "Service areas",
+  specialties: "Specialties"
+};
+
+function hasFieldValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.length > 0;
   }
 
-  let count = 0;
-  for (const value of Object.values(prefill)) {
-    if (Array.isArray(value)) {
-      count += value.length > 0 ? 1 : 0;
-      continue;
-    }
-
-    count += value ? 1 : 0;
+  if (typeof value === "number") {
+    return Number.isFinite(value);
   }
 
-  return count;
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  return Boolean(value);
+}
+
+function resolveNoticeMessage(params: {
+  error: string | undefined;
+  success: string | undefined;
+  retryAfterSeconds: number | null;
+}): NoticeMessage | null {
+  const retrySuffix = params.retryAfterSeconds
+    ? ` Please retry in about ${params.retryAfterSeconds} seconds.`
+    : " Please retry shortly.";
+
+  if (params.error === "invalid_fields") {
+    return {
+      tone: "danger",
+      message:
+        "Please review your details. Use postcode districts like SW1A and add clear professional information."
+    };
+  }
+
+  if (params.error === "resume_file_missing") {
+    return { tone: "warning", message: "Choose a CV or resume file before uploading." };
+  }
+
+  if (params.error === "resume_input_missing") {
+    return { tone: "warning", message: "Upload a CV/resume or paste a professional bio to continue." };
+  }
+
+  if (params.error === "resume_file_empty") {
+    return { tone: "danger", message: "The uploaded file was empty." };
+  }
+
+  if (params.error === "resume_file_too_large") {
+    return { tone: "danger", message: "CV and resume files must be 4 MB or smaller." };
+  }
+
+  if (params.error === "resume_file_unsupported") {
+    return { tone: "danger", message: "Upload a PDF, DOCX, TXT, MD, RTF, PNG, JPG, or WEBP file." };
+  }
+
+  if (params.error === "resume_file_parse_failed") {
+    return {
+      tone: "danger",
+      message: "We could not read that document. Try a different export or format."
+    };
+  }
+
+  if (params.error === "resume_file_text_short") {
+    return {
+      tone: "warning",
+      message: "We extracted too little text to build useful profile suggestions."
+    };
+  }
+
+  if (params.error === "resume_file_no_suggestions") {
+    return {
+      tone: "warning",
+      message: "We read your document but could not confidently map profile fields yet."
+    };
+  }
+
+  if (params.error === "resume_llm_unavailable") {
+    return {
+      tone: "warning",
+      message:
+        "AI extraction is temporarily unavailable. We will continue with deterministic parsing."
+    };
+  }
+
+  if (params.error === "resume_ocr_unavailable") {
+    return {
+      tone: "warning",
+      message:
+        "OCR fallback is unavailable right now. Try a text-based PDF or DOCX export."
+    };
+  }
+
+  if (params.error === "resume_upload_rate_limited") {
+    return { tone: "warning", message: `Too many resume uploads from your session.${retrySuffix}` };
+  }
+
+  if (params.error === "complete_onboarding_first") {
+    return {
+      tone: "warning",
+      message: "Complete onboarding before opening your profile editor."
+    };
+  }
+
+  if (params.error === "work_email_invalid") {
+    return {
+      tone: "danger",
+      message: "Enter a valid email address before requesting a verification code."
+    };
+  }
+
+  if (params.error === "work_email_unverified") {
+    return {
+      tone: "warning",
+      message: "Verify your email before completing onboarding."
+    };
+  }
+
+  if (params.error === "work_email_code_send_failed") {
+    return {
+      tone: "danger",
+      message: "We could not send a verification code right now. Please try again."
+    };
+  }
+
+  if (params.error === "work_email_delivery_unavailable") {
+    return {
+      tone: "danger",
+      message: "Verification email delivery is temporarily unavailable. Please try again shortly."
+    };
+  }
+
+  if (params.error === "work_email_code_not_requested") {
+    return {
+      tone: "warning",
+      message: "Request a verification code before trying to verify your email."
+    };
+  }
+
+  if (params.error === "work_email_code_expired") {
+    return {
+      tone: "warning",
+      message: "Your verification code expired. Request a new code and try again."
+    };
+  }
+
+  if (params.error === "work_email_code_invalid") {
+    return {
+      tone: "danger",
+      message: "The verification code is invalid. Enter the latest 6-digit code sent to your email."
+    };
+  }
+
+  if (params.error === "work_email_code_email_mismatch") {
+    return {
+      tone: "warning",
+      message: "That code was requested for a different email. Use the same email for send and verify."
+    };
+  }
+
+  if (params.error === "work_email_resend_cooldown") {
+    return {
+      tone: "warning",
+      message: `Please wait before requesting another code.${params.retryAfterSeconds ? ` Try again in about ${params.retryAfterSeconds} seconds.` : ""}`
+    };
+  }
+
+  if (params.error === "work_email_attempts_exceeded") {
+    return {
+      tone: "danger",
+      message: "Too many incorrect verification attempts. Request a new code after the lock period."
+    };
+  }
+
+  if (params.error === "work_email_rate_limited") {
+    return {
+      tone: "warning",
+      message: `Too many verification requests from your session.${retrySuffix}`
+    };
+  }
+
+  if (params.success === "work_email_code_sent") {
+    return {
+      tone: "success",
+      message: "Verification code sent. Enter the 6-digit code to verify your email."
+    };
+  }
+
+  if (params.success === "work_email_verified") {
+    return {
+      tone: "success",
+      message: "Email verified. You can now complete onboarding and publish when ready."
+    };
+  }
+
+  if (params.success === "resume_prefilled") {
+    return {
+      tone: "success",
+      message: "Profile draft created from your document. Review and confirm the suggested details."
+    };
+  }
+
+  if (params.success === "resume_prefill_cleared") {
+    return { tone: "success", message: "Resume suggestions cleared." };
+  }
+
+  return null;
 }
 
 async function enforceWorkEmailRateLimit(params: {
@@ -205,8 +420,13 @@ async function uploadResumeAction(formData: FormData): Promise<void> {
   });
 
   const uploadedResume = formData.get("resumeFile");
-  if (!(uploadedResume instanceof File)) {
-    redirect("/agent/onboarding?error=resume_file_missing");
+  const maybeBioText = formData.get("bioText");
+  const bioText = typeof maybeBioText === "string" ? maybeBioText.trim() : "";
+  const resumeFile =
+    uploadedResume instanceof File && uploadedResume.size > 0 ? uploadedResume : undefined;
+
+  if (!resumeFile && bioText.length === 0) {
+    redirect("/agent/onboarding?error=resume_input_missing");
   }
 
   const rawMode = formData.get("mode");
@@ -217,9 +437,16 @@ async function uploadResumeAction(formData: FormData): Promise<void> {
 
   let suggestionResult: Awaited<ReturnType<typeof createResumeSuggestionsFromFile>>;
   try {
-    const extractionInput = mode
-      ? { file: uploadedResume, mode }
-      : { file: uploadedResume };
+    const extractionInput: Parameters<typeof createResumeSuggestionsFromFile>[0] = {};
+    if (resumeFile) {
+      extractionInput.file = resumeFile;
+    }
+    if (bioText.length > 0) {
+      extractionInput.bioText = bioText;
+    }
+    if (mode) {
+      extractionInput.mode = mode;
+    }
     suggestionResult = await createResumeSuggestionsFromFile(extractionInput);
   } catch (error) {
     if (error instanceof ResumeExtractionError) {
@@ -441,6 +668,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
   const retryAfterRaw = Number.parseInt(resolvedSearchParams?.retryAfter ?? "", 10);
   const retryAfterSeconds =
     Number.isFinite(retryAfterRaw) && retryAfterRaw > 0 ? retryAfterRaw : null;
+  const devCode = resolvedSearchParams?.devCode;
   const suggestedPrefill = resumeSuggestions?.prefill;
   const defaultFullName = profile?.user?.name ?? suggestedPrefill?.fullName ?? session.user.name ?? "";
   const defaultWorkEmail = profile?.workEmail ?? suggestedPrefill?.workEmail ?? session.user.email ?? "";
@@ -456,279 +684,554 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
   );
   const defaultBio = profile?.bio ?? suggestedPrefill?.bio ?? "";
   const workEmailVerified = Boolean(profile?.workEmailVerifiedAt);
-  const resumePrefillCount = countResumePrefillFields(suggestedPrefill);
-  const heartbeatState = await getAgentHeartbeatProgressState(
-    session.user.id,
-    profile?.profileCompleteness ?? 0
+  const onboardingNotice = resolveNoticeMessage({
+    error,
+    success,
+    retryAfterSeconds
+  });
+
+  const parsedYearsExperience =
+    typeof defaultYearsExperience === "number"
+      ? defaultYearsExperience
+      : Number.parseInt(defaultYearsExperience, 10);
+  const normalizedYearsExperience = Number.isFinite(parsedYearsExperience)
+    ? parsedYearsExperience
+    : null;
+
+  const computedDraftCompleteness = calculateAgentProfileCompleteness({
+    agencyName: defaultAgencyName,
+    jobTitle: defaultJobTitle,
+    workEmail: defaultWorkEmail,
+    phone: defaultPhone,
+    yearsExperience: normalizedYearsExperience,
+    bio: defaultBio,
+    serviceAreas: parseCsvList(defaultServiceAreas),
+    specialties: parseCsvList(defaultSpecialties),
+    achievements: profile?.achievements ?? [],
+    languages: profile?.languages ?? []
+  });
+
+  const profileReadiness = Math.max(
+    0,
+    Math.min(100, profile?.profileCompleteness ?? computedDraftCompleteness)
   );
 
+  const profilePreviewFields = [
+    { key: "agencyName", label: "Agency", value: defaultAgencyName, required: true },
+    { key: "jobTitle", label: "Role", value: defaultJobTitle, required: true },
+    { key: "workEmail", label: "Email", value: defaultWorkEmail, required: true },
+    { key: "phone", label: "Phone", value: defaultPhone, required: true },
+    { key: "yearsExperience", label: "Experience", value: normalizedYearsExperience, required: true },
+    { key: "bio", label: "Professional summary", value: defaultBio, required: true },
+    { key: "serviceAreas", label: "Service areas", value: parseCsvList(defaultServiceAreas), required: true },
+    { key: "specialties", label: "Specialties", value: parseCsvList(defaultSpecialties), required: true }
+  ] as const;
+
+  const readyFields = profilePreviewFields.filter((field) => hasFieldValue(field.value));
+  const missingRequiredFields = profilePreviewFields.filter(
+    (field) => field.required && !hasFieldValue(field.value)
+  );
+
+  const extractedResumeFields = resumeSuggestions
+    ? (Object.keys(resumeSuggestions.prefill) as ResumeFieldKey[])
+        .filter((fieldKey) => hasFieldValue(resumeSuggestions.prefill[fieldKey]))
+        .map((fieldKey) => resumeFieldLabels[fieldKey])
+    : [];
+
+  const lowConfidenceFields = resumeSuggestions
+    ? (Object.entries(resumeSuggestions.confidence) as Array<[ResumeFieldKey, number | undefined]>)
+        .filter(
+          ([fieldKey, score]) =>
+            typeof score === "number" &&
+            score < 0.72 &&
+            hasFieldValue(suggestedPrefill?.[fieldKey])
+        )
+        .map(([fieldKey, score]) => ({
+          key: fieldKey,
+          label: resumeFieldLabels[fieldKey],
+          score: Math.round((score ?? 0) * 100),
+          evidence: resumeSuggestions.evidence[fieldKey]
+        }))
+    : [];
+
+  const recommendationChecks = [
+    {
+      key: "achievements",
+      title: "Add recent deal highlights",
+      done: Boolean(profile?.achievements?.length)
+    },
+    {
+      key: "languages",
+      title: "Add language coverage",
+      done: Boolean(profile?.languages?.length)
+    }
+  ] as const;
+
+  const agentCodePreview = (profile?.profileSlug ?? session.user.id)
+    .replace(/[^a-z0-9]+/gi, "")
+    .slice(0, 10)
+    .toUpperCase();
+  const shareablePathPreview = profile?.profileSlug
+    ? `/agents/${profile.profileSlug}`
+    : "/agents/your-name";
+
   return (
-    <AppShell role="AGENT" title="Agent Onboarding">
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="space-y-4">
+    <AppShell role="AGENT" title="Build Your WHOMA Profile">
+      <div className="space-y-6">
+        <Card className="space-y-5">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Agent onboarding</p>
-            <h2 className="text-lg font-semibold text-text-strong">Verify your email and complete your profile</h2>
-            <p className="text-sm text-text-muted">
-              This creates your professional baseline on WHOMA. Verify your
-              email first, then complete your core profile
-              details.
+            <Badge variant="accent" className="w-fit">
+              AI-assisted onboarding
+            </Badge>
+            <h2 className="text-2xl font-semibold tracking-tight text-text-strong">
+              Let&apos;s build your WHOMA profile
+            </h2>
+            <p className="max-w-2xl text-sm text-text-muted">
+              Upload your CV, resume, or professional bio and we&apos;ll generate
+              your profile draft automatically. You only fill the remaining
+              gaps before publishing.
             </p>
           </div>
 
-          {error === "invalid_fields" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Please review your details. Use postcode districts like SW1A and add clear professional information.
+          {onboardingNotice ? (
+            <p
+              className={cn(
+                "rounded-md border px-3 py-2 text-sm",
+                noticeToneClasses[onboardingNotice.tone]
+              )}
+            >
+              {onboardingNotice.message}
             </p>
           ) : null}
 
-          {error === "resume_file_missing" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Choose a resume file before uploading.
-            </p>
-          ) : null}
+          <div className="grid gap-4 lg:grid-cols-[1fr_0.7fr]">
+            <div className="space-y-4">
+              <form
+                action={uploadResumeAction}
+                encType="multipart/form-data"
+                className="space-y-4 rounded-lg border border-line bg-surface-1 px-4 py-4"
+              >
+                <input type="hidden" name="mode" value={resumeFlags.resumePrefillMode} />
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-text-strong">CV or resume file</span>
+                  <Input
+                    name="resumeFile"
+                    type="file"
+                    accept=".pdf,.docx,.txt,.md,.markdown,.rtf,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/rtf,application/rtf,image/png,image/jpeg,image/webp"
+                    required
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" size="lg">
+                    Upload CV / Resume
+                  </Button>
+                  <Link href="#confirm-details" className={cn(buttonVariants({ variant: "secondary" }))}>
+                    Enter manually
+                  </Link>
+                  <Link href="#bio-paste" className={cn(buttonVariants({ variant: "tertiary" }))}>
+                    Paste LinkedIn bio
+                  </Link>
+                </div>
+              </form>
 
-          {error === "resume_file_empty" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              The uploaded file was empty.
-            </p>
-          ) : null}
-
-          {error === "resume_file_too_large" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Resume files must be 4 MB or smaller.
-            </p>
-          ) : null}
-
-          {error === "resume_file_unsupported" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Upload a PDF, DOCX, TXT, MD, or RTF resume.
-            </p>
-          ) : null}
-
-          {error === "resume_file_parse_failed" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              We could not read that resume file. Try a different export or file format.
-            </p>
-          ) : null}
-
-          {error === "resume_file_text_short" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              We extracted too little text to build useful suggestions.
-            </p>
-          ) : null}
-
-          {error === "resume_file_no_suggestions" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              We read the resume, but could not confidently map any onboarding fields.
-            </p>
-          ) : null}
-
-          {error === "resume_llm_unavailable" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              AI extraction is temporarily unavailable. We will continue with deterministic resume parsing.
-            </p>
-          ) : null}
-
-          {error === "resume_ocr_unavailable" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              OCR fallback is unavailable for this file right now. Try a text-based PDF/DOCX export or retry later.
-            </p>
-          ) : null}
-
-          {error === "resume_upload_rate_limited" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Too many resume uploads from your session.
-              {retryAfterSeconds ? ` Please retry in about ${retryAfterSeconds} seconds.` : " Please retry shortly."}
-            </p>
-          ) : null}
-
-          {error === "complete_onboarding_first" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Complete onboarding before opening your profile.
-            </p>
-          ) : null}
-
-          {error === "work_email_invalid" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Enter a valid email address before requesting a verification code.
-            </p>
-          ) : null}
-
-          {error === "work_email_unverified" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Verify your email before completing onboarding.
-            </p>
-          ) : null}
-
-          {error === "work_email_code_send_failed" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              We could not send a verification code right now. Please try again.
-            </p>
-          ) : null}
-
-          {error === "work_email_delivery_unavailable" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Verification email delivery is temporarily unavailable. Please try again shortly.
-            </p>
-          ) : null}
-
-          {error === "work_email_code_not_requested" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Request a verification code before trying to verify your email.
-            </p>
-          ) : null}
-
-          {error === "work_email_code_expired" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Your verification code expired. Request a new code and try again.
-            </p>
-          ) : null}
-
-          {error === "work_email_code_invalid" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              The verification code is invalid. Enter the latest 6-digit code sent to your email.
-            </p>
-          ) : null}
-
-          {error === "work_email_code_email_mismatch" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              That code was requested for a different email. Use the same email for send and verify.
-            </p>
-          ) : null}
-
-          {error === "work_email_resend_cooldown" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Please wait before requesting another code.
-              {retryAfterSeconds ? ` Try again in about ${retryAfterSeconds} seconds.` : ""}
-            </p>
-          ) : null}
-
-          {error === "work_email_attempts_exceeded" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              Too many incorrect verification attempts. Request a new code after the lock period.
-            </p>
-          ) : null}
-
-          {error === "work_email_rate_limited" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Too many verification requests from your session.
-              {retryAfterSeconds ? ` Please retry in about ${retryAfterSeconds} seconds.` : " Please retry shortly."}
-            </p>
-          ) : null}
-
-          {success === "work_email_code_sent" ? (
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Verification code sent. Enter the 6-digit code to verify your email.
-            </p>
-          ) : null}
-
-          {success === "work_email_verified" ? (
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Email verified. You can now complete onboarding.
-            </p>
-          ) : null}
-
-          {success === "resume_prefilled" ? (
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Resume suggestions extracted. Review the prefilled fields before saving.
-            </p>
-          ) : null}
-
-          {success === "resume_prefill_cleared" ? (
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Resume suggestions cleared.
-            </p>
-          ) : null}
-
-          <Card className="space-y-3 bg-surface-1">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-text-strong">Resume auto-fill</p>
-              <p className="text-xs text-text-muted">
-                Upload a resume and we’ll extract suggestions server-side. Nothing is saved automatically, and you still review every field before submitting onboarding.
-              </p>
+              <form
+                id="bio-paste"
+                action={uploadResumeAction}
+                className="space-y-3 rounded-lg border border-line bg-surface-1 px-4 py-4"
+              >
+                <input type="hidden" name="mode" value={resumeFlags.resumePrefillMode} />
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-text-strong">Paste LinkedIn bio or professional summary</span>
+                  <Textarea
+                    name="bioText"
+                    rows={4}
+                    placeholder="Paste your LinkedIn About section or professional bio. We will generate your profile draft from this text."
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" variant="secondary">
+                    Build from pasted bio
+                  </Button>
+                  <Link href="#confirm-details" className={cn(buttonVariants({ variant: "tertiary" }))}>
+                    Continue manually
+                  </Link>
+                </div>
+              </form>
             </div>
 
-            {resumeSuggestions ? (
-              <div className="space-y-3 rounded-md border border-line bg-surface-0 px-3 py-3">
+            <div className="space-y-3 rounded-lg border border-line bg-surface-1 px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                Flow
+              </p>
+              <ol className="space-y-2 text-sm text-text-muted">
+                <li>Upload</li>
+                <li>Parse</li>
+                <li>Review</li>
+                <li>Fill gaps</li>
+                <li>Publish and share</li>
+              </ol>
+              <p className="text-xs text-text-muted">
+                The first screen stays focused on one high-signal action:
+                getting your profile document into WHOMA.
+              </p>
+            </div>
+          </div>
+
+          {resumeSuggestions ? (
+            <div className="space-y-3 rounded-lg border border-line bg-surface-1 px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-text-strong">Suggested from {resumeSuggestions.sourceFileName}</p>
+                  <p className="text-sm font-semibold text-text-strong">
+                    Building your WHOMA profile
+                  </p>
                   <p className="text-xs text-text-muted">
-                    Extracted from {resumeSuggestions.sourceMimeType}.{resumePrefillCount > 0 ? ` Prefilled ${resumePrefillCount} field${resumePrefillCount === 1 ? "" : "s"}.` : ""}
+                    Extracted from {resumeSuggestions.sourceFileName} ({resumeSuggestions.sourceMimeType})
                   </p>
                 </div>
-                <p className="text-sm text-text-muted">{resumeSuggestions.summary}</p>
-                {resumeSuggestions.highlights.length > 0 ? (
-                  <ul className="space-y-1 text-xs text-text-muted">
-                    {resumeSuggestions.highlights.map((highlight) => (
-                      <li key={highlight} className="rounded-md border border-line bg-surface-1 px-2 py-1">
-                        {highlight}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                {resumeSuggestions.warnings.length > 0 ? (
-                  <ul className="space-y-1 text-xs text-state-warning">
-                    {resumeSuggestions.warnings.map((warning) => (
-                      <li key={warning} className="rounded-md border border-state-warning/20 bg-state-warning/10 px-2 py-1">
-                        {warning}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <form action={clearResumeSuggestionsAction}>
-                  <Button type="submit" variant="secondary" size="sm">
-                    Clear suggestions
-                  </Button>
-                </form>
+                <Badge variant="success">
+                  Profile draft {profileReadiness}% complete
+                </Badge>
               </div>
-            ) : null}
+              <p className="text-sm text-text-muted">{resumeSuggestions.summary}</p>
+              {extractedResumeFields.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Extracted fields
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {extractedResumeFields.map((field) => (
+                      <span
+                        key={field}
+                        className="rounded-full border border-line bg-surface-0 px-2.5 py-1 text-xs text-text-strong"
+                      >
+                        {field}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {resumeSuggestions.highlights.length > 0 ? (
+                <ul className="space-y-1 text-xs text-text-muted">
+                  {resumeSuggestions.highlights.map((highlight) => (
+                    <li key={highlight} className="rounded-md border border-line bg-surface-0 px-2 py-1">
+                      {highlight}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {resumeSuggestions.warnings.length > 0 ? (
+                <ul className="space-y-1 text-xs text-state-warning">
+                  {resumeSuggestions.warnings.map((warning) => (
+                    <li
+                      key={warning}
+                      className="rounded-md border border-state-warning/20 bg-state-warning/10 px-2 py-1"
+                    >
+                      {warning}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <form action={clearResumeSuggestionsAction}>
+                <Button type="submit" variant="secondary" size="sm">
+                  Clear suggestions
+                </Button>
+              </form>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-line bg-surface-1 px-4 py-4">
+              <p className="text-sm text-text-muted">
+                Start with your CV to generate a profile draft instantly. If
+                you prefer, you can still continue manually below.
+              </p>
+            </div>
+          )}
+        </Card>
 
-            <form action={uploadResumeAction} encType="multipart/form-data" className="space-y-3">
-              <input type="hidden" name="mode" value={resumeFlags.resumePrefillMode} />
-              <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Resume file</span>
-                <Input
-                  name="resumeFile"
-                  type="file"
-                  accept=".pdf,.docx,.txt,.md,.markdown,.rtf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/rtf,application/rtf"
-                  required
-                />
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <Button type="submit">Upload and extract suggestions</Button>
-              </div>
-            </form>
-          </Card>
-
-          <Card className="space-y-3 bg-surface-1">
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <Card className="space-y-5">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-text-strong">Email verification</p>
-              <p className="text-xs text-text-muted">
-                Status:{" "}
-                <span className="font-semibold text-text-strong">{workEmailVerified ? "VERIFIED" : "NOT VERIFIED"}</span>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                Your WHOMA profile preview
+              </p>
+              <h3 className="text-lg font-semibold text-text-strong">
+                {defaultFullName || "Your name"}{" "}
+                <span className="font-normal text-text-muted">
+                  {defaultJobTitle ? `· ${defaultJobTitle}` : ""}
+                </span>
+              </h3>
+              <p className="text-sm text-text-muted">
+                This is the draft we&apos;ve assembled. Confirm details and fill
+                only the missing items to reach publish readiness.
               </p>
             </div>
 
-            <form className="space-y-3">
-              <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Email for verification</span>
-                <Input name="workEmail" type="email" required defaultValue={defaultWorkEmail} />
-              </label>
-              <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Verification code</span>
-                <Input name="verificationCode" inputMode="numeric" pattern="\d{6}" maxLength={6} placeholder="123456" />
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <Button type="submit" formAction={sendWorkEmailVerificationCodeAction}>
-                  Send verification code
-                </Button>
-                <Button type="submit" variant="secondary" formAction={confirmWorkEmailVerificationCodeAction}>
-                  Verify email
-                </Button>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-muted">Profile readiness</span>
+                <span className="font-semibold text-text-strong">{profileReadiness}%</span>
               </div>
-            </form>
+              <div className="h-2 rounded-full bg-surface-1">
+                <div
+                  className="h-2 rounded-full bg-brand-accent"
+                  style={{ width: `${profileReadiness}%` }}
+                />
+              </div>
+              <p className="text-sm text-text-muted">
+                {profileReadiness >= MIN_AGENT_PUBLISH_COMPLETENESS
+                  ? "Draft is publish-ready. Final checks and verification remain."
+                  : `You are ${Math.max(0, MIN_AGENT_PUBLISH_COMPLETENESS - profileReadiness)}% away from publish-ready.`}
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 rounded-md border border-line bg-surface-1 px-3 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Agency</p>
+                <p className="text-sm font-medium text-text-strong">{defaultAgencyName || "Missing"}</p>
+              </div>
+              <div className="space-y-1 rounded-md border border-line bg-surface-1 px-3 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Email</p>
+                <p className="text-sm font-medium text-text-strong">{defaultWorkEmail || "Missing"}</p>
+              </div>
+              <div className="space-y-1 rounded-md border border-line bg-surface-1 px-3 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Phone</p>
+                <p className="text-sm font-medium text-text-strong">{defaultPhone || "Missing"}</p>
+              </div>
+              <div className="space-y-1 rounded-md border border-line bg-surface-1 px-3 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Experience</p>
+                <p className="text-sm font-medium text-text-strong">
+                  {normalizedYearsExperience !== null ? `${normalizedYearsExperience} years` : "Missing"}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Specialties</p>
+              {parseCsvList(defaultSpecialties).length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {parseCsvList(defaultSpecialties).map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-line bg-surface-1 px-2.5 py-1 text-xs text-text-strong"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted">Missing</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Service areas</p>
+              {parseCsvList(defaultServiceAreas).length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {parseCsvList(defaultServiceAreas).map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-line bg-surface-1 px-2.5 py-1 text-xs text-text-strong"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted">Missing</p>
+              )}
+            </div>
+
+            <div className="space-y-1 rounded-md border border-line bg-surface-1 px-3 py-3">
+              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Professional summary</p>
+              <p className="text-sm text-text-muted">
+                {defaultBio || "Missing"}
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 rounded-md border border-line bg-surface-1 px-3 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Shareable URL preview</p>
+                <p className="text-sm font-medium text-text-strong">{shareablePathPreview}</p>
+              </div>
+              <div className="space-y-1 rounded-md border border-line bg-surface-1 px-3 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Agent code preview</p>
+                <p className="text-sm font-medium text-text-strong">{agentCodePreview}</p>
+              </div>
+            </div>
           </Card>
+
+          <div className="space-y-6">
+            <Card className="space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-text-strong">Finish your profile</h3>
+                <p className="text-sm text-text-muted">
+                  We&apos;ve created your draft profile. Confirm what&apos;s ready
+                  and complete only the gaps needed for publishing.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                  Ready now
+                </p>
+                {readyFields.length > 0 ? (
+                  <ul className="space-y-1 text-sm text-text-muted">
+                    {readyFields.map((field) => (
+                      <li key={field.key} className="rounded-md border border-line bg-surface-1 px-3 py-2">
+                        {field.label}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-text-muted">No core fields captured yet.</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                  Still needed to publish
+                </p>
+                <ul className="space-y-1 text-sm text-text-muted">
+                  {missingRequiredFields.map((field) => (
+                    <li key={field.key} className="rounded-md border border-line bg-surface-1 px-3 py-2">
+                      {field.label}
+                    </li>
+                  ))}
+                  {!workEmailVerified ? (
+                    <li className="rounded-md border border-line bg-surface-1 px-3 py-2">
+                      Email verification
+                    </li>
+                  ) : null}
+                  {missingRequiredFields.length === 0 && workEmailVerified ? (
+                    <li className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-state-success">
+                      Core publish requirements are complete.
+                    </li>
+                  ) : null}
+                </ul>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                  Recommended improvements
+                </p>
+                <ul className="space-y-1 text-sm text-text-muted">
+                  {recommendationChecks.map((item) => (
+                    <li
+                      key={item.key}
+                      className={cn(
+                        "rounded-md border px-3 py-2",
+                        item.done
+                          ? "border-state-success/20 bg-state-success/10 text-state-success"
+                          : "border-line bg-surface-1"
+                      )}
+                    >
+                      {item.title}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {lowConfidenceFields.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Confirm these details
+                  </p>
+                  <ul className="space-y-1 text-sm text-text-muted">
+                    {lowConfidenceFields.map((item) => (
+                      <li
+                        key={item.key}
+                        className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2"
+                      >
+                        <span className="font-medium text-text-strong">{item.label}</span>
+                        {item.evidence ? ` — “${item.evidence}”` : ""}
+                        {` (${item.score}% confidence)`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                <Link href="#confirm-details" className={cn(buttonVariants({ variant: "primary" }))}>
+                  Confirm extracted details
+                </Link>
+                <Link href="/agent/profile/edit" className={cn(buttonVariants({ variant: "secondary" }))}>
+                  Open full profile editor
+                </Link>
+              </div>
+            </Card>
+
+            <Card className="space-y-3" id="verification-gate">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Publish gate
+                  </p>
+                  <h3 className="text-base font-semibold text-text-strong">Email verification</h3>
+                </div>
+                <Badge variant={workEmailVerified ? "success" : "warning"}>
+                  {workEmailVerified ? "Verified" : "Not verified"}
+                </Badge>
+              </div>
+              <p className="text-sm text-text-muted">
+                Verification stays quiet until publish. Complete it now or just
+                before making your profile public.
+              </p>
+
+              <form className="space-y-3">
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-text-strong">Email for verification</span>
+                  <Input name="workEmail" type="email" required defaultValue={defaultWorkEmail} />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-text-strong">Verification code</span>
+                  <Input
+                    name="verificationCode"
+                    inputMode="numeric"
+                    pattern="\d{6}"
+                    maxLength={6}
+                    placeholder="123456"
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" formAction={sendWorkEmailVerificationCodeAction}>
+                    Send code
+                  </Button>
+                  <Button type="submit" variant="secondary" formAction={confirmWorkEmailVerificationCodeAction}>
+                    Verify
+                  </Button>
+                </div>
+              </form>
+
+              {devCode ? (
+                <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-xs text-state-warning">
+                  Dev verification code: {devCode}
+                </p>
+              ) : null}
+            </Card>
+
+            <Card>
+              <ActivationChecklist
+                profile={profile}
+                title="Profile milestones"
+                description="Move from draft to a shareable, verified profile in five clear milestones."
+              />
+            </Card>
+          </div>
+        </div>
+
+        <Card id="confirm-details" className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+              Confirm extracted details
+            </p>
+            <h3 className="text-lg font-semibold text-text-strong">
+              Help us finish your profile
+            </h3>
+            <p className="text-sm text-text-muted">
+              Review what we captured and fill any remaining fields. This is
+              the only step that writes onboarding details to your profile.
+            </p>
+          </div>
 
           <form action={submitAgentOnboardingAction} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -746,18 +1249,37 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
               </label>
               <label className="space-y-1">
                 <span className="text-sm font-medium text-text-strong">Agency</span>
-                <Input name="agencyName" required defaultValue={defaultAgencyName} placeholder="Example Estates" />
+                <Input
+                  name="agencyName"
+                  required
+                  defaultValue={defaultAgencyName}
+                  placeholder="Example Estates"
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-sm font-medium text-text-strong">Job title</span>
-                <Input name="jobTitle" required defaultValue={defaultJobTitle} placeholder="Senior Sales Negotiator" />
+                <Input
+                  name="jobTitle"
+                  required
+                  defaultValue={defaultJobTitle}
+                  placeholder="Senior Sales Negotiator"
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-sm font-medium text-text-strong">Years experience</span>
-                <Input name="yearsExperience" type="number" min={0} max={60} required defaultValue={defaultYearsExperience} />
+                <Input
+                  name="yearsExperience"
+                  type="number"
+                  min={0}
+                  max={60}
+                  required
+                  defaultValue={defaultYearsExperience}
+                />
               </label>
               <label className="space-y-1 md:col-span-2">
-                <span className="text-sm font-medium text-text-strong">Service areas (postcode districts, comma-separated)</span>
+                <span className="text-sm font-medium text-text-strong">
+                  Service areas (postcode districts, comma-separated)
+                </span>
                 <Input
                   name="serviceAreas"
                   required
@@ -776,7 +1298,7 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
               </label>
             </div>
 
-            <label className="space-y-1">
+            <label id="bio-field" className="space-y-1">
               <span className="text-sm font-medium text-text-strong">Professional summary</span>
               <Textarea
                 name="bio"
@@ -787,23 +1309,12 @@ export default async function AgentOnboardingPage({ searchParams }: PageProps): 
             </label>
 
             <div className="flex flex-wrap gap-2">
-              <Button type="submit">Save onboarding details</Button>
+              <Button type="submit">Save profile draft</Button>
               <Link href="/agent/profile/edit" className={cn(buttonVariants({ variant: "secondary" }))}>
-                Go to profile
+                Go to full profile editor
               </Link>
             </div>
           </form>
-        </Card>
-
-        <Card className="space-y-4">
-          <ActivationChecklist
-            profile={profile}
-            description={`Complete these five steps to make your profile share-ready: verify your email, finish onboarding, reach ${MIN_AGENT_PUBLISH_COMPLETENESS}% readiness, publish, and pass review.`}
-          />
-          <HeartbeatProgress
-            state={heartbeatState}
-            description="Track your progress across profile quality, activity, sharing, and inbound enquiries."
-          />
         </Card>
       </div>
     </AppShell>
