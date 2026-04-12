@@ -1659,5 +1659,24 @@
       "Deploy current branch to Railway production and verify the public homepage/agents/contact surfaces.",
       "Run authenticated production sanity checks for onboarding and publish-gate behaviour once QA credentials are available."
     ]
+  },
+  {
+    "session_id": "2026-04-12-1928-railway-production-deploy-phase1-dashboard",
+    "timestamp": "2026-04-12T19:28:00+02:00",
+    "summary": "Deployed commit `11864a4` to Railway production service `whoma-web` and verified live health/auth-gate behaviour after the Phase 1 validation dashboard release.",
+    "files_changed": [
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Used `npx @railway/cli up --ci` to avoid local global-CLI dependency and preserve reproducible deployment output.",
+      "Validated deployment success with explicit health and protected-route checks immediately post-release."
+    ],
+    "next_steps": [
+      "Run one authenticated production sanity pass for `/agent/onboarding` upload-first and publish-gate flow.",
+      "Monitor objective counts on the new homepage validation dashboard as production event volume grows."
+    ]
   }
 ]

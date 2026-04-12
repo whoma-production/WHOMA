@@ -108,6 +108,7 @@ Phase 1 delivery focus:
 - Location district pre-generation now avoids build-time database dependency (`generateStaticParams` returns `[]`), preventing remote build failures when DB private networking is unavailable at build time.
 - Production build now passes with strict type checks and `next.config.ts` no longer uses `typescript.ignoreBuildErrors`.
 - Latest production deploy (`2026-04-08`, Railway deployment `d6398224-4162-46bc-ae9c-8d454853d14f`) includes the AI-first onboarding release (upload-first profile generation UX, pasted-bio extraction path, milestone framing, and publish-gate demotion), alongside GPT-first resume extraction defaults (`gpt-5.4` + `gpt-5.4-mini`) and onboarding UX E2E coverage additions.
+- Latest production deploy (`2026-04-12`, Railway deployment `008c5212-7e49-49cf-b762-485e2bb307e7`) includes the public Phase 1 validation dashboard + proof checklist + Phase 2 preview de-emphasis pass, with live `/api/health` confirming `database=up`.
 
 15. Public-facing copy and empty-state polish
 

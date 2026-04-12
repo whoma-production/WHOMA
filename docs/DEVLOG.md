@@ -4155,3 +4155,38 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 1. Deploy current branch to production and verify live homepage/dashboard rendering.
 2. Run one authenticated production sanity pass for onboarding + publish-gate flow once auth/test credentials are available.
+
+---
+
+## Session: 2026-04-12 / 19:28 (CEST) — Railway production deploy for Phase 1 validation dashboard pass
+
+**Author:** Codex  
+**Context:** Follow-through deploy after the public Phase 1 validation/proof-loop narrative update.  
+**Branch/PR:** `codex-phase1-public-release`
+
+### Goal
+
+- Deploy the committed Phase 1 public narrative/validation changes to Railway production and confirm live route health.
+
+### Changes Made
+
+- Pushed branch `codex-phase1-public-release` to origin at commit `11864a4`.
+- Deployed to Railway production service `whoma-web` via CLI (`deployment 008c5212-7e49-49cf-b762-485e2bb307e7`).
+- Verified deployment success and post-deploy route behaviour.
+
+### Verification
+
+- `npx -y @railway/cli up --service whoma-web --environment production --ci` — completed successfully.
+- `npx -y @railway/cli service status --service whoma-web --environment production` — `Status: SUCCESS`.
+- `curl -sS https://whoma-web-production.up.railway.app/api/health` — returned `database=up`.
+- `curl -sSI https://whoma-web-production.up.railway.app/` — returned `200`.
+- `curl -sSI https://whoma-web-production.up.railway.app/agent/onboarding` — returned `307` to `/sign-in?next=%2Fagent%2Fonboarding`.
+
+### Status
+
+- Production deployment for Phase 1 validation dashboard release: `GREEN`.
+
+### Remaining Sign-off Work
+
+1. Run one authenticated production sanity pass for `/agent/onboarding` (upload-first + publish-gate) under a real agent session.
+2. Monitor the new homepage validation dashboard metrics as real production event volume increases.
