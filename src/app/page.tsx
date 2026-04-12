@@ -15,6 +15,7 @@ import {
   PUBLIC_FAQS_HREF
 } from "@/lib/public-site";
 import {
+  PUBLIC_AGENT_PROOF_LOOP,
   PUBLIC_COLLABORATION_FLOW,
   PUBLIC_EXAMPLE_AGENT_PROFILES,
   PUBLIC_EXAMPLE_TRANSACTION_HISTORIES,
@@ -30,6 +31,7 @@ import {
   getLiveInstructionCards,
   getLiveInstructionLocationSummaries
 } from "@/server/marketplace/queries";
+import { getPhase1ValidationSnapshot } from "@/server/phase1-validation";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
   let liveInstructions = [] as Awaited<
     ReturnType<typeof getLiveInstructionCards>
   >;
+  const phase1Dashboard = await getPhase1ValidationSnapshot();
 
   if (process.env.DATABASE_URL) {
     [publicAgents, liveInstructions] = await Promise.all([
@@ -88,6 +91,15 @@ export default async function LandingPage(): Promise<JSX.Element> {
         }.`
       : "Seller access opens carefully as matching supply and moderation come into place.";
   const homepageFaqPreview = getHomepageFaqPreview();
+  const phase1AsOf = new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/London"
+  }).format(phase1Dashboard.generatedAt);
+  const qualifiedAgentDensityValue =
+    phase1Dashboard.objectives.find(
+      (objective) => objective.key === "qualifiedAgentDensity"
+    )?.current ?? 0;
 
   const featuredProfileFacts = [
     {
@@ -100,7 +112,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
     },
     {
       label: "Verification",
-      value: isLiveFeaturedProfile ? "Admin verified" : "Sample completed profile"
+      value: isLiveFeaturedProfile ? "Verified by WHOMA" : "Sample completed profile"
     },
     {
       label: "Experience",
@@ -203,7 +215,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
               <p className="max-w-xl text-sm text-text-muted">
                 {isLiveFeaturedProfile
                   ? "This is a live production-verified public profile."
-                  : "This sample completed profile is shown until the first live verified profile is published."}
+                  : `No live verified profile is public yet. This illustrative profile stays visible while the first verified profile clears publication checks (current verified count: ${qualifiedAgentDensityValue}).`}
               </p>
             </div>
           </div>
@@ -225,6 +237,86 @@ export default async function LandingPage(): Promise<JSX.Element> {
                   className="rounded-md border border-line bg-surface-1 px-4 py-4"
                 >
                   <p className="text-sm font-semibold text-text-strong">
+                    {step.title}
+                  </p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-line bg-surface-1 py-10">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-2">
+              <p className="public-kicker">Phase 1 validation dashboard</p>
+              <h2>Evidence is judged by behaviour, not profile copy.</h2>
+              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                WHOMA tracks explicit Phase 1 signals: qualified density,
+                transaction logging, collaboration participation, and activity
+                cadence. This keeps the public narrative anchored to measurable
+                execution.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {phase1Dashboard.objectives.map((objective) => (
+                <div
+                  key={objective.key}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                      {objective.windowLabel}
+                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                      {objective.status}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-text-strong">
+                    {objective.title}
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    {objective.description}
+                  </p>
+                  <p className="mt-3 text-sm font-medium text-text-strong">
+                    {objective.current} / {objective.target} target
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-xs text-text-muted">
+              Derived from production profile state and durable product events.
+              Metrics are behavioural validation signals, not self-declared
+              claims. As of {phase1AsOf}.
+            </p>
+          </div>
+        </section>
+
+        <section className="border-b border-line bg-surface-0 py-10">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-2">
+              <p className="public-kicker">Public proof checklist</p>
+              <h2>How trust is earned from draft to live identity.</h2>
+              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                This is the visible proof loop for agents and partners: upload,
+                logging, evidence checks, engagement thresholds, then a
+                shareable WHOMA identity.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {PUBLIC_AGENT_PROOF_LOOP.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-md border border-line bg-surface-1 px-4 py-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    {step.status}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-text-strong">
                     {step.title}
                   </p>
                   <p className="mt-2 text-sm text-text-muted">
@@ -271,10 +363,10 @@ export default async function LandingPage(): Promise<JSX.Element> {
               <div className="public-record space-y-4">
                 <div className="public-divider" />
                 <p className="text-sm leading-7 text-text-base">
-                  {isLiveFeaturedProfile
-                    ? "This live profile is public because it has been published and admin verified."
-                    : "This sample switches to a live profile once the first production-verified agent is public."}
-                </p>
+                {isLiveFeaturedProfile
+                  ? "This live profile is public because it has been published and verified by WHOMA."
+                  : "This sample switches to a live profile once the first production-verified agent is public."}
+              </p>
                 <Link
                   href={featuredProof.href}
                   className={cn(buttonVariants({ variant: "secondary" }))}
@@ -385,63 +477,68 @@ export default async function LandingPage(): Promise<JSX.Element> {
           </div>
         </section>
 
+        {site.showPhase2Preview ? (
         <section className="public-section border-y border-line bg-surface-1">
-          <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <p className="public-kicker">{PUBLIC_COLLABORATION_FLOW.eyebrow}</p>
-                <h2>{PUBLIC_COLLABORATION_FLOW.title}</h2>
-                <p className="text-sm text-text-muted sm:text-base">
-                  {PUBLIC_COLLABORATION_FLOW.summary}
-                </p>
-              </div>
-
-              <div className="space-y-5">
-                {PUBLIC_COLLABORATION_FLOW.steps.map((step) => (
-                  <div key={step.title} className="border-t border-line pt-4">
-                    <h3>{step.title}</h3>
-                    <p className="mt-2 text-sm text-text-muted sm:text-base">
-                      {step.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-3">
+              <p className="public-kicker">{PUBLIC_COLLABORATION_FLOW.eyebrow}</p>
+              <h2>{PUBLIC_COLLABORATION_FLOW.title}</h2>
+              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                {PUBLIC_COLLABORATION_FLOW.summary}
+              </p>
             </div>
 
-            <div className="public-record space-y-5">
-              <div className="space-y-2">
+            <div className="grid gap-3 md:grid-cols-3">
+              {PUBLIC_COLLABORATION_FLOW.steps.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold text-text-strong">
+                    {step.title}
+                  </p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <details className="rounded-md border border-dashed border-line bg-surface-0 px-4 py-4">
+              <summary className="cursor-pointer text-sm font-semibold text-text-strong">
+                View illustrative shortlist preview
+              </summary>
+              <div className="mt-3">
                 <p className="public-kicker">{PUBLIC_SAMPLE_COMPARISON.eyebrow}</p>
-                <h3 className="text-2xl">{PUBLIC_SAMPLE_COMPARISON.title}</h3>
-                <p className="text-sm text-text-muted sm:text-base">
+                <p className="mt-1 text-sm font-semibold text-text-strong">
+                  {PUBLIC_SAMPLE_COMPARISON.title}
+                </p>
+                <p className="mt-1 text-sm text-text-muted">
                   {PUBLIC_SAMPLE_COMPARISON.summary}
                 </p>
-              </div>
-
-              <div className="space-y-3">
-                {PUBLIC_SAMPLE_COMPARISON.offers.map((offer) => (
-                  <div
-                    key={offer.agent}
-                    className="rounded-lg border border-line bg-surface-0 px-4 py-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-text-strong">
-                          {offer.agent}
-                        </p>
-                        <p className="mt-1 text-sm text-text-muted">
-                          {offer.summary} · {offer.timeline}
-                        </p>
-                      </div>
-                      <span className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                  {PUBLIC_SAMPLE_COMPARISON.offers.map((offer) => (
+                    <div
+                      key={offer.agent}
+                      className="rounded-md border border-line bg-surface-1 px-3 py-3"
+                    >
+                      <p className="text-sm font-semibold text-text-strong">
+                        {offer.agent}
+                      </p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {offer.summary} · {offer.timeline}
+                      </p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.12em] text-text-muted">
                         {offer.badge}
-                      </span>
+                      </p>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            </details>
           </div>
         </section>
+        ) : null}
 
         <section className="public-section bg-surface-0">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
@@ -450,7 +547,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
               <h2>Seller access stays selective so quality stays high.</h2>
               <p className="text-sm text-text-muted sm:text-base">
                 WHOMA stays centred on agent quality, profile depth, and more
-                structured collaboration. {sellerAccessNote}
+                verified proof infrastructure. {sellerAccessNote}
               </p>
             </div>
             <Link

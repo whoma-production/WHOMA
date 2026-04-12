@@ -91,7 +91,7 @@ function buildPublicProofBullets(profile: {
     return [
       "Published on WHOMA after profile review.",
       "Service areas and specialties are visible.",
-      "Directory visibility is reserved for approved profiles."
+      "Directory visibility is reserved for profiles verified by WHOMA."
     ];
   }
 
@@ -120,7 +120,7 @@ export default async function PublicAgentProfilePage({
   const proofStats = [
     {
       label: "Verification",
-      value: "Admin verified",
+      value: "Verified by WHOMA",
       note: "Required before public directory visibility"
     },
     profile.yearsExperience !== null
@@ -251,7 +251,7 @@ export default async function PublicAgentProfilePage({
               Trust and contact
             </h2>
             <ul className="space-y-2 text-sm text-text-muted">
-              <li>Verification: Admin verified</li>
+              <li>Verification: Verified by WHOMA</li>
               <li>Email: {profile.workEmail ?? "Not listed"}</li>
               <li>Phone: {profile.phone ?? "Not listed"}</li>
               <li>

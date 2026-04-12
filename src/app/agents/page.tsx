@@ -26,6 +26,7 @@ export default async function AgentDirectoryPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const serviceArea = resolvedSearchParams?.area?.trim() || undefined;
   const specialty = resolvedSearchParams?.specialty?.trim() || undefined;
+  const hasSearchFilters = Boolean(serviceArea || specialty);
 
   const agents = await listPublicAgentProfiles({
     ...(serviceArea ? { serviceArea } : {}),
@@ -142,11 +143,14 @@ export default async function AgentDirectoryPage({
         {agents.length === 0 ? (
           <Card className="mt-6 space-y-3">
             <h2 className="text-lg font-semibold text-text-strong">
-              No verified agents match that search
+              {hasSearchFilters
+                ? "No live verified profiles match those filters yet"
+                : "Live verified profiles are still being published"}
             </h2>
             <p className="text-sm text-text-muted">
-              Broaden the search or return to all agents. Published WHOMA
-              profiles appear once profile and identity checks are complete.
+              {hasSearchFilters
+                ? "Try broader filters or clear your search. While the live set grows, the benchmark cards above show the expected profile standard."
+                : "The benchmark cards above show the quality standard while more live profiles complete verification and publication."}
             </p>
             <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
               {fallbackFeaturedAgent ? (

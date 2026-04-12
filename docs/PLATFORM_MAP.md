@@ -16,7 +16,7 @@ Phase 1 delivery focus:
 ## Current Validation Risk (Audit 2026-04-02)
 
 - Public story and route-level CTA behavior are now aligned to the identity-first thesis; the main remaining truth risk is no longer surface copy but missing first-class measurement/logging primitives behind Phase 1 proof claims.
-- Phase 1 can currently measure profile activation only; it cannot yet cleanly measure qualified agents, verified historic transaction logging, live transaction logging, interaction velocity, or monthly active engagement.
+- Phase 1 now exposes a six-objective validation snapshot (qualified density, historic/live logging, collaboration participation, 14-day interaction, monthly engagement) using durable event + profile signals, but still lacks first-class `historic transaction verified` domain state/evidence entities.
 - Preview/seed/demo traffic still shares the main runtime data path, so current counters and proof surfaces are vulnerable to synthetic-data contamination unless source tagging/exclusion is added.
 - Production auth is hardened, but live verification still lacks a production-safe write-path smoke that does not depend on local/internal preview callback tooling.
 
@@ -319,6 +319,25 @@ Phase 1 delivery focus:
   - `tests/e2e/agent-onboarding-ux.spec.ts` asserts upload-first hierarchy, publish-gate visibility, and milestone framing,
   - mobile viewport variant ensures hierarchy/readability on small screens,
   - shared auth seeding helper lives in `tests/e2e/support/mock-auth.ts`.
+
+38. Public Phase 1 proof-loop execution pass (2026-04-12) (new)
+
+- Homepage now includes a visible `Phase 1 validation dashboard` backed by `src/server/phase1-validation.ts` so public messaging is tied to measurable objectives and target/status state.
+- Added a `Public proof checklist` section that shows the proof-loop steps (`draft`, `historic logs`, `evidence review`, `live activity`, threshold, `shareable identity`) with explicit rollout status labels.
+- Featured profile module now uses external-facing verification language (`Verified by WHOMA`) and transparent live-state messaging when the first live verified profile is not yet public.
+- Phase 2 homeowner shortlist storytelling is now explicitly optional/de-emphasised:
+  - route-level preview gated by `NEXT_PUBLIC_SHOW_PHASE2_PREVIEW`,
+  - collaboration copy marked as Phase 2 and illustrative,
+  - shortlist example collapsed behind a manual expand control.
+- Public FAQs now include an explicit `What exactly is WHOMA validating in Phase 1?` answer to reduce strategy ambiguity on first read.
+
+39. Phase 1 public QA guardrails (2026-04-12) (new)
+
+- Updated Playwright coverage to keep public narrative regressions visible:
+  - `tests/e2e/landing.spec.ts` now asserts the behavioural-validation headline and core Phase 1 CTA stack.
+  - `tests/e2e/agent-onboarding-ux.spec.ts` keeps upload-first and publish-gate assertions aligned with the profile-generation onboarding surface.
+  - `tests/e2e/phase1-agent-flow.spec.ts` selectors were aligned to the current onboarding labels and verification wording (`Verified by WHOMA`).
+- Added environment-aware preview-auth guards in onboarding/phase1 E2E flows so tests skip cleanly when preview callback auth is unavailable instead of hard-failing unrelated deploy checks.
 
 ## Frontend/Backend Map
 

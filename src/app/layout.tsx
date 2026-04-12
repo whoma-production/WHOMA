@@ -22,7 +22,7 @@ const montserratDisplay = Montserrat({
 export const metadata: Metadata = {
   title: "WHOMA | Where Home Owners Meet Agents",
   description:
-    "WHOMA helps independent estate agents build verified identity, publish trusted profiles, and open collaboration opportunities."
+    "WHOMA helps independent estate agents build verified transaction identity with trusted profiles, structured proof, and measurable collaboration readiness."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {

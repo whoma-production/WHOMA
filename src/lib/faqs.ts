@@ -50,7 +50,19 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         id: "how-verification-works",
         question: "How does profile verification work?",
         answer:
-          "After you complete your core profile, WHOMA reviews identity and profile details. Once checks pass, your profile can be shown as verified and public."
+          "After you complete your core profile, WHOMA reviews identity and profile details. Verification can include evidence checks before a profile is shown as verified and public."
+      },
+      {
+        id: "how-proof-loop-works",
+        question: "How is transaction proof built on WHOMA?",
+        answer:
+          "The proof loop combines structured historic transaction logging, evidence review, and live activity tracking. Visibility strength improves as liquidity and engagement thresholds are met."
+      },
+      {
+        id: "what-phase1-validates",
+        question: "What exactly is WHOMA validating in Phase 1?",
+        answer:
+          "Phase 1 validates qualified agent density, historic transaction logging, live transaction logging, collaboration participation, meaningful 14-day interaction, and monthly active engagement."
       },
       {
         id: "what-profile-readiness-means",
@@ -111,7 +123,7 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         id: "how-do-i-sign-in-to-whoma",
         question: "How do I sign in to WHOMA?",
         answer:
-          "Go to sign in and continue with Google, Apple, or a secure email link."
+          "Go to sign in and continue with Google or a secure email link."
       },
       {
         id: "do-i-need-approval-to-access-whoma",
@@ -164,6 +176,8 @@ export function getHomepageFaqPreview(limit = 5): PublicFaqItem[] {
     "what-is-whoma",
     "who-is-whoma-for",
     "how-verification-works",
+    "what-phase1-validates",
+    "how-proof-loop-works",
     "can-i-share-my-profile",
     "how-do-i-sign-in-to-whoma"
   ]).slice(0, limit);

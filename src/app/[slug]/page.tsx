@@ -65,6 +65,7 @@ const contactFormSchema = z.object({
     "ACCOUNT_ACCESS",
     "ONBOARDING",
     "VERIFICATION",
+    "SELLER_ACCESS",
     "PARTNERSHIP",
     "COMPLAINT",
     "GENERAL"
@@ -243,7 +244,7 @@ function getLegalContent(
         {
           heading: "Account access",
           paragraphs: [
-            "Estate agents can sign in with Google, Apple, or secure email link.",
+            "Estate agents can sign in with Google or secure email link.",
             "If a sign-in method fails, or an email is already linked to a different provider, contact support and include the account email you tried to use."
           ]
         },
@@ -456,7 +457,7 @@ export default async function StaticPage({
                         Account access
                       </p>
                       <p className="text-sm font-medium text-text-strong">
-                        Google, Apple, or secure email link
+                        Google or secure email link
                       </p>
                     </div>
                     <div>
@@ -521,6 +522,7 @@ export default async function StaticPage({
                           <option value="ACCOUNT_ACCESS">Account access</option>
                           <option value="ONBOARDING">Agent onboarding</option>
                           <option value="VERIFICATION">Verification</option>
+                          <option value="SELLER_ACCESS">Seller access</option>
                           <option value="PARTNERSHIP">Partnership</option>
                           <option value="COMPLAINT">Complaint</option>
                         </select>

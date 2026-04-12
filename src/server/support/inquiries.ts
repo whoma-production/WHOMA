@@ -8,6 +8,7 @@ export const supportInquiryCategorySchema = z.enum([
   "ACCOUNT_ACCESS",
   "ONBOARDING",
   "VERIFICATION",
+  "SELLER_ACCESS",
   "PARTNERSHIP",
   "COMPLAINT",
   "BETA_WAITLIST",

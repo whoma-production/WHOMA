@@ -3,12 +3,31 @@ function readEnvValue(value: string | undefined, fallback: string): string {
   return trimmed && trimmed.length > 0 ? trimmed : fallback;
 }
 
+function readBooleanEnvValue(value: string | undefined, fallback: boolean): boolean {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+}
+
 export interface PublicSiteConfig {
   brandName: string;
   logoSubtitle: string;
   supportEmail: string;
   supportCoverage: string;
   pilotSummary: string;
+  showPhase2Preview: boolean;
 }
 
 export const PUBLIC_AGENT_CTA_HREF = "/sign-up?role=AGENT";
@@ -32,7 +51,11 @@ export function getPublicSiteConfig(): PublicSiteConfig {
     ),
     pilotSummary: readEnvValue(
       process.env.NEXT_PUBLIC_PILOT_SUMMARY,
-      "WHOMA helps independent estate agents verify identity, publish trusted profile depth, and open the right collaboration opportunities."
+      "WHOMA helps independent estate agents build verified transaction identity: trusted profiles, structured proof, and measurable collaboration readiness."
+    ),
+    showPhase2Preview: readBooleanEnvValue(
+      process.env.NEXT_PUBLIC_SHOW_PHASE2_PREVIEW,
+      false
     )
   };
 }

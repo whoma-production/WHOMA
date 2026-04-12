@@ -6,7 +6,7 @@ export interface PublicFeatureItem {
 export interface PublicJourneyStep {
   title: string;
   description: string;
-  status: "Available now" | "Selective access";
+  status: "Available now" | "Selective access" | "Rolling out";
 }
 
 export interface PublicProfileField {
@@ -61,50 +61,62 @@ export const PUBLIC_WHY_AGENTS_JOIN: readonly PublicFeatureItem[] = [
 
 export const PUBLIC_PROOF_MODULES: readonly PublicFeatureItem[] = [
   {
-    title: "Verified identity",
+    title: "Verified identity baseline",
     description:
-      "A verified email route, profile details, and a clear public record establish who is behind the profile."
+      "Every profile starts with identity checks and structured profile data so the person behind the profile is clear."
   },
   {
-    title: "Profile depth",
+    title: "Verified transaction records",
     description:
-      "Structured specialties, service areas, and professional detail make the profile easier to evaluate."
+      "Historic transaction activity is logged in structured form, then attached to profile trust context."
   },
   {
-    title: "Public reputation",
+    title: "Third-party evidence checks",
     description:
-      "A shareable profile makes specialisms, service areas, and professional standing easy to read."
+      "WHOMA verification can include external evidence review so trust is not based on self-claims alone."
   },
   {
-    title: "Structured collaboration",
+    title: "Liquidity and engagement thresholds",
     description:
-      "When collaboration opens, responses follow a clear format so quality and fit are easier to judge."
+      "Profile trust is reinforced by live activity signals such as collaboration momentum and engagement quality."
   }
 ] as const;
 
 export const PUBLIC_AGENT_JOURNEY: readonly PublicJourneyStep[] = [
   {
-    title: "Build profile",
+    title: "Profile draft created",
     description:
-      "Create a professional profile with the details someone needs to understand how you work.",
+      "The agent builds a structured profile with role, areas, specialties, and professional summary.",
     status: "Available now"
   },
   {
-    title: "Add profile depth",
+    title: "Historic transactions logged",
     description:
-      "Bring service detail, specialties, and professional context into the record.",
-    status: "Available now"
+      "Historic transaction records are added in a consistent format to create verifiable proof context.",
+    status: "Rolling out"
   },
   {
-    title: "Share profile",
+    title: "Evidence review completed",
     description:
-      "Use one public page in introductions, referrals, and agent-side conversations.",
-    status: "Available now"
+      "Claims can be checked against supporting evidence and verification controls before wider trust visibility.",
+    status: "Selective access"
   },
   {
-    title: "Receive interest",
+    title: "Live activity logged",
     description:
-      "Open the right collaboration opportunities once a stronger professional record is in place.",
+      "Current transaction and collaboration activity is logged so profile trust stays current, not static.",
+    status: "Rolling out"
+  },
+  {
+    title: "Liquidity and engagement threshold met",
+    description:
+      "Visibility strength is informed by activity quality and engagement momentum, not profile copy alone.",
+    status: "Selective access"
+  },
+  {
+    title: "Shareable WHOMA identity live",
+    description:
+      "The verified profile remains the public trust layer agents can share across referrals and introductions.",
     status: "Selective access"
   }
 ] as const;
@@ -115,11 +127,11 @@ export const PUBLIC_SAMPLE_PROFILE_VIEW = {
   eyebrow: "Sample completed profile",
   title: "One profile, ready to share",
   summary:
-    "A WHOMA profile should feel useful in a referral, an introduction, or a collaboration conversation before anything else happens.",
+    "A WHOMA profile is the public layer of the proof system: identity, structured track record, and readiness in one shareable asset.",
   fields: [
     { label: "Service areas", value: "London, SW1A, W1" },
     { label: "Specialties", value: "Local pricing, chain management, viewings" },
-    { label: "Verification", value: "Admin verified" },
+    { label: "Verification", value: "Verified by WHOMA" },
     { label: "Published", value: "Visible on public directory" },
     { label: "Profile readiness", value: "92% complete" },
     { label: "Status", value: "Ready to share" }
@@ -127,52 +139,52 @@ export const PUBLIC_SAMPLE_PROFILE_VIEW = {
 } as const;
 
 export const PUBLIC_COLLABORATION_FLOW = {
-  eyebrow: "How it works",
-  title: "Collaboration becomes clearer once the profile is in place.",
+  eyebrow: "Phase 2 preview (selective access)",
+  title: "Future-state collaboration stays gated behind Phase 1 proof.",
   summary:
-    "WHOMA keeps the next step structured so introductions, responses, and communication are easier to follow.",
+    "This is not the default user journey today. Seller-side collaboration remains secondary until the proof loop has stronger live coverage.",
   steps: [
     {
-      title: "Profile shared",
+      title: "Verified profile baseline",
       description:
-        "The agent shares a verified public profile before any collaboration begins."
+        "The public trust layer starts with verified identity and structured profile depth."
     },
     {
-      title: "Structured response",
+      title: "Proof thresholds met",
       description:
-        "The homeowner reviews a consistent response format covering service fit, timing, and collaboration clarity."
+        "Historic logs, live activity, and engagement quality should be visible before collaboration routes scale."
     },
     {
-      title: "Shortlist opened",
+      title: "Managed collaboration access",
       description:
-        "Once the shortlist is clear, the conversation can move forward with better context."
+        "Shortlist and message routes remain managed so trust and quality standards stay high."
     }
   ] satisfies readonly PublicFeatureItem[]
 } as const;
 
 export const PUBLIC_SAMPLE_COMPARISON = {
-  eyebrow: "Illustrative workflow",
-  title: "A homeowner reviews three structured responses and opens a shortlist.",
+  eyebrow: "Illustrative Phase 2 preview",
+  title: "Example shortlist view (not the primary Phase 1 path).",
   summary:
-    "WHOMA keeps response formats consistent so fit, timing, and trust are easier to read.",
+    "Shown for roadmap clarity only. WHOMA currently prioritises verified identity and proof-loop quality before broad seller flow expansion.",
   offers: [
     {
       agent: "A. Morgan",
       summary: "Local strategy fit",
       timeline: "21 days",
-      badge: "Selected"
+      badge: "Illustrative selected"
     },
     {
       agent: "Reed & Co",
       summary: "Chain management plan",
       timeline: "28 days",
-      badge: "Shortlisted"
+      badge: "Illustrative shortlisted"
     },
     {
       agent: "North Row",
       summary: "Progress reporting structure",
       timeline: "30 days",
-      badge: "Reviewed"
+      badge: "Illustrative reviewed"
     }
   ] satisfies readonly PublicSampleOffer[]
 } as const;
@@ -186,12 +198,12 @@ export const PUBLIC_PHASE_SEQUENCE: readonly PublicRoadmapStep[] = [
   {
     title: "2) Collaboration liquidity second",
     description:
-      "WHOMA then validates real collaboration momentum through inbound enquiries and active opportunities."
+      "WHOMA then tracks real collaboration momentum through live activity, liquidity, and engagement thresholds."
   },
   {
     title: "3) Structured tendering after proof",
     description:
-      "Once identity and liquidity are proven, structured tendering expands with clearer confidence."
+      "Once identity and proof thresholds are met, structured tendering expands with clearer confidence."
   }
 ] as const;
 
@@ -202,7 +214,7 @@ export const PUBLIC_EXAMPLE_AGENT_PROFILES: readonly PublicExampleAgentProfile[]
     areas: "SW1A, W1, SE1",
     specialties: "Chain management, family homes",
     readiness: "92%",
-    verification: "Admin verified"
+    verification: "Verified by WHOMA"
   },
   {
     name: "Reed & Co",
@@ -210,7 +222,7 @@ export const PUBLIC_EXAMPLE_AGENT_PROFILES: readonly PublicExampleAgentProfile[]
     areas: "N1, N5, E8",
     specialties: "Instruction strategy, viewings",
     readiness: "90%",
-    verification: "Admin verified"
+    verification: "Verified by WHOMA"
   },
   {
     name: "L. Patel",
@@ -218,7 +230,7 @@ export const PUBLIC_EXAMPLE_AGENT_PROFILES: readonly PublicExampleAgentProfile[]
     areas: "E14, SE10, E1",
     specialties: "Waterfront homes, relocation",
     readiness: "88%",
-    verification: "Admin verified"
+    verification: "Verified by WHOMA"
   },
   {
     name: "J. Whitmore",
@@ -226,7 +238,7 @@ export const PUBLIC_EXAMPLE_AGENT_PROFILES: readonly PublicExampleAgentProfile[]
     areas: "W2, W9, NW8",
     specialties: "Premium flats, chain progression",
     readiness: "91%",
-    verification: "Admin verified"
+    verification: "Verified by WHOMA"
   },
   {
     name: "S. Ahmed",
@@ -234,7 +246,7 @@ export const PUBLIC_EXAMPLE_AGENT_PROFILES: readonly PublicExampleAgentProfile[]
     areas: "CR0, BR1, SE20",
     specialties: "First-time sellers, valuation prep",
     readiness: "87%",
-    verification: "Admin verified"
+    verification: "Verified by WHOMA"
   },
   {
     name: "M. Davies",
@@ -242,7 +254,7 @@ export const PUBLIC_EXAMPLE_AGENT_PROFILES: readonly PublicExampleAgentProfile[]
     areas: "SW18, SW11, SW19",
     specialties: "Family relocations, negotiation",
     readiness: "89%",
-    verification: "Admin verified"
+    verification: "Verified by WHOMA"
   }
 ] as const;
 
