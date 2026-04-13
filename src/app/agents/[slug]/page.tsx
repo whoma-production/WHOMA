@@ -153,6 +153,7 @@ export default async function PublicAgentProfilePage({
         }
       : null
   ].filter(Boolean) as Array<{ label: string; value: string; note?: string }>;
+  const proofLedger = profile.proofLedger;
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -263,6 +264,54 @@ export default async function PublicAgentProfilePage({
             </ul>
           </Card>
         </div>
+
+        <Card className="mt-6 space-y-3">
+          <h2 className="text-lg font-semibold text-text-strong">Proof ledger</h2>
+          <p className="text-sm text-text-muted">
+            Signals below are logged events unless explicitly marked as a
+            verified milestone.
+          </p>
+          {proofLedger.length > 0 ? (
+            <ul className="space-y-2">
+              {proofLedger.map((entry) => {
+                const isVerifiedMilestone =
+                  entry.statusLabel === "Verified milestone";
+
+                return (
+                  <li
+                    key={entry.id}
+                    className="rounded-md border border-line bg-surface-0 px-3 py-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-text-strong">
+                        {entry.title}
+                      </p>
+                      <span
+                        className={cn(
+                          "text-xs font-semibold uppercase tracking-[0.12em]",
+                          isVerifiedMilestone
+                            ? "text-state-success"
+                            : "text-text-muted"
+                        )}
+                      >
+                        {entry.statusLabel}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-text-muted">{entry.detail}</p>
+                    <p className="mt-1 text-xs text-text-muted">
+                      {entry.sourceLabel} ·{" "}
+                      {londonDateFormatter.format(entry.occurredAt)}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-text-muted">
+              No public proof signals are visible yet for this profile.
+            </p>
+          )}
+        </Card>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <Card className="space-y-3">

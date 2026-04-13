@@ -18,6 +18,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
 - [x] A004 — Public real estate agent profile pages
       **Acceptance:** Published agent CVs render at `/agents/[slug]` with clean public layout, verification badge state, and SEO metadata; unpublished profiles are not publicly indexable.
       **Progress (2026-03-23):** Upgraded `/agents/[slug]` with deeper trust/proof modules using existing profile fields (verification badge, response speed, seller rating, profile quality, seller-fit highlights, service-area/specialty chips, achievements/languages, and stronger homeowner CTA block).
+      **Progress (2026-04-13):** Added a public per-agent proof ledger module on `/agents/[slug]` backed by durable `ProductEvent` history (historic transaction logs, live activity logs, response/interactions, sharing, and verification milestones) with explicit `Logged signal` vs `Verified milestone` labeling, source tags, and timestamps.
 
 - [x] A005 — Public agent directory visibility
       **Acceptance:** `/agents` lists only `VERIFIED` + `PUBLISHED` profiles with filterable fields (location, specialty) and links through to each public profile page.
@@ -88,6 +89,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
 - [ ] BV003 — Historic/live transaction logging domain
       **Acceptance:** Historic and live transaction logging are modeled explicitly with verification state/evidence, surfaced in agent workflows, and no public trust copy implies transaction proof that the schema does not actually store.
       **Progress (2026-04-07):** Added surfaced agent workflow actions to log historic transactions and live collaboration activity, with those writes feeding the Phase 1 heartbeat and durable event spine; first-class transaction entities with verification evidence state are still pending.
+      **Progress (2026-04-13):** Public profile proof visibility now includes per-agent event-level ledger rows (type/source/timestamp and logged-vs-verified milestone status) powered by existing durable events; first-class transaction entities with evidence attachments and explicit `historic transaction verified` state are still the remaining gap.
 
 - [x] BV004 — Public narrative truthfulness cleanup
       **Acceptance:** Public CTA routing, homepage proof modules, `/requests*` cards, and public profile trust labels reflect real Phase 1 capabilities only; no public route reuses internal tender-marketplace CTAs or metrics that overstate current transaction depth.

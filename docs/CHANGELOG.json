@@ -1678,5 +1678,29 @@
       "Run one authenticated production sanity pass for `/agent/onboarding` upload-first and publish-gate flow.",
       "Monitor objective counts on the new homepage validation dashboard as production event volume grows."
     ]
+  },
+  {
+    "session_id": "2026-04-13-1040-safe-proof-ledger-public-profile",
+    "timestamp": "2026-04-13T10:40:00+02:00",
+    "summary": "Implemented a safe-branch public proof-ledger slice on `/agents/[slug]` using existing durable ProductEvent history, with explicit logged-vs-verified milestone labels and no schema migration.",
+    "files_changed": [
+      "src/server/agent-profile/service.ts",
+      "src/server/agent-profile/proof-ledger.test.ts",
+      "src/app/agents/[slug]/page.tsx",
+      "tests/e2e/phase1-agent-flow.spec.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Reused durable ProductEvent data for public proof ledger rows to keep the change low risk and migration-free.",
+      "Added explicit row-level status language (`Logged signal` and `Verified milestone`) to prevent overclaiming verification depth.",
+      "Scoped this slice to read-only public proof presentation, deferring first-class transaction evidence entities to the BV003 follow-on."
+    ],
+    "next_steps": [
+      "Run the full preview-auth-enabled phase1 Playwright flow so the auth-dependent spec executes instead of skipping in fallback harnesses.",
+      "Deploy this branch once approved and verify live `/agents/[slug]` proof-ledger rendering and wording on Railway production."
+    ]
   }
 ]

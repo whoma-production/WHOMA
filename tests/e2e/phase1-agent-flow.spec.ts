@@ -160,6 +160,10 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   await expect(
     publicPage.getByRole("heading", { name: /trust and contact/i })
   ).toBeVisible();
+  await expect(
+    publicPage.getByRole("heading", { name: /proof ledger/i })
+  ).toBeVisible();
+  await expect(publicPage.getByText(/verified milestone/i)).toBeVisible();
   await expect(publicPage.getByText(/profile readiness/i)).toBeVisible();
   await expect(publicPage.getByText("Verified by WHOMA", { exact: true })).toBeVisible();
   await expect(publicPage.getByText(/work email:/i)).toBeVisible();

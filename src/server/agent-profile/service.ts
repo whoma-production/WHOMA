@@ -241,6 +241,210 @@ function mapAgentProfile(profile: AgentProfileWithUser): AgentProfileWithUser {
   return profile;
 }
 
+export type PublicProofLedgerStatusLabel =
+  | "Logged signal"
+  | "Verified milestone";
+
+export interface PublicProofLedgerEntry {
+  id: string;
+  title: string;
+  detail: string;
+  sourceLabel: string;
+  statusLabel: PublicProofLedgerStatusLabel;
+  occurredAt: Date;
+}
+
+export type PublicAgentProfile = AgentProfileWithUser & {
+  proofLedger: PublicProofLedgerEntry[];
+};
+
+const publicProofLedgerEventNames = [
+  PRODUCT_EVENT_NAMES.transactionLogged,
+  PRODUCT_EVENT_NAMES.listingCreated,
+  PRODUCT_EVENT_NAMES.proposalSubmitted,
+  PRODUCT_EVENT_NAMES.interactionReceived,
+  PRODUCT_EVENT_NAMES.profileLinkShared,
+  PRODUCT_EVENT_NAMES.messageSent,
+  PRODUCT_EVENT_NAMES.verificationCompleted
+] as const;
+
+function toMetadataRecord(
+  value: Prisma.JsonValue | null | undefined
+): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function readMetadataString(
+  metadata: Record<string, unknown>,
+  key: string
+): string | null {
+  const value = metadata[key];
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
+function formatEventSourceLabel(source: string | null): string {
+  if (!source) {
+    return "WHOMA event log";
+  }
+
+  if (source.startsWith("/agent/onboarding")) {
+    return "Agent onboarding";
+  }
+
+  if (source.startsWith("/agent/profile")) {
+    return "Agent profile workspace";
+  }
+
+  if (source.startsWith("/agent/marketplace")) {
+    return "Agent collaboration workflow";
+  }
+
+  if (source.startsWith("/homeowner")) {
+    return "Homeowner collaboration workflow";
+  }
+
+  if (source.startsWith("/api/agent/profile/share")) {
+    return "Public profile sharing";
+  }
+
+  return "WHOMA event log";
+}
+
+export function mapProductEventToPublicProofLedgerEntry(input: {
+  id: string;
+  eventName: string;
+  source: string | null;
+  metadata: Prisma.JsonValue | null;
+  createdAt: Date;
+}): PublicProofLedgerEntry | null {
+  const metadata = toMetadataRecord(input.metadata);
+  const sourceLabel = formatEventSourceLabel(input.source);
+
+  const withDefaults = (
+    title: string,
+    detail: string,
+    statusLabel: PublicProofLedgerStatusLabel = "Logged signal"
+  ): PublicProofLedgerEntry => ({
+    id: input.id,
+    title,
+    detail,
+    sourceLabel,
+    statusLabel,
+    occurredAt: input.createdAt
+  });
+
+  if (input.eventName === PRODUCT_EVENT_NAMES.transactionLogged) {
+    const postcodeDistrict = readMetadataString(metadata, "postcodeDistrict");
+    const propertyType = readMetadataString(metadata, "propertyType");
+    const completionMonth = readMetadataString(metadata, "completionMonth");
+    const detailParts = [
+      postcodeDistrict ? `Area: ${postcodeDistrict}` : null,
+      propertyType ? `Property: ${propertyType}` : null,
+      completionMonth ? `Completed: ${completionMonth}` : null
+    ].filter(Boolean);
+
+    return withDefaults(
+      "Historic transaction logged",
+      detailParts.join(" · ") || "Historic transaction evidence was logged."
+    );
+  }
+
+  if (input.eventName === PRODUCT_EVENT_NAMES.listingCreated) {
+    const listingType = readMetadataString(metadata, "listingType");
+    const postcodeDistrict = readMetadataString(metadata, "postcodeDistrict");
+    const collaborationType = readMetadataString(metadata, "collaborationType");
+    const detailParts = [
+      listingType ? `Type: ${listingType.replaceAll("_", " ")}` : null,
+      postcodeDistrict ? `Area: ${postcodeDistrict}` : null,
+      collaborationType ? `Mode: ${collaborationType}` : null
+    ].filter(Boolean);
+
+    return withDefaults(
+      "Live collaboration activity logged",
+      detailParts.join(" · ") || "Live activity was logged on WHOMA."
+    );
+  }
+
+  if (input.eventName === PRODUCT_EVENT_NAMES.proposalSubmitted) {
+    return withDefaults(
+      "Structured response submitted",
+      "A structured collaboration response was submitted."
+    );
+  }
+
+  if (input.eventName === PRODUCT_EVENT_NAMES.interactionReceived) {
+    return withDefaults(
+      "Meaningful interaction received",
+      "An inbound interaction signal was recorded."
+    );
+  }
+
+  if (input.eventName === PRODUCT_EVENT_NAMES.profileLinkShared) {
+    const channel = readMetadataString(metadata, "channel");
+    return withDefaults(
+      "Profile link shared",
+      channel ? `Share channel: ${channel}` : "Profile link sharing activity recorded."
+    );
+  }
+
+  if (input.eventName === PRODUCT_EVENT_NAMES.messageSent) {
+    return withDefaults(
+      "Conversation activity logged",
+      "A structured conversation event was recorded."
+    );
+  }
+
+  if (input.eventName === PRODUCT_EVENT_NAMES.verificationCompleted) {
+    return withDefaults(
+      "Verification milestone completed",
+      "A WHOMA verification milestone was completed for this profile.",
+      "Verified milestone"
+    );
+  }
+
+  return null;
+}
+
+async function getPublicAgentProofLedger(
+  userId: string,
+  limit = 8
+): Promise<PublicProofLedgerEntry[]> {
+  if (!process.env.DATABASE_URL) {
+    return [];
+  }
+
+  const rows = await prisma.productEvent.findMany({
+    where: {
+      subjectUserId: userId,
+      eventName: {
+        in: [...publicProofLedgerEventNames]
+      }
+    },
+    orderBy: {
+      createdAt: "desc"
+    },
+    take: limit
+  });
+
+  return rows
+    .map((row) =>
+      mapProductEventToPublicProofLedgerEntry({
+        id: row.id,
+        eventName: row.eventName,
+        source: row.source,
+        metadata: row.metadata as Prisma.JsonValue | null,
+        createdAt: row.createdAt
+      })
+    )
+    .filter((entry): entry is PublicProofLedgerEntry => entry !== null);
+}
+
 function shouldRestrictOfficialProductionData(): boolean {
   return process.env.NODE_ENV === "production";
 }
@@ -649,7 +853,7 @@ export async function getAgentProfileByUserId(userId: string): Promise<AgentProf
   return profile ? mapAgentProfile(profile) : null;
 }
 
-export async function getPublicAgentProfileBySlug(slug: string): Promise<AgentProfileWithUser | null> {
+export async function getPublicAgentProfileBySlug(slug: string): Promise<PublicAgentProfile | null> {
   const profile = await prisma.agentProfile.findFirst({
     where: {
       ...getOfficialAgentProfileFilter(),
@@ -664,7 +868,17 @@ export async function getPublicAgentProfileBySlug(slug: string): Promise<AgentPr
     }
   });
 
-  return profile ? mapAgentProfile(profile) : null;
+  if (!profile) {
+    return null;
+  }
+
+  const mappedProfile = mapAgentProfile(profile);
+  const proofLedger = await getPublicAgentProofLedger(profile.userId);
+
+  return {
+    ...mappedProfile,
+    proofLedger
+  };
 }
 
 export async function listPublicAgentProfiles(filters: {
