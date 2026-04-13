@@ -4190,3 +4190,56 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 1. Run one authenticated production sanity pass for `/agent/onboarding` (upload-first + publish-gate) under a real agent session.
 2. Monitor the new homepage validation dashboard metrics as real production event volume increases.
+
+---
+
+## Session: 2026-04-13 / 10:40 (CEST) — Safe-branch proof-ledger rollout on public agent profiles
+
+**Author:** Codex  
+**Context:** User requested the safest execution path to extend Phase 1 proof visibility without risking regression or losing prior release progress.  
+**Branch/PR:** `codex/phase1-proof-ledger`
+
+### Goal
+
+- Add a minimal, truthful public proof-ledger module to `/agents/[slug]` using existing durable event data (no schema changes, no destructive operations).
+
+### Changes Made
+
+- Started from immutable release tag `release-2026-04-12-phase1-proof-loop` on a new safe branch: `codex/phase1-proof-ledger`.
+- Extended `src/server/agent-profile/service.ts` with a read-only proof-ledger mapping layer:
+  - added public ledger types (`PublicProofLedgerEntry`, status labels),
+  - added event-to-ledger mapper (`mapProductEventToPublicProofLedgerEntry`),
+  - added source-label normalization,
+  - added `getPublicAgentProofLedger(userId)` query over existing `ProductEvent` rows,
+  - enriched `getPublicAgentProfileBySlug` to return `proofLedger` entries.
+- Updated `src/app/agents/[slug]/page.tsx` to render a new `Proof ledger` section with:
+  - explicit `Logged signal` vs `Verified milestone` labels,
+  - event detail text,
+  - source label + timestamp.
+- Added focused unit coverage in `src/server/agent-profile/proof-ledger.test.ts` for mapper behavior and status truthfulness.
+- Updated `tests/e2e/phase1-agent-flow.spec.ts` to assert `Proof ledger` visibility and `Verified milestone` presence.
+
+### Verification
+
+- `npm run typecheck` — passed.
+- `npm run lint` — passed.
+- `npm run test -- src/server/agent-profile/proof-ledger.test.ts` — passed (3/3).
+- `npx playwright test tests/e2e/phase1-agent-flow.spec.ts --project=chromium --workers=1` — skipped in current local auth harness state (preview-auth dependent).
+
+### Decisions (and why)
+
+- **Decision:** Reuse `ProductEvent` as the proof ledger source instead of adding first-class transaction tables in this slice.
+  - **Why:** Keeps this PR low-risk and reversible while improving public proof provenance immediately.
+- **Decision:** Add explicit status copy (`Logged signal` / `Verified milestone`) at row level.
+  - **Why:** Prevents over-claiming verification for events that are only logged activity.
+- **Decision:** Keep schema untouched.
+  - **Why:** Safest workflow requirement; avoids migration risk during a trust-sensitive pass.
+
+### Status
+
+- Safe-branch proof-ledger implementation: `GREEN` (typecheck/lint/unit-tests clean, no migrations).
+
+### Remaining Sign-off Work
+
+1. Run full auth-enabled E2E flow in the intended preview-auth harness to unskip phase1 browser automation.
+2. Deploy branch when approved and verify live `/agents/[slug]` proof-ledger rendering against production URL.

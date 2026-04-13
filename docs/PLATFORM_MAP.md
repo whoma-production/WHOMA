@@ -340,6 +340,15 @@ Phase 1 delivery focus:
   - `tests/e2e/phase1-agent-flow.spec.ts` selectors were aligned to the current onboarding labels and verification wording (`Verified by WHOMA`).
 - Added environment-aware preview-auth guards in onboarding/phase1 E2E flows so tests skip cleanly when preview callback auth is unavailable instead of hard-failing unrelated deploy checks.
 
+40. Public per-agent proof ledger (2026-04-13) (new)
+
+- `/agents/[slug]` now renders a `Proof ledger` section sourced from durable `ProductEvent` rows for the profile owner (read-only; no schema migration).
+- Ledger entries include event type, source label, timestamp, and explicit status labels:
+  - `Logged signal` for event-level activity,
+  - `Verified milestone` for verification-completion events.
+- Event mapping currently covers: historic transaction logging, live collaboration logging, structured response submission, interaction received, profile-link sharing, conversation activity, and verification milestone completion.
+- Proof copy intentionally avoids claiming verified transaction-evidence state where only logged activity exists, preserving Phase 1 truthfulness while increasing visible proof provenance.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
