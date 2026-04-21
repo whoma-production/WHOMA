@@ -1970,5 +1970,25 @@
       "Run one real branded-host sign-in round-trip on `https://www.whoma.co.uk/sign-in` after the OTP switch to confirm end-to-end onboarding entry.",
       "Create or recover the real Google OAuth client credentials, enable the Supabase Google provider, and verify one successful live Google round-trip before showing the button publicly."
     ]
+  },
+  {
+    "session_id": "2026-04-21-1012-main-merge-readme-refresh",
+    "timestamp": "2026-04-21T10:12:00+02:00",
+    "summary": "Merged all current branch work into `main` via fast-forward, refreshed README with team workflow guidance, and recorded the merge-completion operational deltas.",
+    "files_changed": [
+      "README.md",
+      "docs/DEVLOG.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Used `--ff-only` to keep history linear because `main` could cleanly fast-forward to the prepared feature commit.",
+      "Merged all staged branch changes because the request was to merge everything into `main`.",
+      "Added README team-workflow guidance so contributors can follow the senior-subagent operating model consistently."
+    ],
+    "next_steps": [
+      "Push `main` to `origin` when ready.",
+      "Begin `T103` using the updated subagent ownership and handoff protocol from `AGENTS.md`."
+    ]
   }
 ]

@@ -4757,6 +4757,46 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ---
 
+## Session: 2026-04-21 / 10:12 (CEST) — Merge to main + README refresh completion
+
+**Author:** Codex  
+**Context:** User requested that all current work be merged into `main` and asked for a README update in the repo.  
+**Branch/PR:** `main` (post-merge)
+
+### Goal
+
+- Merge the full feature-branch workstream into `main` and refresh README guidance for current team workflow.
+
+### Changes Made
+
+- Added a `Team workflow` section to `README.md` documenting the senior-subagent collaboration model and execution order focus.
+- Staged all current work on `codex/phase1-proofloop-narrative-hardening` and created a merge-ready commit:
+  - `1301f5a feat: refresh auth reliability, agent flow, and subagent operating model`
+- Pruned a stale worktree entry that was blocking checkout of `main`.
+- Switched to `main` and fast-forward merged `codex/phase1-proofloop-narrative-hardening` into `main`.
+
+### Verification
+
+- `npm run typecheck` — passed before merge.
+- Post-merge checks:
+  - branch is `main`,
+  - worktree is clean (`git status --short` empty),
+  - latest commit on `main` is `1301f5a`.
+
+### Decisions (and why)
+
+- **Decision:** Keep merge strategy as fast-forward (`--ff-only`) rather than creating an extra merge commit.
+  - **Why:** `main` could cleanly fast-forward to the prepared feature commit and preserve linear history.
+- **Decision:** Include all currently staged repo changes in one commit before merge.
+  - **Why:** User asked to merge everything into `main`.
+
+### Next Steps
+
+1. Push `main` to `origin` when ready.
+2. Start `T103` execution using the updated subagent operating model in `AGENTS.md`.
+
+---
+
 ## Session: 2026-04-20 / 19:57 (CEST) — Branded auth-host recovery + live sign-out fix
 
 **Author:** Codex  

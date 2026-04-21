@@ -469,6 +469,12 @@ Phase 1 delivery focus:
 - The client now applies a 60-second resend cooldown before asking Supabase for another email attempt, reducing how quickly users run back into rate-limit errors during onboarding QA.
 - The remaining cloud-side gap is unchanged: live email auth is still `magic-link` until the hosted Supabase template is changed from `{{ .ConfirmationURL }}` to `{{ .Token }}` and production env is switched to `SUPABASE_EMAIL_AUTH_METHOD=otp`.
 
+50. Mainline merge + README workflow refresh (2026-04-21) (new)
+
+- `codex/phase1-proofloop-narrative-hardening` was fast-forward merged into `main` after a clean typecheck and worktree reconciliation.
+- `README.md` now includes a `Team workflow` section pointing contributors to the senior-subagent model and recommended execution order.
+- This merge-completion pass introduced no additional runtime architecture changes; it is operational and documentation-focused.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
