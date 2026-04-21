@@ -32,6 +32,11 @@ function getCanonicalAppOrigin(): URL | null {
 
 export async function middleware(request: NextRequest): Promise<Response> {
   const { pathname, search } = request.nextUrl;
+
+  if (pathname === "/api/health") {
+    return NextResponse.next({ request });
+  }
+
   const canonicalAppOrigin = getCanonicalAppOrigin();
   const requestHost = request.headers.get("host") ?? request.nextUrl.host;
 
