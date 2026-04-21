@@ -123,7 +123,7 @@ export const PUBLIC_FAQ_CATEGORIES: readonly PublicFaqCategory[] = [
         id: "how-do-i-sign-in-to-whoma",
         question: "How do I sign in to WHOMA?",
         answer:
-          "Go to sign in and continue with Google or a secure email link."
+          "Go to sign in and continue with the secure sign-in method currently shown there."
       },
       {
         id: "do-i-need-approval-to-access-whoma",

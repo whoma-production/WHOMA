@@ -76,7 +76,7 @@ export function PublicHeader({
                 href="/#platform"
                 className="transition-colors hover:text-text-strong"
               >
-                Platform
+                Proof infrastructure
               </Link>
               <Link
                 href="/#how-it-works"

@@ -28,6 +28,11 @@ type StoredCompletedRecord = {
 
 type StoredIdempotencyRecord = StoredPendingRecord | StoredCompletedRecord;
 
+const PRISMA_PENDING_RESPONSE_STATUS = 102;
+const PRISMA_PENDING_RESPONSE_BODY = {
+  __whomaIdempotencyState: "PENDING"
+} as const satisfies JsonRecord;
+
 export type IdempotentResult<T extends JsonRecord> = {
   status: number;
   body: T;
@@ -159,6 +164,38 @@ function resolveStoredRecord<T extends JsonRecord>(
   };
 }
 
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parsePrismaStoredRecord(input: {
+  requestHash: string;
+  responseStatus: number;
+  responseBody: Prisma.JsonValue;
+}): StoredIdempotencyRecord {
+  if (
+    input.responseStatus === PRISMA_PENDING_RESPONSE_STATUS &&
+    isJsonRecord(input.responseBody) &&
+    input.responseBody.__whomaIdempotencyState === "PENDING"
+  ) {
+    return {
+      state: "PENDING",
+      requestHash: input.requestHash
+    };
+  }
+
+  if (!isJsonRecord(input.responseBody)) {
+    throw new Error("Malformed idempotency record.");
+  }
+
+  return {
+    state: "COMPLETED",
+    requestHash: input.requestHash,
+    responseStatus: input.responseStatus,
+    responseBody: input.responseBody
+  };
+}
+
 export function createRequestHash(payload: unknown): string {
   return crypto
     .createHash("sha256")
@@ -199,18 +236,14 @@ async function executeIdempotentRequestWithPrisma<T extends JsonRecord>(params: 
   });
 
   if (existing && existing.expiresAt > now) {
-    if (existing.requestHash !== params.requestHash) {
-      throw new IdempotencyError(
-        "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD",
-        "This idempotency key was already used with a different request payload."
-      );
-    }
-
-    return {
-      status: existing.responseStatus,
-      body: existing.responseBody as JsonRecord as T,
-      replayed: true
-    };
+    return resolveStoredRecord<T>(
+      parsePrismaStoredRecord({
+        requestHash: existing.requestHash,
+        responseStatus: existing.responseStatus,
+        responseBody: existing.responseBody
+      }),
+      params.requestHash
+    );
   }
 
   if (existing && existing.expiresAt <= now) {
@@ -225,10 +258,6 @@ async function executeIdempotentRequestWithPrisma<T extends JsonRecord>(params: 
     });
   }
 
-  const operationResult = await params.operation();
-  const responseBodyRecord = toJsonRecord(operationResult.body);
-  const responseBody = responseBodyRecord as Prisma.InputJsonValue;
-
   try {
     await prisma.idempotencyKey.create({
       data: {
@@ -236,8 +265,8 @@ async function executeIdempotentRequestWithPrisma<T extends JsonRecord>(params: 
         route: params.route,
         key: params.key,
         requestHash: params.requestHash,
-        responseStatus: operationResult.status,
-        responseBody,
+        responseStatus: PRISMA_PENDING_RESPONSE_STATUS,
+        responseBody: PRISMA_PENDING_RESPONSE_BODY,
         expiresAt
       }
     });
@@ -257,29 +286,60 @@ async function executeIdempotentRequestWithPrisma<T extends JsonRecord>(params: 
       });
 
       if (raced) {
-        if (raced.requestHash !== params.requestHash) {
-          throw new IdempotencyError(
-            "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD",
-            "This idempotency key was already used with a different request payload."
-          );
-        }
-
-        return {
-          status: raced.responseStatus,
-          body: raced.responseBody as JsonRecord as T,
-          replayed: true
-        };
+        return resolveStoredRecord<T>(
+          parsePrismaStoredRecord({
+            requestHash: raced.requestHash,
+            responseStatus: raced.responseStatus,
+            responseBody: raced.responseBody
+          }),
+          params.requestHash
+        );
       }
     }
 
     throw error;
   }
 
-  return {
-    status: operationResult.status,
-    body: responseBodyRecord as T,
-    replayed: false
-  };
+  try {
+    const operationResult = await params.operation();
+    const responseBodyRecord = toJsonRecord(operationResult.body);
+    const responseBody = responseBodyRecord as Prisma.InputJsonValue;
+
+    await prisma.idempotencyKey.update({
+      where: {
+        actorId_route_key: {
+          actorId: params.actorId,
+          route: params.route,
+          key: params.key
+        }
+      },
+      data: {
+        responseStatus: operationResult.status,
+        responseBody,
+        expiresAt
+      }
+    });
+
+    return {
+      status: operationResult.status,
+      body: responseBodyRecord as T,
+      replayed: false
+    };
+  } catch (error) {
+    await prisma.idempotencyKey
+      .delete({
+        where: {
+          actorId_route_key: {
+            actorId: params.actorId,
+            route: params.route,
+            key: params.key
+          }
+        }
+      })
+      .catch(() => undefined);
+
+    throw error;
+  }
 }
 
 async function executeIdempotentRequestWithUpstash<T extends JsonRecord>(params: {

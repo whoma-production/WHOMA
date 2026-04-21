@@ -1,10 +1,19 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
+import { auth } from "@/auth";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { PublicHeader } from "@/components/layout/public-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { normalizeRedirectPath } from "@/lib/auth/session";
+import {
+  buildSupabaseAuthCallbackPath,
+  hasSupabaseAuthReturnParams
+} from "@/lib/auth/callback-return";
+import {
+  defaultRouteForRole,
+  normalizeRedirectPath
+} from "@/lib/auth/session";
 import {
   getPublicAuthProviderAvailability,
   getPublicEmailAuthMethod
@@ -66,9 +75,42 @@ function normalizeRole(
 export default async function SignUpPage({
   searchParams
 }: SignUpPageProps): Promise<JSX.Element> {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const authReturnSearchParams =
+    resolvedSearchParams as
+      | Record<string, string | string[] | undefined>
+      | undefined;
+
+  if (hasSupabaseAuthReturnParams(authReturnSearchParams)) {
+    redirect(
+      buildSupabaseAuthCallbackPath(
+        authReturnSearchParams ?? {}
+      ) as Parameters<typeof redirect>[0]
+    );
+  }
+
+  const session = await auth();
+
+  if (session?.user) {
+    if (!session.user.role) {
+      redirect("/onboarding/role");
+    }
+
+    if (session.user.role === "AGENT") {
+      if (session.user.accessState === "DENIED") {
+        redirect("/access/denied");
+      }
+
+      if (session.user.accessState === "PENDING") {
+        redirect("/access/pending");
+      }
+    }
+
+    redirect(defaultRouteForRole(session.user.role));
+  }
+
   const providerAvailability = getPublicAuthProviderAvailability();
   const emailAuthMethod = getPublicEmailAuthMethod();
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const nextParam = normalizeRedirectPath(resolvedSearchParams?.next) ?? null;
   const role = normalizeRole(resolvedSearchParams?.role);
   const content = role ? roleContent[role] : null;
@@ -83,9 +125,17 @@ export default async function SignUpPage({
   const entryDescription =
     role === "HOMEOWNER"
       ? "Seller access is still handled through support. Tell us which area or brief you are asking about and we will route you correctly."
-      : providerAvailability.any
-        ? "Choose Google or email to create your account, then continue to role selection and onboarding."
-        : "Sign-in is temporarily unavailable. Contact support and we will help you regain access quickly.";
+      : providerAvailability.google && emailAuthMethod === "otp"
+        ? "Choose Google or email to create your account. No password needed. Email sign-up now finishes with a one-time code instead of a link."
+        : providerAvailability.google && emailAuthMethod === "magic-link"
+          ? "Choose Google or email to create your account. No password needed. Email sign-up sends a secure link."
+          : emailAuthMethod === "otp"
+            ? "Create your account with email. No password needed. We will send a one-time code so you can continue to role selection and onboarding."
+            : emailAuthMethod === "magic-link"
+              ? "Create your account with email. No password needed. We will send a secure sign-up link."
+              : providerAvailability.google
+                ? "Continue with Google to create your account, then continue to role selection and onboarding."
+                : "Sign-in is temporarily unavailable. Contact support and we will help you regain access quickly.";
 
   return (
     <div className="min-h-screen bg-surface-1">

@@ -5,7 +5,7 @@ test("landing page renders core CTAs", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: /where home owners meet agents/i
+      name: /where home ?owners meet agents/i
     })
   ).toBeVisible();
   await expect(
@@ -16,7 +16,7 @@ test("landing page renders core CTAs", async ({ page }) => {
   ).toBeVisible();
   await expect(
     page.getByRole("heading", {
-      name: /evidence is judged by behaviour, not profile copy/i
+      name: /live behavioural proof dashboard/i
     })
   ).toBeVisible();
   await expect(

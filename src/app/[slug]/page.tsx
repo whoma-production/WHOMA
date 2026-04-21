@@ -244,7 +244,7 @@ function getLegalContent(
         {
           heading: "Account access",
           paragraphs: [
-            "Estate agents can sign in with Google or secure email link.",
+            "Estate agents can sign in with the secure sign-in method currently offered on the sign-in page.",
             "If a sign-in method fails, or an email is already linked to a different provider, contact support and include the account email you tried to use."
           ]
         },
@@ -457,7 +457,7 @@ export default async function StaticPage({
                         Account access
                       </p>
                       <p className="text-sm font-medium text-text-strong">
-                        Google or secure email link
+                        Secure sign-in methods
                       </p>
                     </div>
                     <div>

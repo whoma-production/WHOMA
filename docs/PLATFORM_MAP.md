@@ -24,7 +24,7 @@ Phase 1 delivery focus:
 
 1. Identity and access
 
-- Sign in (`Google OAuth` or `email magic link` via Supabase Auth) -> role selection (`HOMEOWNER` / `AGENT`) -> gated app routes
+- Sign in (`Google OAuth` when configured, otherwise passwordless email via Supabase Auth) -> role selection (`HOMEOWNER` / `AGENT`) -> gated app routes
 - Preview fallback still exists for QA/E2E when `ENABLE_PREVIEW_AUTH=true`, but public auth pages never expose preview-role UI and now prefer live self-serve account access for agents whenever any public auth method is available.
 
 2. Agent onboarding and trust
@@ -102,7 +102,7 @@ Phase 1 delivery focus:
 
 - Production service is deployed on Railway at `https://whoma-web-production.up.railway.app` with managed Postgres in the same project.
 - Runtime start command now runs `prisma migrate deploy` before `next start`, so schema migrations are applied during service boot.
-- Public production auth now runs through Supabase Auth with Google OAuth and email magic-link sign-in; preview controls are no longer part of the public auth path.
+- Public production auth now runs through Supabase Auth with passwordless email plus optional Google OAuth when the provider is fully configured; preview controls are no longer part of the public auth path.
 - Preview auth UI now uses a compact role selector + email input flow (`Continue with Preview Email`) to avoid long-button overflow and support personal-email demo sessions.
 - Middleware now validates Supabase sessions and uses an internal access-hint cookie to preserve role/access-state routing without exposing roles publicly.
 - Location district pre-generation now avoids build-time database dependency (`generateStaticParams` returns `[]`), preventing remote build failures when DB private networking is unavailable at build time.
@@ -349,6 +349,126 @@ Phase 1 delivery focus:
 - Event mapping currently covers: historic transaction logging, live collaboration logging, structured response submission, interaction received, profile-link sharing, conversation activity, and verification milestone completion.
 - Proof copy intentionally avoids claiming verified transaction-evidence state where only logged activity exists, preserving Phase 1 truthfulness while increasing visible proof provenance.
 
+41. Agent onboarding IA simplification pass (2026-04-13) (new)
+
+- `/agent/onboarding` now behaves like a 6-step guided flow instead of a dense form surface:
+  - `Import`,
+  - `Draft preview`,
+  - `Confirm details`,
+  - `Quick interview`,
+  - `Verify email`,
+  - `Profile ready`.
+- Import now accepts:
+  - uploaded CV/resume document,
+  - pasted professional bio,
+  - optional LinkedIn URL as supplemental extraction context for the resume AI pipeline.
+- Review choreography is now split intentionally:
+  - a draft-preview surface that shows the imported profile as something close to publishable,
+  - a confirmation layer that separates `detected and ready`, `needs confirmation`, and `still missing`,
+  - a quick-interview form that only exposes missing/low-confidence fields plus optional trust enrichments.
+- The onboarding write path now accepts optional `achievements` and `languages`, so those profile-strengthening fields can be captured before the user reaches `/agent/profile/edit`.
+- Post-onboarding handoff now explicitly points to the first trust-building action (`log one past deal`) in the profile workspace instead of ending on a generic saved-state message.
+
+42. Structured onboarding gap-fill + auth-enabled QA/deploy follow-up (2026-04-13) (new)
+
+- `AgentProfile` now stores four additional structured working-style signals:
+  - `feePreference`,
+  - `transactionBand`,
+  - `collaborationPreference`,
+  - `responseTimeMinutes`.
+- Checked-in migration: `prisma/migrations/20260413091449_agent_profile_structured_preferences/migration.sql`.
+- Those fields now flow through:
+  - `/agent/onboarding` quick interview and draft preview,
+  - `/agent/profile/edit` draft/publish form,
+  - `/agents/[slug]` public `Working style` presentation card,
+  - completeness scoring in `src/server/agent-profile/service.ts`.
+- Quick-interview prioritization now spends the 7-question budget on higher-value profile signals first (`service areas`, `specialties`, `bio`, and the four new structured working-style questions) before pushing lower-signal operational fields into the collapsible manual editor.
+- Local onboarding E2E no longer depends on the retired preview callback auth path:
+  - `tests/e2e/support/mock-supabase-server.mjs` provides a minimal Supabase-compatible mock auth service,
+  - `tests/e2e/support/mock-auth.ts` seeds the auth cookie + DB role state,
+  - `tests/e2e/agent-onboarding-ux.spec.ts` now executes and passes against the real onboarding UI instead of skipping.
+- Railway production deploy `87401dd1-6409-486f-91e5-2dff076f4f27` is live on `https://whoma-web-production.up.railway.app`; `/api/health` reports `database=up`, and protected `/agent/onboarding` + `/agent/profile/edit` routes redirect correctly when unauthenticated.
+- Production auth follow-up still remains: live Supabase magic-link emails are currently embedding `redirect_to=http://localhost:3000`, which blocks a full signed-in production onboarding/profile verification pass until Supabase Site URL / redirect target settings are corrected.
+
+43. Supabase callback-origin hardening for production reliability (2026-04-13) (new)
+
+- Added `src/lib/auth/callback-origin.ts` as the canonical callback origin resolver shared by public sign-in and `/auth/callback`.
+- Callback origin precedence is now explicit and environment-safe:
+  - `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN`,
+  - fallback `NEXT_PUBLIC_APP_URL`,
+  - fallback `AUTH_URL`,
+  - runtime request/browser origin fallback when needed.
+- Production safety guard now prevents localhost callback origins from being preferred when a public runtime origin is available, reducing accidental magic-link redirect drift.
+- `GoogleAuthButton` now builds both OAuth and magic-link callback URLs through the shared resolver instead of relying only on `window.location.origin`.
+- Added focused tests in `src/lib/auth/callback-origin.test.ts` to lock callback-origin precedence and localhost-guard behavior.
+
+44. Public auth recovery + host-drift hardening (2026-04-20) (new)
+
+- `whoma_access_hint` now stores both the WHOMA DB user id and the Supabase auth user id so middleware can bind access hints to the same identity-provider session instead of comparing mismatched id namespaces.
+- Middleware now allows authenticated requests with missing/stale access hints to continue so server-rendered pages can rebuild access-state cookies from the live Supabase session rather than bouncing users back to `/sign-in`.
+- Public routes `/`, `/sign-in`, and `/sign-up` now recover stray Supabase auth returns (`code`, `token_hash`, provider error params) by redirecting them into `/auth/callback` before rendering normal page content.
+- `/sign-in` and `/sign-up` now self-heal partially authenticated sessions by calling `auth()` server-side and forwarding authenticated users to `/onboarding/role`, `/access/pending`, `/access/denied`, or their role-default route instead of trapping them on the auth form.
+- Added `GET /api/auth/providers/google` to preflight the Supabase Google authorize endpoint before launching OAuth so a disabled Google provider now fails inside WHOMA with an email fallback message rather than exposing the raw Supabase JSON error page.
+- Production callback-origin resolution now prefers the active public request/browser host whenever it differs from a configured production host, reducing Railway/custom-domain cookie splits.
+- Live host audit also showed that `https://whoma.co.uk/` currently serves a static redirect page to `https://app.whoma.co.uk/`, `https://whoma.co.uk/sign-in` returns `404`, and `https://app.whoma.co.uk` does not resolve externally; canonical public-host alignment remains an external configuration follow-up.
+
+45. Runtime audit + write-safety hardening (2026-04-20) (new)
+
+- Refreshed the root `README.md` so it now reflects the real platform state instead of the original foundation-scaffold snapshot.
+- Added `docs/CODEBASE_AUDIT.md` with a repo-grounded future-proofing audit covering runtime boundaries, scale risks, and recommended PR order.
+- The highest-value scale findings from the audit are:
+  - public homepage reads are still too expensive for a marketing route because request-time traffic fans into live dashboard aggregation plus location-summary queries,
+  - public agent directory filtering still does too much work in memory and needs DB-native pagination/search,
+  - session resolution still syncs identity too eagerly on request paths and needs a clearer provider-identity boundary,
+  - some App Router pages still read Prisma directly rather than consuming shared query/repository helpers.
+- `src/server/http/idempotency.ts` now reserves a pending Prisma idempotency record before running the write operation and clears that reservation on failure, so environments without Upstash no longer risk duplicate side effects under concurrent retries.
+
+46. Temporary Railway-host auth stabilization rollout (2026-04-20) (new)
+
+- Earlier on 2026-04-20, WHOMA temporarily pointed matched auth/protected routes at `https://whoma-production.up.railway.app` to keep public auth usable while branded-domain settings were still drifting.
+- That same-day mitigation was superseded later on 2026-04-20 by the branded-host recovery rollout in item 48 below.
+- Google stayed hidden throughout the temporary mitigation because the live Supabase provider still returned an unsupported-provider error.
+
+47. Senior subagent operating-model refresh (2026-04-20) (new)
+
+- `AGENTS.md` now defines a formal WHOMA multi-agent operating model instead of only minimal startup/end-session rules.
+- The refreshed model adds:
+  - delegation guardrails (`single-agent first` for critical-path work, bounded/disjoint ownership for delegation),
+  - explicit senior role designations (`Principal Architect`, `Worktree Integrator`, `Senior Backend Reliability`, `Senior Frontend Systems`, `Senior Quality and Release`, `Senior Docs and ChangeOps`),
+  - required task-brief and handoff contracts,
+  - anti-patterns and merge-review protocol for dirty worktrees,
+  - prioritized subagent workstreams aligned to `T103`, `A010`, and `BV001`-`BV003`.
+
+48. Branded auth-host recovery on `www.whoma.co.uk` (2026-04-20) (new)
+
+- Railway production env now aligns public auth host config on the branded domain:
+  - `AUTH_URL=https://www.whoma.co.uk`
+  - `NEXT_PUBLIC_APP_URL=https://www.whoma.co.uk`
+  - `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN=https://www.whoma.co.uk`
+  - `SUPABASE_GOOGLE_AUTH_ENABLED=false`
+  - `SUPABASE_EMAIL_AUTH_METHOD=magic-link`
+- Middleware now matches `/auth/sign-out` in addition to `/auth/callback`, `/sign-in`, and `/sign-up`, so logout is covered by the same host-canonicalization rules as login/callback entry points.
+- `src/app/auth/sign-out/route.ts` now resolves post-logout redirects through the shared callback-origin resolver with request-origin fallback, instead of constructing logout redirects from env-only host selection.
+- `src/lib/auth/provider-config.ts` now treats email auth as available only when `SUPABASE_EMAIL_AUTH_METHOD` is explicitly valid in production, preventing silent drift back to magic-link under broken config.
+- Public sign-up messaging now reflects the real email-only posture when Google is disabled, instead of continuing to promise Google on an email-only surface.
+- Live verification after deploy `cacc227b-c87d-4873-afa3-9b9d411ec87a`:
+  - `GET https://www.whoma.co.uk/sign-in` -> `200`
+  - `GET https://www.whoma.co.uk/auth/sign-out` -> `307 Location: https://www.whoma.co.uk/sign-in`
+  - `GET https://www.whoma.co.uk/api/auth/providers/google` -> friendly WHOMA `503` JSON fallback
+- The OTP-capable email-code UI path is now present in the auth component, but production still runs on magic links until the Supabase hosted email template is switched from `{{ .ConfirmationURL }}` to `{{ .Token }}`.
+- External guidance for this refresh was sourced from OpenAI references on Codex and agent orchestration and translated into repo-specific operating rules.
+
+49. Passwordless auth guardrails + live sign-in clarification (2026-04-21) (new)
+
+- Railway production deploy `4788a46d-fde1-410c-9892-6fa5323d1287` is live on `https://www.whoma.co.uk`.
+- `/sign-in` and `/sign-up?role=AGENT` now state the current live truth explicitly:
+  - no password is required,
+  - email auth is passwordless,
+  - Google stays hidden until the Supabase provider is actually enabled.
+- `src/components/auth/google-auth-button.tsx` now separates sign-in from sign-up for email auth (`shouldCreateUser=false` on sign-in, `true` on sign-up), which prevents accidental account creation attempts from the sign-in surface.
+- The client now applies a 60-second resend cooldown before asking Supabase for another email attempt, reducing how quickly users run back into rate-limit errors during onboarding QA.
+- The remaining cloud-side gap is unchanged: live email auth is still `magic-link` until the hosted Supabase template is changed from `{{ .ConfirmationURL }}` to `{{ .Token }}` and production env is switched to `SUPABASE_EMAIL_AUTH_METHOD=otp`.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
@@ -359,19 +479,21 @@ Phase 1 delivery focus:
 - Public landing now includes proof-led modules (featured verified profile, pilot case-study narrative, workflow demo) instead of relying on strategy copy alone.
 - Public homeowner-collaboration browse: `/requests`, `/requests/[postcodeDistrict]` as a secondary noindex pilot surface (with `/locations*` compatibility redirects)
 - Auth: `/sign-in`, `/sign-up`, `/onboarding/role` with server-resolved public auth state and backend-only preview controls reserved for QA/E2E
+- Auth entry routes now also recover misrouted Supabase callback params and forward already-authenticated users out of the public auth form.
 - Agent app: `/agent/onboarding`, `/agent/profile/edit`, proposals, marketplace
 - Homeowner app: `/homeowner/instructions/new` client-side instruction form with structured payload assembly and bid-window sync
 - Admin app: `/admin/agents` verification queue + expanded activation counters
 
 ## Backend
 
-- Auth/session: Supabase Auth (`Google OAuth` + `email magic link`) + middleware route guards + DB-backed role/access-state authorization in server routes
+- Auth/session: Supabase Auth (passwordless email, currently magic-link live; Google OAuth only when configured) + middleware route guards + DB-backed role/access-state authorization in server routes
+- Access-state cookies are now bound to Supabase user ids, and Google OAuth launch is preflighted through `/api/auth/providers/google` before the browser leaves WHOMA.
 - Dev host consistency: middleware redirects sign-in/app route traffic to the canonical `AUTH_URL` host in development
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)
 - Service layer: `src/server/marketplace/service.ts` for instruction/proposal persistence, bid-window domain guards, duplicate handling, and event emission
 - Consent layer: `src/server/consent/cookie-consent.ts` for signed preference cookies + `/api/consent` route for user-managed non-essential cookie consent
-- Security helpers: `src/server/http/idempotency.ts` and `src/server/http/rate-limit.ts` for replay-safe writes and request throttling, now backed by optional Upstash Redis shared storage with fallback to Prisma/in-memory when unconfigured
+- Security helpers: `src/server/http/idempotency.ts` and `src/server/http/rate-limit.ts` for replay-safe writes and request throttling, now backed by optional Upstash Redis shared storage with fallback to Prisma/in-memory when unconfigured; the Prisma idempotency path now reserves a pending record before executing the write so fallback mode stays concurrency-safe.
 - Persistence: Prisma + Postgres
 - Authorization: role-based access checks for all writes
 - Operational health: `/api/health` now reports DB readiness (`up` / `down` / `unconfigured`) with degraded status response on DB failure

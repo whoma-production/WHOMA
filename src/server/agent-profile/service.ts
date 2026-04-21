@@ -1,11 +1,21 @@
 import crypto from "node:crypto";
 
-import type { Prisma, VerificationStatus } from "@prisma/client";
+import type {
+  AgentFeePreference,
+  AgentTransactionBand,
+  CollaborationPreference,
+  Prisma,
+  VerificationStatus
+} from "@prisma/client";
 import { AgentProfileStatus } from "@prisma/client";
 
 import { MIN_AGENT_PUBLISH_COMPLETENESS } from "@/lib/agent-activation";
 import { prisma } from "@/lib/prisma";
-import type { AgentOnboardingInput, AgentProfileDraftInput, AgentProfilePublishInput } from "@/lib/validation/agent-profile";
+import type {
+  AgentOnboardingInput,
+  AgentProfileDraftInput,
+  AgentProfilePublishInput
+} from "@/lib/validation/agent-profile";
 import { trackEvent } from "@/server/analytics";
 import {
   sendWorkEmailVerificationCodeEmail,
@@ -23,10 +33,11 @@ function parsePositiveIntEnvValue(
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallbackValue;
 }
 
-const WORK_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = parsePositiveIntEnvValue(
-  process.env.WORK_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS,
-  60
-);
+const WORK_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS =
+  parsePositiveIntEnvValue(
+    process.env.WORK_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS,
+    60
+  );
 const WORK_EMAIL_VERIFICATION_MAX_ATTEMPTS = parsePositiveIntEnvValue(
   process.env.WORK_EMAIL_VERIFICATION_MAX_ATTEMPTS,
   5
@@ -83,6 +94,13 @@ function toNullableNumber(value: number | undefined): number | null {
   return value ?? null;
 }
 
+function optionalEnumEqual<T extends string>(
+  left: T | null | undefined,
+  right: T | null | undefined
+): boolean {
+  return (left ?? null) === (right ?? null);
+}
+
 function normalizeStringList(values: string[] | null | undefined): string[] {
   return [...(values ?? [])]
     .map((value) => value.trim().toLowerCase())
@@ -90,7 +108,10 @@ function normalizeStringList(values: string[] | null | undefined): string[] {
     .sort((a, b) => a.localeCompare(b));
 }
 
-function stringListsEqual(left: string[] | null | undefined, right: string[] | null | undefined): boolean {
+function stringListsEqual(
+  left: string[] | null | undefined,
+  right: string[] | null | undefined
+): boolean {
   const normalizedLeft = normalizeStringList(left);
   const normalizedRight = normalizeStringList(right);
 
@@ -98,7 +119,9 @@ function stringListsEqual(left: string[] | null | undefined, right: string[] | n
     return false;
   }
 
-  return normalizedLeft.every((value, index) => value === normalizedRight[index]);
+  return normalizedLeft.every(
+    (value, index) => value === normalizedRight[index]
+  );
 }
 
 type TrustComparableProfileFields = {
@@ -112,6 +135,10 @@ type TrustComparableProfileFields = {
   specialties?: string[] | null;
   achievements?: string[] | null;
   languages?: string[] | null;
+  feePreference?: AgentFeePreference | null;
+  transactionBand?: AgentTransactionBand | null;
+  collaborationPreference?: CollaborationPreference | null;
+  responseTimeMinutes?: number | null;
 };
 
 function hasMaterialProfileChanges(
@@ -119,11 +146,16 @@ function hasMaterialProfileChanges(
   next: AgentProfileDraftInput | AgentProfilePublishInput,
   normalizedWorkEmail: string
 ): boolean {
-  if (normalizeTextValue(existing.agencyName) !== normalizeTextValue(next.agencyName)) {
+  if (
+    normalizeTextValue(existing.agencyName) !==
+    normalizeTextValue(next.agencyName)
+  ) {
     return true;
   }
 
-  if (normalizeTextValue(existing.jobTitle) !== normalizeTextValue(next.jobTitle)) {
+  if (
+    normalizeTextValue(existing.jobTitle) !== normalizeTextValue(next.jobTitle)
+  ) {
     return true;
   }
 
@@ -159,11 +191,38 @@ function hasMaterialProfileChanges(
     return true;
   }
 
+  if (!optionalEnumEqual(existing.feePreference, next.feePreference)) {
+    return true;
+  }
+
+  if (!optionalEnumEqual(existing.transactionBand, next.transactionBand)) {
+    return true;
+  }
+
+  if (
+    !optionalEnumEqual(
+      existing.collaborationPreference,
+      next.collaborationPreference
+    )
+  ) {
+    return true;
+  }
+
+  if ((existing.responseTimeMinutes ?? null) !== (next.responseTimeMinutes ?? null)) {
+    return true;
+  }
+
   return false;
 }
 
-function hashWorkEmailVerificationCode(workEmail: string, code: string): string {
-  const salt = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "whoma-work-email-verification";
+function hashWorkEmailVerificationCode(
+  workEmail: string,
+  code: string
+): string {
+  const salt =
+    process.env.AUTH_SECRET ??
+    process.env.NEXTAUTH_SECRET ??
+    "whoma-work-email-verification";
   return crypto
     .createHash("sha256")
     .update(`${normalizeEmail(workEmail)}:${code}:${salt}`)
@@ -215,6 +274,10 @@ export function calculateAgentProfileCompleteness(profile: {
   specialties?: string[] | null;
   achievements?: string[] | null;
   languages?: string[] | null;
+  feePreference?: AgentFeePreference | null;
+  transactionBand?: AgentTransactionBand | null;
+  collaborationPreference?: CollaborationPreference | null;
+  responseTimeMinutes?: number | null;
 }): number {
   const checks = [
     Boolean(profile.agencyName?.trim()),
@@ -230,7 +293,21 @@ export function calculateAgentProfileCompleteness(profile: {
   ];
 
   const passed = checks.filter(Boolean).length;
-  return Math.round((passed / checks.length) * 100);
+  const baseCompleteness = Math.round((passed / checks.length) * 100);
+  const optionalSignals = [
+    Boolean(profile.feePreference),
+    Boolean(profile.transactionBand),
+    Boolean(profile.collaborationPreference),
+    profile.responseTimeMinutes !== null &&
+      profile.responseTimeMinutes !== undefined
+  ];
+  const optionalCompleted = optionalSignals.filter(Boolean).length;
+  const optionalBonus =
+    optionalSignals.length > 0
+      ? Math.round((optionalCompleted / optionalSignals.length) * 10)
+      : 0;
+
+  return Math.min(100, baseCompleteness + optionalBonus);
 }
 
 type AgentProfileWithUser = Prisma.AgentProfileGetPayload<{
@@ -389,7 +466,9 @@ export function mapProductEventToPublicProofLedgerEntry(input: {
     const channel = readMetadataString(metadata, "channel");
     return withDefaults(
       "Profile link shared",
-      channel ? `Share channel: ${channel}` : "Profile link sharing activity recorded."
+      channel
+        ? `Share channel: ${channel}`
+        : "Profile link sharing activity recorded."
     );
   }
 
@@ -463,7 +542,10 @@ function getOfficialAgentProfileFilter(): Prisma.AgentProfileWhereInput {
   };
 }
 
-export async function completeAgentOnboarding(userId: string, input: AgentOnboardingInput): Promise<AgentProfileWithUser> {
+export async function completeAgentOnboarding(
+  userId: string,
+  input: AgentOnboardingInput
+): Promise<AgentProfileWithUser> {
   const existingProfile = await prisma.agentProfile.findUnique({
     where: { userId },
     select: {
@@ -486,7 +568,9 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
     );
   }
 
-  const slug = existingProfile?.profileSlug ?? (await buildUniqueSlug(`${input.fullName}-${input.agencyName}`, userId));
+  const slug =
+    existingProfile?.profileSlug ??
+    (await buildUniqueSlug(`${input.fullName}-${input.agencyName}`, userId));
   const completeness = calculateAgentProfileCompleteness({
     agencyName: input.agencyName,
     jobTitle: input.jobTitle,
@@ -496,8 +580,12 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
     bio: input.bio,
     serviceAreas: input.serviceAreas,
     specialties: input.specialties,
-    achievements: [],
-    languages: []
+    achievements: input.achievements ?? [],
+    languages: input.languages ?? [],
+    feePreference: input.feePreference ?? null,
+    transactionBand: input.transactionBand ?? null,
+    collaborationPreference: input.collaborationPreference ?? null,
+    responseTimeMinutes: input.responseTimeMinutes ?? null
   });
 
   await prisma.user.update({
@@ -520,8 +608,12 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
       yearsExperience: input.yearsExperience,
       serviceAreas: input.serviceAreas,
       specialties: input.specialties,
-      achievements: [],
-      languages: [],
+      achievements: input.achievements ?? [],
+      languages: input.languages ?? [],
+      feePreference: input.feePreference ?? null,
+      transactionBand: input.transactionBand ?? null,
+      collaborationPreference: input.collaborationPreference ?? null,
+      responseTimeMinutes: input.responseTimeMinutes ?? null,
       profileSlug: slug,
       profileStatus: AgentProfileStatus.DRAFT,
       profileCompleteness: completeness,
@@ -540,6 +632,12 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
       yearsExperience: input.yearsExperience,
       serviceAreas: input.serviceAreas,
       specialties: input.specialties,
+      achievements: input.achievements ?? [],
+      languages: input.languages ?? [],
+      feePreference: input.feePreference ?? null,
+      transactionBand: input.transactionBand ?? null,
+      collaborationPreference: input.collaborationPreference ?? null,
+      responseTimeMinutes: input.responseTimeMinutes ?? null,
       profileSlug: slug,
       profileCompleteness: completeness,
       verificationStatus: "PENDING",
@@ -587,7 +685,10 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
   return mapAgentProfile(profile);
 }
 
-export async function saveAgentProfileDraft(userId: string, input: AgentProfileDraftInput): Promise<AgentProfileWithUser> {
+export async function saveAgentProfileDraft(
+  userId: string,
+  input: AgentProfileDraftInput
+): Promise<AgentProfileWithUser> {
   const existing = await prisma.agentProfile.findUnique({
     where: { userId },
     select: {
@@ -604,15 +705,25 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       specialties: true,
       achievements: true,
       languages: true,
+      feePreference: true,
+      transactionBand: true,
+      collaborationPreference: true,
+      responseTimeMinutes: true,
       onboardingCompletedAt: true,
       user: { select: { name: true } }
     }
   });
 
-  const slug = existing?.profileSlug ?? (await buildUniqueSlug(`${existing?.user.name ?? "agent"}-${input.agencyName}`, userId));
+  const slug =
+    existing?.profileSlug ??
+    (await buildUniqueSlug(
+      `${existing?.user.name ?? "agent"}-${input.agencyName}`,
+      userId
+    ));
   const normalizedWorkEmail = normalizeEmail(input.workEmail);
   const workEmailChanged =
-    Boolean(existing?.workEmail) && normalizeEmail(existing?.workEmail ?? "") !== normalizedWorkEmail;
+    Boolean(existing?.workEmail) &&
+    normalizeEmail(existing?.workEmail ?? "") !== normalizedWorkEmail;
   const requiresReverification =
     existing?.verificationStatus === "VERIFIED" &&
     hasMaterialProfileChanges(existing, input, normalizedWorkEmail);
@@ -628,7 +739,11 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
     serviceAreas: input.serviceAreas,
     specialties: input.specialties,
     achievements: input.achievements,
-    languages: input.languages
+    languages: input.languages,
+    feePreference: input.feePreference ?? null,
+    transactionBand: input.transactionBand ?? null,
+    collaborationPreference: input.collaborationPreference ?? null,
+    responseTimeMinutes: input.responseTimeMinutes ?? null
   });
 
   const profile = await prisma.agentProfile.upsert({
@@ -648,6 +763,10 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       specialties: input.specialties,
       achievements: input.achievements,
       languages: input.languages,
+      feePreference: input.feePreference ?? null,
+      transactionBand: input.transactionBand ?? null,
+      collaborationPreference: input.collaborationPreference ?? null,
+      responseTimeMinutes: input.responseTimeMinutes ?? null,
       profileSlug: slug,
       profileStatus: AgentProfileStatus.DRAFT,
       profileCompleteness: completeness
@@ -656,8 +775,15 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       agencyName: input.agencyName,
       jobTitle: input.jobTitle,
       workEmail: normalizedWorkEmail,
-      workEmailVerifiedAt: workEmailChanged ? null : existing?.workEmailVerifiedAt ?? null,
-      ...(workEmailChanged ? { workEmailVerificationCodeHash: null, workEmailVerificationCodeExpiresAt: null } : {}),
+      workEmailVerifiedAt: workEmailChanged
+        ? null
+        : (existing?.workEmailVerifiedAt ?? null),
+      ...(workEmailChanged
+        ? {
+            workEmailVerificationCodeHash: null,
+            workEmailVerificationCodeExpiresAt: null
+          }
+        : {}),
       phone: input.phone,
       yearsExperience: normalizedYearsExperience,
       bio: normalizedBio,
@@ -665,10 +791,16 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       specialties: input.specialties,
       achievements: input.achievements,
       languages: input.languages,
+      feePreference: input.feePreference ?? null,
+      transactionBand: input.transactionBand ?? null,
+      collaborationPreference: input.collaborationPreference ?? null,
+      responseTimeMinutes: input.responseTimeMinutes ?? null,
       profileSlug: slug,
       profileStatus: AgentProfileStatus.DRAFT,
       profileCompleteness: completeness,
-      ...(requiresReverification ? { verificationStatus: "PENDING" as const } : {})
+      ...(requiresReverification
+        ? { verificationStatus: "PENDING" as const }
+        : {})
     },
     include: {
       user: {
@@ -715,7 +847,10 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
   return mapAgentProfile(profile);
 }
 
-export async function publishAgentProfile(userId: string, input: AgentProfilePublishInput): Promise<AgentProfileWithUser> {
+export async function publishAgentProfile(
+  userId: string,
+  input: AgentProfilePublishInput
+): Promise<AgentProfileWithUser> {
   const existing = await prisma.agentProfile.findUnique({
     where: { userId },
     select: {
@@ -732,6 +867,10 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
       specialties: true,
       achievements: true,
       languages: true,
+      feePreference: true,
+      transactionBand: true,
+      collaborationPreference: true,
+      responseTimeMinutes: true,
       user: { select: { name: true } }
     }
   });
@@ -750,7 +889,12 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
     );
   }
 
-  const slug = existing?.profileSlug ?? (await buildUniqueSlug(`${existing?.user.name ?? "agent"}-${input.agencyName}`, userId));
+  const slug =
+    existing?.profileSlug ??
+    (await buildUniqueSlug(
+      `${existing?.user.name ?? "agent"}-${input.agencyName}`,
+      userId
+    ));
   const normalizedYearsExperience = toNullableNumber(input.yearsExperience);
   const normalizedBio = toNullableString(input.bio);
   const completeness = calculateAgentProfileCompleteness({
@@ -763,7 +907,11 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
     serviceAreas: input.serviceAreas,
     specialties: input.specialties,
     achievements: input.achievements,
-    languages: input.languages
+    languages: input.languages,
+    feePreference: input.feePreference ?? null,
+    transactionBand: input.transactionBand ?? null,
+    collaborationPreference: input.collaborationPreference ?? null,
+    responseTimeMinutes: input.responseTimeMinutes ?? null
   });
 
   if (completeness < MIN_AGENT_PUBLISH_COMPLETENESS) {
@@ -789,6 +937,10 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
       specialties: input.specialties,
       achievements: input.achievements,
       languages: input.languages,
+      feePreference: input.feePreference ?? null,
+      transactionBand: input.transactionBand ?? null,
+      collaborationPreference: input.collaborationPreference ?? null,
+      responseTimeMinutes: input.responseTimeMinutes ?? null,
       profileSlug: slug,
       profileStatus: AgentProfileStatus.PUBLISHED,
       profileCompleteness: completeness,
@@ -809,10 +961,16 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
       specialties: input.specialties,
       achievements: input.achievements,
       languages: input.languages,
+      feePreference: input.feePreference ?? null,
+      transactionBand: input.transactionBand ?? null,
+      collaborationPreference: input.collaborationPreference ?? null,
+      responseTimeMinutes: input.responseTimeMinutes ?? null,
       profileSlug: slug,
       profileStatus: AgentProfileStatus.PUBLISHED,
       profileCompleteness: completeness,
-      ...(requiresReverification ? { verificationStatus: "PENDING" as const } : {}),
+      ...(requiresReverification
+        ? { verificationStatus: "PENDING" as const }
+        : {}),
       publishedAt: new Date()
     },
     include: {
@@ -840,7 +998,9 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
   return mapAgentProfile(profile);
 }
 
-export async function getAgentProfileByUserId(userId: string): Promise<AgentProfileWithUser | null> {
+export async function getAgentProfileByUserId(
+  userId: string
+): Promise<AgentProfileWithUser | null> {
   const profile = await prisma.agentProfile.findUnique({
     where: { userId },
     include: {
@@ -853,7 +1013,9 @@ export async function getAgentProfileByUserId(userId: string): Promise<AgentProf
   return profile ? mapAgentProfile(profile) : null;
 }
 
-export async function getPublicAgentProfileBySlug(slug: string): Promise<PublicAgentProfile | null> {
+export async function getPublicAgentProfileBySlug(
+  slug: string
+): Promise<PublicAgentProfile | null> {
   const profile = await prisma.agentProfile.findFirst({
     where: {
       ...getOfficialAgentProfileFilter(),
@@ -892,24 +1054,37 @@ export async function listPublicAgentProfiles(filters: {
       ...getOfficialAgentProfileFilter(),
       profileStatus: AgentProfileStatus.PUBLISHED,
       verificationStatus: "VERIFIED",
-      ...(filters.serviceArea ? { serviceAreas: { has: filters.serviceArea.toUpperCase() } } : {})
+      ...(filters.serviceArea
+        ? { serviceAreas: { has: filters.serviceArea.toUpperCase() } }
+        : {})
     },
     include: {
       user: {
         select: { id: true, name: true, image: true }
       }
     },
-    orderBy: [{ verificationStatus: "desc" }, { publishedAt: "desc" }, { createdAt: "desc" }]
+    orderBy: [
+      { verificationStatus: "desc" },
+      { publishedAt: "desc" },
+      { createdAt: "desc" }
+    ]
   });
 
   const filteredProfiles = normalizedSpecialty
-    ? profiles.filter((profile) => profile.specialties.some((specialty) => specialty.toLowerCase().includes(normalizedSpecialty)))
+    ? profiles.filter((profile) =>
+        profile.specialties.some((specialty) =>
+          specialty.toLowerCase().includes(normalizedSpecialty)
+        )
+      )
     : profiles;
 
   return filteredProfiles.slice(0, filters.limit ?? 100).map(mapAgentProfile);
 }
 
-export async function requestAgentWorkEmailVerificationCode(userId: string, workEmail: string): Promise<{
+export async function requestAgentWorkEmailVerificationCode(
+  userId: string,
+  workEmail: string
+): Promise<{
   expiresAt: Date;
   devCode?: string;
 }> {
@@ -964,10 +1139,16 @@ export async function requestAgentWorkEmailVerificationCode(userId: string, work
   }
 
   const verificationCode = createVerificationCode();
-  const verificationCodeHash = hashWorkEmailVerificationCode(normalizedWorkEmail, verificationCode);
-  const expiresAt = new Date(Date.now() + WORK_EMAIL_VERIFICATION_CODE_TTL_MINUTES * 60 * 1000);
+  const verificationCodeHash = hashWorkEmailVerificationCode(
+    normalizedWorkEmail,
+    verificationCode
+  );
+  const expiresAt = new Date(
+    Date.now() + WORK_EMAIL_VERIFICATION_CODE_TTL_MINUTES * 60 * 1000
+  );
   const workEmailChanged =
-    Boolean(existing?.workEmail) && normalizeEmail(existing?.workEmail ?? "") !== normalizedWorkEmail;
+    Boolean(existing?.workEmail) &&
+    normalizeEmail(existing?.workEmail ?? "") !== normalizedWorkEmail;
 
   await prisma.agentProfile.upsert({
     where: { userId },
@@ -983,7 +1164,9 @@ export async function requestAgentWorkEmailVerificationCode(userId: string, work
     },
     update: {
       workEmail: normalizedWorkEmail,
-      workEmailVerifiedAt: workEmailChanged ? null : existing?.workEmailVerifiedAt ?? null,
+      workEmailVerifiedAt: workEmailChanged
+        ? null
+        : (existing?.workEmailVerifiedAt ?? null),
       workEmailVerificationCodeHash: verificationCodeHash,
       workEmailVerificationCodeExpiresAt: expiresAt,
       workEmailVerificationCodeSentAt: now,
@@ -1022,7 +1205,9 @@ export async function requestAgentWorkEmailVerificationCode(userId: string, work
   }
 
   if (process.env.NODE_ENV !== "production") {
-    console.info(`[WHOMA] Work email verification code for ${normalizedWorkEmail}: ${verificationCode}`);
+    console.info(
+      `[WHOMA] Work email verification code for ${normalizedWorkEmail}: ${verificationCode}`
+    );
   }
 
   await trackEvent(
@@ -1041,7 +1226,9 @@ export async function requestAgentWorkEmailVerificationCode(userId: string, work
 
   return {
     expiresAt,
-    ...(process.env.NODE_ENV !== "production" ? { devCode: verificationCode } : {})
+    ...(process.env.NODE_ENV !== "production"
+      ? { devCode: verificationCode }
+      : {})
   };
 }
 
@@ -1100,9 +1287,13 @@ export async function confirmAgentWorkEmailVerificationCode(
     );
   }
 
-  const expectedHash = hashWorkEmailVerificationCode(normalizedWorkEmail, verificationCode);
+  const expectedHash = hashWorkEmailVerificationCode(
+    normalizedWorkEmail,
+    verificationCode
+  );
   if (expectedHash !== profile.workEmailVerificationCodeHash) {
-    const nextAttemptCount = (profile.workEmailVerificationAttemptCount ?? 0) + 1;
+    const nextAttemptCount =
+      (profile.workEmailVerificationAttemptCount ?? 0) + 1;
     const exceededAttempts =
       nextAttemptCount >= WORK_EMAIL_VERIFICATION_MAX_ATTEMPTS;
     const lockUntil = exceededAttempts
@@ -1186,7 +1377,9 @@ export async function isAgentWorkEmailVerified(
   return normalizeEmail(profile.workEmail) === normalizedWorkEmail;
 }
 
-function normalizeOptionalMetadataValue(value: string | undefined): string | null {
+function normalizeOptionalMetadataValue(
+  value: string | undefined
+): string | null {
   const trimmed = value?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : null;
 }
@@ -1264,7 +1457,10 @@ export async function logAgentProfileLinkShared(
   );
 }
 
-export async function setAgentVerificationStatus(userId: string, status: VerificationStatus): Promise<void> {
+export async function setAgentVerificationStatus(
+  userId: string,
+  status: VerificationStatus
+): Promise<void> {
   if (status === "VERIFIED") {
     const profile = await prisma.agentProfile.findUnique({
       where: { userId },
@@ -1276,7 +1472,9 @@ export async function setAgentVerificationStatus(userId: string, status: Verific
       profile.profileStatus !== AgentProfileStatus.PUBLISHED ||
       profile.profileCompleteness < MIN_AGENT_PUBLISH_COMPLETENESS
     ) {
-      throw new Error("Only published profiles meeting completeness requirements can be verified.");
+      throw new Error(
+        "Only published profiles meeting completeness requirements can be verified."
+      );
     }
   }
 
@@ -1286,7 +1484,9 @@ export async function setAgentVerificationStatus(userId: string, status: Verific
   });
 }
 
-export async function listAgentProfilesForVerification(limit = 200): Promise<AgentProfileWithUser[]> {
+export async function listAgentProfilesForVerification(
+  limit = 200
+): Promise<AgentProfileWithUser[]> {
   const profiles = await prisma.agentProfile.findMany({
     where: getOfficialAgentProfileFilter(),
     include: {
@@ -1294,7 +1494,11 @@ export async function listAgentProfilesForVerification(limit = 200): Promise<Age
         select: { id: true, name: true, image: true }
       }
     },
-    orderBy: [{ verificationStatus: "asc" }, { onboardingCompletedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: [
+      { verificationStatus: "asc" },
+      { onboardingCompletedAt: "desc" },
+      { createdAt: "desc" }
+    ],
     take: limit
   });
 

@@ -47,6 +47,36 @@ const londonDateFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/London"
 });
 
+const feePreferenceLabels = {
+  FIXED_FEE: "Fixed fee",
+  PERCENTAGE: "Percentage",
+  HYBRID: "Hybrid",
+  CASE_BY_CASE: "Case by case"
+} as const;
+
+const transactionBandLabels = {
+  UNDER_250K: "Under £250k",
+  FROM_250K_TO_500K: "£250k–£500k",
+  FROM_500K_TO_1M: "£500k–£1m",
+  FROM_1M_TO_2M: "£1m–£2m",
+  OVER_2M: "Over £2m"
+} as const;
+
+const collaborationPreferenceLabels = {
+  JV_OR_REFERRALS: "Open to JV + referrals",
+  REFERRALS_ONLY: "Referrals only",
+  SELECTIVE: "Selective / case by case",
+  NOT_OPEN: "Not currently looking"
+} as const;
+
+const responseTimeLabels = {
+  15: "Within 15 minutes",
+  60: "Within 1 hour",
+  180: "Within 3 hours",
+  480: "Within 8 hours",
+  1440: "Within 24 hours"
+} as const;
+
 function buildPublicProofBullets(profile: {
   yearsExperience: number | null;
   serviceAreas: string[];
@@ -54,6 +84,7 @@ function buildPublicProofBullets(profile: {
   achievements: string[];
   publishedAt: Date | null;
   profileCompleteness: number;
+  responseTimeMinutes: number | null;
 }): string[] {
   const bullets: string[] = [];
 
@@ -87,6 +118,21 @@ function buildPublicProofBullets(profile: {
     );
   }
 
+  if (
+    profile.responseTimeMinutes &&
+    responseTimeLabels[
+      profile.responseTimeMinutes as keyof typeof responseTimeLabels
+    ]
+  ) {
+    bullets.push(
+      `Typical lead response time: ${
+        responseTimeLabels[
+          profile.responseTimeMinutes as keyof typeof responseTimeLabels
+        ]
+      }.`
+    );
+  }
+
   if (bullets.length === 0) {
     return [
       "Published on WHOMA after profile review.",
@@ -114,7 +160,8 @@ export default async function PublicAgentProfilePage({
     specialties: profile.specialties,
     achievements: profile.achievements,
     publishedAt: profile.publishedAt,
-    profileCompleteness: profile.profileCompleteness
+    profileCompleteness: profile.profileCompleteness,
+    responseTimeMinutes: profile.responseTimeMinutes
   });
 
   const proofStats = [
@@ -154,6 +201,38 @@ export default async function PublicAgentProfilePage({
       : null
   ].filter(Boolean) as Array<{ label: string; value: string; note?: string }>;
   const proofLedger = profile.proofLedger;
+  const workingStyleRows = [
+    profile.feePreference
+      ? {
+          label: "Usual fee style",
+          value: feePreferenceLabels[profile.feePreference]
+        }
+      : null,
+    profile.transactionBand
+      ? {
+          label: "Typical transaction band",
+          value: transactionBandLabels[profile.transactionBand]
+        }
+      : null,
+    profile.collaborationPreference
+      ? {
+          label: "Collaboration posture",
+          value: collaborationPreferenceLabels[profile.collaborationPreference]
+        }
+      : null,
+    profile.responseTimeMinutes &&
+    responseTimeLabels[
+      profile.responseTimeMinutes as keyof typeof responseTimeLabels
+    ]
+      ? {
+          label: "Response time",
+          value:
+            responseTimeLabels[
+              profile.responseTimeMinutes as keyof typeof responseTimeLabels
+            ]
+        }
+      : null
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -264,6 +343,27 @@ export default async function PublicAgentProfilePage({
             </ul>
           </Card>
         </div>
+
+        {workingStyleRows.length ? (
+          <Card className="mt-6 space-y-3">
+            <h2 className="text-lg font-semibold text-text-strong">
+              Working style
+            </h2>
+            <ul className="space-y-2 text-sm text-text-muted">
+              {workingStyleRows.map((item) => (
+                <li
+                  key={item.label}
+                  className="rounded-md border border-line bg-surface-0 px-3 py-2"
+                >
+                  <span className="font-medium text-text-strong">
+                    {item.label}:
+                  </span>{" "}
+                  {item.value}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
 
         <Card className="mt-6 space-y-3">
           <h2 className="text-lg font-semibold text-text-strong">Proof ledger</h2>

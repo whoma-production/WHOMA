@@ -50,7 +50,7 @@ export const PUBLIC_WHY_AGENTS_JOIN: readonly PublicFeatureItem[] = [
   {
     title: "Show substance, not claims",
     description:
-      "Bring structured professional detail, service areas, and specialties into one public record."
+      "Bring structured professional detail, service areas, specialties, and proof signals into one public record."
   },
   {
     title: "Open better collaboration",
@@ -66,19 +66,19 @@ export const PUBLIC_PROOF_MODULES: readonly PublicFeatureItem[] = [
       "Every profile starts with identity checks and structured profile data so the person behind the profile is clear."
   },
   {
-    title: "Verified transaction records",
+    title: "Structured transaction signal logging",
     description:
-      "Historic transaction activity is logged in structured form, then attached to profile trust context."
+      "Historic and live activity is logged as timestamped signals with source context in each agent proof ledger."
   },
   {
-    title: "Third-party evidence checks",
+    title: "Verification milestones",
     description:
-      "WHOMA verification can include external evidence review so trust is not based on self-claims alone."
+      "WHOMA can mark milestones as verified after checks; other entries remain clearly labelled as logged signals."
   },
   {
     title: "Liquidity and engagement thresholds",
     description:
-      "Profile trust is reinforced by live activity signals such as collaboration momentum and engagement quality."
+      "Profile trust is reinforced by measurable engagement and liquidity thresholds over recent activity windows."
   }
 ] as const;
 
@@ -92,13 +92,13 @@ export const PUBLIC_AGENT_JOURNEY: readonly PublicJourneyStep[] = [
   {
     title: "Historic transactions logged",
     description:
-      "Historic transaction records are added in a consistent format to create verifiable proof context.",
+      "Historic transaction records are added as structured logged signals with source and timestamp context.",
     status: "Rolling out"
   },
   {
-    title: "Evidence review completed",
+    title: "Verification milestone completed",
     description:
-      "Claims can be checked against supporting evidence and verification controls before wider trust visibility.",
+      "A proof milestone has been marked verified. Other proof entries remain logged signals until verified.",
     status: "Selective access"
   },
   {
@@ -191,19 +191,19 @@ export const PUBLIC_SAMPLE_COMPARISON = {
 
 export const PUBLIC_PHASE_SEQUENCE: readonly PublicRoadmapStep[] = [
   {
-    title: "1) Verified identity first",
+    title: "1) Structured proof logging first",
     description:
-      "Every agent starts with verified identity and a structured profile that can be shared publicly."
+      "Every agent starts with verified identity, then activity is captured as structured logged signals."
   },
   {
-    title: "2) Collaboration liquidity second",
+    title: "2) Verified milestones second",
     description:
-      "WHOMA then tracks real collaboration momentum through live activity, liquidity, and engagement thresholds."
+      "Evidence-backed checks are marked as verified milestones before broader trust visibility."
   },
   {
-    title: "3) Structured tendering after proof",
+    title: "3) Selective collaboration after proof",
     description:
-      "Once identity and proof thresholds are met, structured tendering expands with clearer confidence."
+      "Once proof coverage and engagement thresholds are met, collaboration routes can expand with clearer confidence."
   }
 ] as const;
 
@@ -261,20 +261,20 @@ export const PUBLIC_EXAMPLE_AGENT_PROFILES: readonly PublicExampleAgentProfile[]
 export const PUBLIC_EXAMPLE_TRANSACTION_HISTORIES: readonly PublicExampleTransactionHistory[] = [
   {
     agent: "A. Morgan · North Row Estates",
-    summary: "Verified transaction history snapshot (illustrative)",
+    summary: "Illustrative proof-ledger snapshot (not a live production feed)",
     highlights: [
-      "12 historic completions logged (last 18 months)",
-      "Median time to exchange: 29 days",
+      "12 historic transactions logged (last 18 months)",
+      "1 evidence review milestone marked verified",
       "Service areas: SW1A, SE1, W1"
     ]
   },
   {
     agent: "Reed & Co",
-    summary: "Verified transaction history snapshot (illustrative)",
+    summary: "Illustrative proof-ledger snapshot (not a live production feed)",
     highlights: [
-      "9 historic completions logged (last 12 months)",
-      "4 live collaboration opportunities opened",
-      "Structured updates sent across every active instruction"
+      "9 historic transactions logged (last 12 months)",
+      "4 live activity signals logged",
+      "1 verification milestone completed"
     ]
   }
 ] as const;

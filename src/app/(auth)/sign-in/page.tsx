@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { auth } from "@/auth";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { PublicHeader } from "@/components/layout/public-header";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,14 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { normalizeRedirectPath } from "@/lib/auth/session";
+import {
+  buildSupabaseAuthCallbackPath,
+  hasSupabaseAuthReturnParams
+} from "@/lib/auth/callback-return";
+import {
+  defaultRouteForRole,
+  normalizeRedirectPath
+} from "@/lib/auth/session";
 import {
   getPublicSiteConfig,
   PUBLIC_AGENT_CTA_HREF
@@ -73,10 +81,55 @@ export default async function SignInPage({
   searchParams
 }: PageProps): Promise<JSX.Element> {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const authReturnSearchParams =
+    resolvedSearchParams as
+      | Record<string, string | string[] | undefined>
+      | undefined;
+
+  if (hasSupabaseAuthReturnParams(authReturnSearchParams)) {
+    redirect(
+      buildSupabaseAuthCallbackPath(
+        authReturnSearchParams ?? {}
+      ) as Parameters<typeof redirect>[0]
+    );
+  }
+
+  const session = await auth();
+
+  if (session?.user) {
+    if (!session.user.role) {
+      redirect("/onboarding/role");
+    }
+
+    if (session.user.role === "AGENT") {
+      if (session.user.accessState === "DENIED") {
+        redirect("/access/denied");
+      }
+
+      if (session.user.accessState === "PENDING") {
+        redirect("/access/pending");
+      }
+    }
+
+    redirect(defaultRouteForRole(session.user.role));
+  }
+
   const nextParam = normalizeRedirectPath(resolvedSearchParams?.next) ?? null;
   const providerAvailability = getPublicAuthProviderAvailability();
   const emailAuthMethod = getPublicEmailAuthMethod();
   const site = getPublicSiteConfig();
+  const signInMethodsDescription =
+    providerAvailability.google && emailAuthMethod === "otp"
+      ? "Continue with Google or email. No password needed. Email sign-in finishes with a one-time code."
+      : providerAvailability.google && emailAuthMethod === "magic-link"
+        ? "Continue with Google or email. No password needed. Email sign-in sends a secure link."
+        : emailAuthMethod === "otp"
+          ? "Continue with email. No password needed. We will send a one-time code to finish sign-in."
+          : emailAuthMethod === "magic-link"
+            ? "Continue with email. No password needed. We will send a secure sign-in link."
+            : providerAvailability.google
+              ? "Continue with Google. Access review happens after sign-in."
+              : "Sign-in is temporarily unavailable. Contact support for help.";
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -87,7 +140,7 @@ export default async function SignInPage({
             <CardHeader>
               <CardTitle>Sign in to WHOMA</CardTitle>
               <CardDescription>
-                Continue with Google or email. Access review happens after sign-in.
+                {signInMethodsDescription}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

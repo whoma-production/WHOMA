@@ -37,6 +37,28 @@ enum AgentProfileStatus {
   PUBLISHED
 }
 
+enum AgentFeePreference {
+  FIXED_FEE
+  PERCENTAGE
+  HYBRID
+  CASE_BY_CASE
+}
+
+enum AgentTransactionBand {
+  UNDER_250K
+  FROM_250K_TO_500K
+  FROM_500K_TO_1M
+  FROM_1M_TO_2M
+  OVER_2M
+}
+
+enum CollaborationPreference {
+  JV_OR_REFERRALS
+  REFERRALS_ONLY
+  SELECTIVE
+  NOT_OPEN
+}
+
 enum PropertyType {
   FLAT
   TERRACED
@@ -185,6 +207,9 @@ model AgentProfile {
   specialties         String[]           @default([])
   achievements        String[]           @default([])
   languages           String[]           @default([])
+  feePreference       AgentFeePreference?
+  transactionBand     AgentTransactionBand?
+  collaborationPreference CollaborationPreference?
   profileSlug         String?            @unique
   profileStatus       AgentProfileStatus @default(DRAFT)
   profileCompleteness Int                @default(0)

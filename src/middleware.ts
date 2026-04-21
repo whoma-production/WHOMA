@@ -14,11 +14,7 @@ import {
 } from "@/lib/auth/session";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
-function getCanonicalDevOrigin(): URL | null {
-  if (process.env.NODE_ENV === "production") {
-    return null;
-  }
-
+function getCanonicalAppOrigin(): URL | null {
   const candidate =
     process.env.AUTH_URL ??
     process.env.NEXT_PUBLIC_APP_URL ??
@@ -37,17 +33,18 @@ function getCanonicalDevOrigin(): URL | null {
 
 export async function middleware(request: NextRequest): Promise<Response> {
   const { pathname, search } = request.nextUrl;
-  const canonicalDevOrigin = getCanonicalDevOrigin();
+  const canonicalAppOrigin = getCanonicalAppOrigin();
   const requestHost = request.headers.get("host") ?? request.nextUrl.host;
 
   if (
-    canonicalDevOrigin &&
-    (requestHost !== canonicalDevOrigin.host ||
-      request.nextUrl.protocol !== canonicalDevOrigin.protocol)
+    canonicalAppOrigin &&
+    (requestHost !== canonicalAppOrigin.host ||
+      request.nextUrl.protocol !== canonicalAppOrigin.protocol)
   ) {
-    const canonicalUrl = request.nextUrl.clone();
-    canonicalUrl.protocol = canonicalDevOrigin.protocol;
-    canonicalUrl.host = canonicalDevOrigin.host;
+    const canonicalUrl = new URL(
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      canonicalAppOrigin
+    );
 
     return NextResponse.redirect(canonicalUrl, 307);
   }
@@ -86,8 +83,15 @@ export async function middleware(request: NextRequest): Promise<Response> {
   const accessHint = decodeAccessHint(
     request.cookies.get(ACCESS_HINT_COOKIE_NAME)?.value
   );
+  const accessHintMatchesUser = Boolean(
+    accessHint?.supabaseUserId &&
+      accessHint.supabaseUserId === authenticatedUserId
+  );
 
-  if (!accessHint || accessHint.userId !== authenticatedUserId) {
+  if (!accessHint || !accessHintMatchesUser) {
+    // Allow the request through so server-rendered pages can rebuild the
+    // access hint from the live Supabase session instead of trapping the user
+    // on the public sign-in route.
     return response;
   }
 
@@ -135,6 +139,8 @@ export async function middleware(request: NextRequest): Promise<Response> {
 
 export const config = {
   matcher: [
+    "/auth/callback",
+    "/auth/sign-out",
     "/sign-in",
     "/sign-up",
     "/access/:path*",

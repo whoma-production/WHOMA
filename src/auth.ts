@@ -14,6 +14,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface AuthSessionUser {
   id: string;
+  supabaseUserId: string;
   email: string;
   name: string | null;
   image: string | null;
@@ -103,6 +104,7 @@ async function resolveAccountAccessState(
 
 async function setAccessHintIfPossible(user: {
   id: string;
+  supabaseUserId: string;
   role: UserRole | null;
   accessState: AccountAccessState;
 }): Promise<void> {
@@ -113,6 +115,7 @@ async function setAccessHintIfPossible(user: {
       name: ACCESS_HINT_COOKIE_NAME,
       value: encodeAccessHint({
         userId: user.id,
+        supabaseUserId: user.supabaseUserId,
         role: user.role,
         accessState: user.accessState
       }),
@@ -179,6 +182,7 @@ async function syncWhomaUserFromSupabase(
 
   return {
     id: user.id,
+    supabaseUserId: supabaseUser.id,
     email: user.email,
     name: user.name,
     image: user.image,
@@ -256,6 +260,7 @@ export async function unstable_update(
 
   await setAccessHintIfPossible({
     id: session.user.id,
+    supabaseUserId: session.user.supabaseUserId,
     role: nextRole,
     accessState: nextAccessState
   });

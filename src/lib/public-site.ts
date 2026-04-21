@@ -51,7 +51,7 @@ export function getPublicSiteConfig(): PublicSiteConfig {
     ),
     pilotSummary: readEnvValue(
       process.env.NEXT_PUBLIC_PILOT_SUMMARY,
-      "WHOMA helps independent estate agents build verified transaction identity: trusted profiles, structured proof, and measurable collaboration readiness."
+      "WHOMA gives independent estate agents verified transaction infrastructure: identity checks, timestamped proof logs, and measurable collaboration readiness."
     ),
     showPhase2Preview: readBooleanEnvValue(
       process.env.NEXT_PUBLIC_SHOW_PHASE2_PREVIEW,

@@ -291,7 +291,10 @@ function normalizeMultilineText(value: string): string {
     .trim();
 }
 
-function normalizeStringList(values: string[] | undefined, limit: number): string[] {
+function normalizeStringList(
+  values: string[] | undefined,
+  limit: number
+): string[] {
   if (!values) {
     return [];
   }
@@ -433,7 +436,9 @@ function createSourceDocument(input: {
   sourceText: string;
 }): ResumeSourceDocument {
   return {
-    document_id: createSourceDocumentId(`${input.kind}:${input.sourceLabel}:${input.sourceText.slice(0, 256)}`),
+    document_id: createSourceDocumentId(
+      `${input.kind}:${input.sourceLabel}:${input.sourceText.slice(0, 256)}`
+    ),
     type: input.kind
   };
 }
@@ -462,21 +467,39 @@ function profileConfidenceToLegacyConfidence(
   profile: ResumeExtractionProfile
 ): ResumeSuggestionConfidence {
   return {
-    ...(profile.confidence.full_name > 0 ? { fullName: profile.confidence.full_name } : {}),
-    ...(profile.confidence.email > 0 ? { workEmail: profile.confidence.email } : {}),
-    ...(profile.confidence.phone > 0 ? { phone: profile.confidence.phone } : {}),
-    ...(profile.confidence.agency > 0 ? { agencyName: profile.confidence.agency } : {}),
-    ...(profile.confidence.job_title > 0 ? { jobTitle: profile.confidence.job_title } : {}),
+    ...(profile.confidence.full_name > 0
+      ? { fullName: profile.confidence.full_name }
+      : {}),
+    ...(profile.confidence.email > 0
+      ? { workEmail: profile.confidence.email }
+      : {}),
+    ...(profile.confidence.phone > 0
+      ? { phone: profile.confidence.phone }
+      : {}),
+    ...(profile.confidence.agency > 0
+      ? { agencyName: profile.confidence.agency }
+      : {}),
+    ...(profile.confidence.job_title > 0
+      ? { jobTitle: profile.confidence.job_title }
+      : {}),
     ...(profile.confidence.years_experience > 0
       ? { yearsExperience: profile.confidence.years_experience }
       : {}),
-    ...(profile.confidence.professional_summary > 0 ? { bio: profile.confidence.professional_summary } : {}),
-    ...(profile.confidence.service_areas > 0 ? { serviceAreas: profile.confidence.service_areas } : {}),
-    ...(profile.confidence.specialties > 0 ? { specialties: profile.confidence.specialties } : {})
+    ...(profile.confidence.professional_summary > 0
+      ? { bio: profile.confidence.professional_summary }
+      : {}),
+    ...(profile.confidence.service_areas > 0
+      ? { serviceAreas: profile.confidence.service_areas }
+      : {}),
+    ...(profile.confidence.specialties > 0
+      ? { specialties: profile.confidence.specialties }
+      : {})
   };
 }
 
-function profileToPrefill(profile: ResumeExtractionProfile): ResumePrefillValues {
+function profileToPrefill(
+  profile: ResumeExtractionProfile
+): ResumePrefillValues {
   const prefill: ResumePrefillValues = {};
 
   setPrefillValue(prefill, "fullName", profile.full_name);
@@ -485,7 +508,11 @@ function profileToPrefill(profile: ResumeExtractionProfile): ResumePrefillValues
   setPrefillValue(prefill, "agencyName", profile.agency);
   setPrefillValue(prefill, "jobTitle", profile.job_title);
   setPrefillValue(prefill, "yearsExperience", profile.years_experience);
-  setPrefillValue(prefill, "bio", profile.professional_summary ?? profile.longer_bio ?? null);
+  setPrefillValue(
+    prefill,
+    "bio",
+    profile.professional_summary ?? profile.longer_bio ?? null
+  );
   setPrefillValue(prefill, "serviceAreas", profile.service_areas);
   setPrefillValue(prefill, "specialties", profile.specialties);
 
@@ -551,7 +578,9 @@ function createProfileDraftFromPrefill(
   });
 }
 
-function profileToLegacyEvidence(profile: ResumeExtractionProfile): ResumeSuggestionEvidence {
+function profileToLegacyEvidence(
+  profile: ResumeExtractionProfile
+): ResumeSuggestionEvidence {
   const evidence: ResumeSuggestionEvidence = {};
 
   if (profile.full_name) {
@@ -585,7 +614,9 @@ function profileToLegacyEvidence(profile: ResumeExtractionProfile): ResumeSugges
   return evidence;
 }
 
-function finalizeResumeProfile(profile: ResumeExtractionProfile): ResumeExtractionProfile {
+function finalizeResumeProfile(
+  profile: ResumeExtractionProfile
+): ResumeExtractionProfile {
   const next = normalizeProfileDraft(profile);
   const missingFields = new Set<string>();
   const needsConfirmation: ResumeNeedsConfirmation[] = [];
@@ -675,7 +706,8 @@ function finalizeResumeProfile(profile: ResumeExtractionProfile): ResumeExtracti
       valuePresent: next.headshot_present,
       required: false,
       missingLabel: "headshot_present",
-      confirmationReason: "Add a headshot if you want a stronger public profile."
+      confirmationReason:
+        "Add a headshot if you want a stronger public profile."
     }
   ];
 
@@ -702,23 +734,35 @@ function finalizeResumeProfile(profile: ResumeExtractionProfile): ResumeExtracti
     weightedScore += fieldWeights[item.field] ?? 0;
   }
 
-  weightedScore += next.credentials.length > 0 ? fieldWeights.credentials ?? 0 : 0;
-  weightedScore += next.languages.length > 0 ? fieldWeights.languages ?? 0 : 0;
-  weightedScore += next.notable_experience.length > 0
-    ? fieldWeights.notable_experience ?? 0
-    : 0;
-  weightedScore += next.education.length > 0 ? fieldWeights.education ?? 0 : 0;
-  weightedScore += next.awards_or_memberships.length > 0
-    ? fieldWeights.awards_or_memberships ?? 0
-    : 0;
+  weightedScore +=
+    next.credentials.length > 0 ? (fieldWeights.credentials ?? 0) : 0;
+  weightedScore +=
+    next.languages.length > 0 ? (fieldWeights.languages ?? 0) : 0;
+  weightedScore +=
+    next.notable_experience.length > 0
+      ? (fieldWeights.notable_experience ?? 0)
+      : 0;
+  weightedScore +=
+    next.education.length > 0 ? (fieldWeights.education ?? 0) : 0;
+  weightedScore +=
+    next.awards_or_memberships.length > 0
+      ? (fieldWeights.awards_or_memberships ?? 0)
+      : 0;
 
-  if (next.social_links.linkedin || next.social_links.website || next.social_links.instagram) {
+  if (
+    next.social_links.linkedin ||
+    next.social_links.website ||
+    next.social_links.instagram
+  ) {
     weightedScore += 2;
   }
 
   next.missing_fields = Array.from(missingFields).slice(0, 24);
   next.needs_confirmation = needsConfirmation.slice(0, 24);
-  next.publish_readiness_score = Math.max(0, Math.min(100, Math.round(weightedScore)));
+  next.publish_readiness_score = Math.max(
+    0,
+    Math.min(100, Math.round(weightedScore))
+  );
 
   const nextSteps = new Set<string>();
   if (next.missing_fields.includes("full_name")) {
@@ -759,7 +803,10 @@ function finalizeResumeProfile(profile: ResumeExtractionProfile): ResumeExtracti
   return next;
 }
 
-function createResumeSummary(profile: ResumeExtractionProfile, fallbackText: string): string {
+function createResumeSummary(
+  profile: ResumeExtractionProfile,
+  fallbackText: string
+): string {
   return (
     profile.professional_summary ??
     profile.longer_bio ??
@@ -781,10 +828,14 @@ function createResumeHighlights(profile: ResumeExtractionProfile): string[] {
     highlights.push("Captured the job title");
   }
   if (profile.service_areas.length > 0) {
-    highlights.push(`Captured ${profile.service_areas.length} service area${profile.service_areas.length === 1 ? "" : "s"}`);
+    highlights.push(
+      `Captured ${profile.service_areas.length} service area${profile.service_areas.length === 1 ? "" : "s"}`
+    );
   }
   if (profile.specialties.length > 0) {
-    highlights.push(`Captured ${profile.specialties.length} specialty tag${profile.specialties.length === 1 ? "" : "s"}`);
+    highlights.push(
+      `Captured ${profile.specialties.length} specialty tag${profile.specialties.length === 1 ? "" : "s"}`
+    );
   }
   if (profile.email) {
     highlights.push("Captured the contact email");
@@ -796,35 +847,84 @@ function createResumeHighlights(profile: ResumeExtractionProfile): string[] {
   return highlights.slice(0, 8);
 }
 
-function normalizeProfileDraft(profile: ResumeExtractionProfile): ResumeExtractionProfile {
+function normalizeProfileDraft(
+  profile: ResumeExtractionProfile
+): ResumeExtractionProfile {
   return {
     ...profile,
-    full_name: profile.full_name ? normalizeWhitespace(profile.full_name) : null,
-    preferred_display_name: profile.preferred_display_name ? normalizeWhitespace(profile.preferred_display_name) : null,
+    full_name: profile.full_name
+      ? normalizeWhitespace(profile.full_name)
+      : null,
+    preferred_display_name: profile.preferred_display_name
+      ? normalizeWhitespace(profile.preferred_display_name)
+      : null,
     email: profile.email ? profile.email.trim().toLowerCase() : null,
     phone: profile.phone ? normalizeWhitespace(profile.phone) : null,
     agency: profile.agency ? normalizeWhitespace(profile.agency) : null,
-    job_title: profile.job_title ? normalizeWhitespace(profile.job_title) : null,
+    job_title: profile.job_title
+      ? normalizeWhitespace(profile.job_title)
+      : null,
     years_experience: profile.years_experience,
-    service_areas: profile.service_areas.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 12),
-    specialties: profile.specialties.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 12),
-    credentials: profile.credentials.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 12),
-    languages: profile.languages.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 12),
-    professional_summary: profile.professional_summary ? normalizeWhitespace(profile.professional_summary).slice(0, 400) : null,
-    longer_bio: profile.longer_bio ? normalizeMultilineText(profile.longer_bio).slice(0, 3000) : null,
-    notable_experience: profile.notable_experience.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 12),
-    education: profile.education.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 12),
-    awards_or_memberships: profile.awards_or_memberships.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 12),
+    service_areas: profile.service_areas
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 12),
+    specialties: profile.specialties
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 12),
+    credentials: profile.credentials
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 12),
+    languages: profile.languages
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 12),
+    professional_summary: profile.professional_summary
+      ? normalizeWhitespace(profile.professional_summary).slice(0, 400)
+      : null,
+    longer_bio: profile.longer_bio
+      ? normalizeMultilineText(profile.longer_bio).slice(0, 3000)
+      : null,
+    notable_experience: profile.notable_experience
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 12),
+    education: profile.education
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 12),
+    awards_or_memberships: profile.awards_or_memberships
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 12),
     social_links: {
-      linkedin: profile.social_links.linkedin ? normalizeWhitespace(profile.social_links.linkedin) : null,
-      website: profile.social_links.website ? normalizeWhitespace(profile.social_links.website) : null,
-      instagram: profile.social_links.instagram ? normalizeWhitespace(profile.social_links.instagram) : null
+      linkedin: profile.social_links.linkedin
+        ? normalizeWhitespace(profile.social_links.linkedin)
+        : null,
+      website: profile.social_links.website
+        ? normalizeWhitespace(profile.social_links.website)
+        : null,
+      instagram: profile.social_links.instagram
+        ? normalizeWhitespace(profile.social_links.instagram)
+        : null
     },
-    source_documents: profile.source_documents.map((item) => resumeSourceDocumentSchema.parse(item)),
+    source_documents: profile.source_documents.map((item) =>
+      resumeSourceDocumentSchema.parse(item)
+    ),
     confidence: resumeProfileConfidenceSchema.parse(profile.confidence),
-    missing_fields: profile.missing_fields.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 24),
-    needs_confirmation: profile.needs_confirmation.map((item) => resumeNeedsConfirmationSchema.parse(item)).slice(0, 24),
-    recommended_next_steps: profile.recommended_next_steps.map((item) => normalizeWhitespace(item)).filter(Boolean).slice(0, 12)
+    missing_fields: profile.missing_fields
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 24),
+    needs_confirmation: profile.needs_confirmation
+      .map((item) => resumeNeedsConfirmationSchema.parse(item))
+      .slice(0, 24),
+    recommended_next_steps: profile.recommended_next_steps
+      .map((item) => normalizeWhitespace(item))
+      .filter(Boolean)
+      .slice(0, 12)
   };
 }
 
@@ -851,7 +951,9 @@ function extractJsonBlock(raw: string): string {
   return trimmed.slice(firstBrace, lastBrace + 1).trim();
 }
 
-export function parseResumeLlmExtractionResult(raw: string): ResumeExtractionProfile {
+export function parseResumeLlmExtractionResult(
+  raw: string
+): ResumeExtractionProfile {
   const json = extractJsonBlock(raw);
   const parsed = JSON.parse(json) as unknown;
   return resumeExtractionProfileSchema.parse(parsed);
@@ -1002,7 +1104,11 @@ export function buildResumeExtractionPrompt(input: {
   sourceDocument: ResumeSourceDocument;
   existingProfile?: ResumePrefillValues | undefined;
 }): ResumeLlmPromptBundle {
-  const existingProfileJson = JSON.stringify(input.existingProfile ?? {}, null, 2);
+  const existingProfileJson = JSON.stringify(
+    input.existingProfile ?? {},
+    null,
+    2
+  );
   const sourceDocumentJson = JSON.stringify(input.sourceDocument, null, 2);
 
   const userPrompt = `Extract a WHOMA agent profile from the source material below.
@@ -1144,10 +1250,14 @@ async function runOcrFallback(file: File): Promise<string> {
       details = await response.text();
     }
 
-    throw new ResumeExtractionError("OCR_UNAVAILABLE", "OCR provider request failed.", {
-      status: response.status,
-      details
-    });
+    throw new ResumeExtractionError(
+      "OCR_UNAVAILABLE",
+      "OCR provider request failed.",
+      {
+        status: response.status,
+        details
+      }
+    );
   }
 
   const parsed = (await response.json()) as { text?: unknown };
@@ -1179,6 +1289,7 @@ function resolvePipelineMode(
 export async function createResumeSuggestionsFromFile(input: {
   file?: File;
   bioText?: string;
+  supplementalText?: string;
   mode?: ResumePipelineMode | undefined;
   existingProfile?: ResumePrefillValues | undefined;
 }): Promise<ResumeIntakeResult> {
@@ -1193,14 +1304,12 @@ export async function createResumeSuggestionsFromFile(input: {
     );
   }
 
-  let meta:
-    | {
-        name: string;
-        mimeType: string;
-        size: number;
-        extension: string;
-      }
-    | null = null;
+  let meta: {
+    name: string;
+    mimeType: string;
+    size: number;
+    extension: string;
+  } | null = null;
   let sourceDocument: ResumeSourceDocument | null = null;
   let normalizedText = "";
   let ocrUsed = false;
@@ -1219,12 +1328,12 @@ export async function createResumeSuggestionsFromFile(input: {
         throw error;
       }
 
-      if (
-        error.code === "PARSE_FAILED" &&
-        flags.enableResumeOcrFallback
-      ) {
+      if (error.code === "PARSE_FAILED" && flags.enableResumeOcrFallback) {
         const ocrText = await runOcrFallback(input.file);
-        normalizedText = normalizeMultilineText(ocrText).slice(0, MAX_EXTRACTED_TEXT_LENGTH);
+        normalizedText = normalizeMultilineText(ocrText).slice(
+          0,
+          MAX_EXTRACTED_TEXT_LENGTH
+        );
         ocrUsed = true;
       } else if (
         error.code === "PARSE_FAILED" &&
@@ -1257,7 +1366,10 @@ export async function createResumeSuggestionsFromFile(input: {
       }
 
       const ocrText = await runOcrFallback(input.file);
-      normalizedText = normalizeMultilineText(ocrText).slice(0, MAX_EXTRACTED_TEXT_LENGTH);
+      normalizedText = normalizeMultilineText(ocrText).slice(
+        0,
+        MAX_EXTRACTED_TEXT_LENGTH
+      );
       ocrUsed = true;
 
       if (normalizedText.length < MIN_USABLE_TEXT_LENGTH) {
@@ -1277,8 +1389,14 @@ export async function createResumeSuggestionsFromFile(input: {
       sourceLabel: meta.name,
       sourceText: normalizedText
     });
-  } else if (typeof input.bioText === "string" && input.bioText.trim().length > 0) {
-    normalizedText = normalizeMultilineText(input.bioText).slice(0, MAX_EXTRACTED_TEXT_LENGTH);
+  } else if (
+    typeof input.bioText === "string" &&
+    input.bioText.trim().length > 0
+  ) {
+    normalizedText = normalizeMultilineText(input.bioText).slice(
+      0,
+      MAX_EXTRACTED_TEXT_LENGTH
+    );
     meta = {
       name: "pasted-bio.txt",
       mimeType: "text/plain",
@@ -1291,13 +1409,28 @@ export async function createResumeSuggestionsFromFile(input: {
       sourceText: normalizedText
     });
   } else {
-    throw new ResumeExtractionError("FILE_MISSING", "Please choose a resume file or paste a bio.");
+    throw new ResumeExtractionError(
+      "FILE_MISSING",
+      "Please choose a resume file or paste a bio."
+    );
   }
 
   if (!sourceDocument) {
     throw new ResumeExtractionError(
       "FILE_MISSING",
       "Please choose a resume file or paste a bio."
+    );
+  }
+
+  const supplementalText =
+    typeof input.supplementalText === "string"
+      ? normalizeMultilineText(input.supplementalText)
+      : "";
+
+  if (supplementalText.length > 0) {
+    normalizedText = `${normalizedText}\n\n${supplementalText}`.slice(
+      0,
+      MAX_EXTRACTED_TEXT_LENGTH
     );
   }
 
@@ -1358,7 +1491,9 @@ export async function createResumeSuggestionsFromFile(input: {
           warnings.push("Ran a cleanup pass to normalise the drafted profile.");
         } catch (cleanupError) {
           if (cleanupError instanceof ResumeExtractionError) {
-            warnings.push("Cleanup pass unavailable; using the primary extraction.");
+            warnings.push(
+              "Cleanup pass unavailable; using the primary extraction."
+            );
           } else {
             throw cleanupError;
           }
@@ -1373,15 +1508,13 @@ export async function createResumeSuggestionsFromFile(input: {
         throw error;
       }
 
-      warnings.push("LLM extraction unavailable; using deterministic extraction.");
+      warnings.push(
+        "LLM extraction unavailable; using deterministic extraction."
+      );
     }
   }
 
-  if (
-    selectedMode === "hybrid" &&
-    !flags.resumeAiShadowMode &&
-    llmUsed
-  ) {
+  if (selectedMode === "hybrid" && !flags.resumeAiShadowMode && llmUsed) {
     finalProfile = finalizeResumeProfile({
       ...heuristicProfile,
       ...finalProfile,
@@ -1418,7 +1551,10 @@ export async function createResumeSuggestionsFromFile(input: {
     llmUsed &&
     !hasPrefillValues(profileToPrefill(finalProfile))
   ) {
-    finalProfile = createProfileDraftFromPrefill(heuristicPrefill, sourceDocument);
+    finalProfile = createProfileDraftFromPrefill(
+      heuristicPrefill,
+      sourceDocument
+    );
   }
 
   if (!llmUsed || selectedMode === "heuristic" || flags.resumeAiShadowMode) {

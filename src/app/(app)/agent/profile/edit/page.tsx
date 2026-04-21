@@ -12,7 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MIN_AGENT_PUBLISH_COMPLETENESS } from "@/lib/agent-activation";
 import { assertCan } from "@/lib/auth/rbac";
-import { agentProfileDraftSchema, agentProfilePublishSchema, parseCsvList } from "@/lib/validation/agent-profile";
+import {
+  agentFeePreferenceOptions,
+  agentProfileDraftSchema,
+  agentProfilePublishSchema,
+  agentTransactionBandOptions,
+  collaborationPreferenceOptions,
+  parseCsvList
+} from "@/lib/validation/agent-profile";
 import { cn } from "@/lib/utils";
 import {
   WorkEmailVerificationError,
@@ -23,6 +30,9 @@ import {
   saveAgentProfileDraft
 } from "@/server/agent-profile/service";
 import { getAgentHeartbeatProgressState } from "@/server/agent-heartbeat";
+
+const selectClasses =
+  "flex h-10 w-full rounded-md border border-line bg-surface-0 px-3 py-2 text-sm text-text-strong transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 disabled:cursor-not-allowed disabled:opacity-50";
 
 interface PageProps {
   searchParams?: Promise<{
@@ -43,7 +53,11 @@ function parseProfilePayload(formData: FormData): unknown {
     serviceAreas: parseCsvList(formData.get("serviceAreas")?.toString()),
     specialties: parseCsvList(formData.get("specialties")?.toString()),
     achievements: parseCsvList(formData.get("achievements")?.toString()),
-    languages: parseCsvList(formData.get("languages")?.toString())
+    languages: parseCsvList(formData.get("languages")?.toString()),
+    feePreference: formData.get("feePreference"),
+    transactionBand: formData.get("transactionBand"),
+    collaborationPreference: formData.get("collaborationPreference"),
+    responseTimeMinutes: formData.get("responseTimeMinutes")
   };
 }
 
@@ -58,7 +72,9 @@ async function saveAgentProfileDraftAction(formData: FormData): Promise<void> {
 
   assertCan(session.user.role, "agent:profile:edit");
 
-  const parsed = agentProfileDraftSchema.safeParse(parseProfilePayload(formData));
+  const parsed = agentProfileDraftSchema.safeParse(
+    parseProfilePayload(formData)
+  );
 
   if (!parsed.success) {
     redirect("/agent/profile/edit?error=invalid_fields");
@@ -79,7 +95,9 @@ async function publishAgentProfileAction(formData: FormData): Promise<void> {
 
   assertCan(session.user.role, "agent:profile:publish");
 
-  const parsed = agentProfilePublishSchema.safeParse(parseProfilePayload(formData));
+  const parsed = agentProfilePublishSchema.safeParse(
+    parseProfilePayload(formData)
+  );
 
   if (!parsed.success) {
     redirect("/agent/profile/edit?error=publish_requirements");
@@ -90,7 +108,10 @@ async function publishAgentProfileAction(formData: FormData): Promise<void> {
   try {
     profile = await publishAgentProfile(session.user.id, parsed.data);
   } catch (error) {
-    if (error instanceof WorkEmailVerificationError && error.code === "EMAIL_NOT_VERIFIED") {
+    if (
+      error instanceof WorkEmailVerificationError &&
+      error.code === "EMAIL_NOT_VERIFIED"
+    ) {
       redirect("/agent/profile/edit?error=publish_work_email_unverified");
     }
 
@@ -101,10 +122,14 @@ async function publishAgentProfileAction(formData: FormData): Promise<void> {
     redirect("/agent/profile/edit?error=publish_blocked");
   }
 
-  redirect(`/agent/profile/edit?success=published&slug=${profile.profileSlug ?? ""}`);
+  redirect(
+    `/agent/profile/edit?success=published&slug=${profile.profileSlug ?? ""}`
+  );
 }
 
-function normalizeFieldValue(value: FormDataEntryValue | null): string | undefined {
+function normalizeFieldValue(
+  value: FormDataEntryValue | null
+): string | undefined {
   if (typeof value !== "string") {
     return undefined;
   }
@@ -127,7 +152,9 @@ async function logHistoricTransactionAction(formData: FormData): Promise<void> {
   const postcodeDistrict = normalizeFieldValue(
     formData.get("historicPostcodeDistrict")
   );
-  const propertyType = normalizeFieldValue(formData.get("historicPropertyType"));
+  const propertyType = normalizeFieldValue(
+    formData.get("historicPropertyType")
+  );
   const completionMonth = normalizeFieldValue(
     formData.get("historicCompletionMonth")
   );
@@ -167,7 +194,9 @@ async function logLiveCollaborationAction(formData: FormData): Promise<void> {
   redirect("/agent/profile/edit?success=live_deal_logged");
 }
 
-export default async function AgentProfileEditPage({ searchParams }: PageProps): Promise<JSX.Element> {
+export default async function AgentProfileEditPage({
+  searchParams
+}: PageProps): Promise<JSX.Element> {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -197,8 +226,12 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="space-y-4">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Professional identity</p>
-            <h2 className="text-lg font-semibold text-text-strong">Build your public estate agent profile</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+              Professional identity
+            </p>
+            <h2 className="text-lg font-semibold text-text-strong">
+              Build your public estate agent profile
+            </h2>
             <p className="text-sm text-text-muted">
               Build the profile clients and partners will see on WHOMA. Save
               drafts as you go, then publish when ready.
@@ -206,50 +239,74 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
           </div>
 
           {error === "invalid_fields" ? (
-            <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-              We could not save your draft. Check required fields and postcode district formatting.
+            <p className="border-state-danger/20 bg-state-danger/10 rounded-md border px-3 py-2 text-sm text-state-danger">
+              We could not save your draft. Check required fields and postcode
+              district formatting.
             </p>
           ) : null}
 
           {error === "publish_requirements" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
+            <p className="border-state-warning/20 bg-state-warning/10 rounded-md border px-3 py-2 text-sm text-state-warning">
               Publishing failed because required profile fields are incomplete.
             </p>
           ) : null}
 
           {error === "publish_blocked" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Your profile completeness is below the publish threshold. Add more detail and try again.
+            <p className="border-state-warning/20 bg-state-warning/10 rounded-md border px-3 py-2 text-sm text-state-warning">
+              Your profile completeness is below the publish threshold. Add more
+              detail and try again.
             </p>
           ) : null}
 
           {error === "publish_work_email_unverified" ? (
-            <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
+            <p className="border-state-warning/20 bg-state-warning/10 rounded-md border px-3 py-2 text-sm text-state-warning">
               Verify your email on onboarding before publishing your profile.
             </p>
           ) : null}
 
           {success === "draft-saved" ? (
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+            <p className="border-state-success/20 bg-state-success/10 rounded-md border px-3 py-2 text-sm text-state-success">
               Draft saved successfully.
             </p>
           ) : null}
 
+          {success === "onboarding-complete" ? (
+            <div className="border-state-success/20 bg-state-success/10 space-y-3 rounded-md border px-4 py-3 text-sm text-state-success">
+              <p className="font-medium text-text-strong">
+                Your onboarding draft is saved.
+              </p>
+              <p>
+                Publish when you are happy with the public-facing details, then
+                strengthen trust straight away by logging one past deal.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href="#credibility-boost"
+                  className={cn(
+                    buttonVariants({ variant: "secondary", size: "sm" })
+                  )}
+                >
+                  Boost credibility in 2 minutes
+                </a>
+              </div>
+            </div>
+          ) : null}
+
           {success === "published" ? (
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+            <p className="border-state-success/20 bg-state-success/10 rounded-md border px-3 py-2 text-sm text-state-success">
               Profile published. It remains visible while your verification
               status stays approved.
             </p>
           ) : null}
 
           {success === "historic_transaction_logged" ? (
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+            <p className="border-state-success/20 bg-state-success/10 rounded-md border px-3 py-2 text-sm text-state-success">
               Historic transaction added to your profile activity.
             </p>
           ) : null}
 
           {success === "live_deal_logged" ? (
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+            <p className="border-state-success/20 bg-state-success/10 rounded-md border px-3 py-2 text-sm text-state-success">
               Live collaboration activity logged successfully.
             </p>
           ) : null}
@@ -257,27 +314,62 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
           <form className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Agency</span>
-                <Input name="agencyName" required defaultValue={profile?.agencyName ?? ""} />
+                <span className="text-sm font-medium text-text-strong">
+                  Agency
+                </span>
+                <Input
+                  name="agencyName"
+                  required
+                  defaultValue={profile?.agencyName ?? ""}
+                />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Job title</span>
-                <Input name="jobTitle" required defaultValue={profile?.jobTitle ?? ""} />
+                <span className="text-sm font-medium text-text-strong">
+                  Job title
+                </span>
+                <Input
+                  name="jobTitle"
+                  required
+                  defaultValue={profile?.jobTitle ?? ""}
+                />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Email</span>
-                <Input name="workEmail" type="email" required defaultValue={profile?.workEmail ?? session.user.email ?? ""} />
+                <span className="text-sm font-medium text-text-strong">
+                  Work email
+                </span>
+                <Input
+                  name="workEmail"
+                  type="email"
+                  required
+                  defaultValue={profile?.workEmail ?? session.user.email ?? ""}
+                />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Phone</span>
-                <Input name="phone" required defaultValue={profile?.phone ?? ""} />
+                <span className="text-sm font-medium text-text-strong">
+                  Phone
+                </span>
+                <Input
+                  name="phone"
+                  required
+                  defaultValue={profile?.phone ?? ""}
+                />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Years experience</span>
-                <Input name="yearsExperience" type="number" min={0} max={60} defaultValue={profile?.yearsExperience ?? ""} />
+                <span className="text-sm font-medium text-text-strong">
+                  Years experience
+                </span>
+                <Input
+                  name="yearsExperience"
+                  type="number"
+                  min={0}
+                  max={60}
+                  defaultValue={profile?.yearsExperience ?? ""}
+                />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Service areas (postcode districts)</span>
+                <span className="text-sm font-medium text-text-strong">
+                  Service areas (postcode districts)
+                </span>
                 <Input
                   name="serviceAreas"
                   required
@@ -286,7 +378,9 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
                 />
               </label>
               <label className="space-y-1 md:col-span-2">
-                <span className="text-sm font-medium text-text-strong">Specialties</span>
+                <span className="text-sm font-medium text-text-strong">
+                  Specialties
+                </span>
                 <Input
                   name="specialties"
                   required
@@ -295,7 +389,9 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
                 />
               </label>
               <label className="space-y-1 md:col-span-2">
-                <span className="text-sm font-medium text-text-strong">Achievements</span>
+                <span className="text-sm font-medium text-text-strong">
+                  Achievements
+                </span>
                 <Input
                   name="achievements"
                   defaultValue={profile?.achievements.join(", ") ?? ""}
@@ -303,17 +399,93 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
                 />
               </label>
               <label className="space-y-1 md:col-span-2">
-                <span className="text-sm font-medium text-text-strong">Languages</span>
+                <span className="text-sm font-medium text-text-strong">
+                  Languages
+                </span>
                 <Input
                   name="languages"
                   defaultValue={profile?.languages.join(", ") ?? ""}
                   placeholder="English, French, Arabic"
                 />
               </label>
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-text-strong">
+                  Usual fee style
+                </span>
+                <select
+                  name="feePreference"
+                  defaultValue={profile?.feePreference ?? ""}
+                  className={selectClasses}
+                >
+                  <option value="">Select fee style</option>
+                  {agentFeePreferenceOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-text-strong">
+                  Typical transaction band
+                </span>
+                <select
+                  name="transactionBand"
+                  defaultValue={profile?.transactionBand ?? ""}
+                  className={selectClasses}
+                >
+                  <option value="">Select transaction band</option>
+                  {agentTransactionBandOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-text-strong">
+                  Collaboration posture
+                </span>
+                <select
+                  name="collaborationPreference"
+                  defaultValue={profile?.collaborationPreference ?? ""}
+                  className={selectClasses}
+                >
+                  <option value="">Select collaboration posture</option>
+                  {collaborationPreferenceOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-text-strong">
+                  Response time
+                </span>
+                <select
+                  name="responseTimeMinutes"
+                  defaultValue={
+                    profile?.responseTimeMinutes
+                      ? String(profile.responseTimeMinutes)
+                      : ""
+                  }
+                  className={selectClasses}
+                >
+                  <option value="">Select response time</option>
+                  <option value="15">Within 15 minutes</option>
+                  <option value="60">Within 1 hour</option>
+                  <option value="180">Within 3 hours</option>
+                  <option value="480">Within 8 hours</option>
+                  <option value="1440">Within 24 hours</option>
+                </select>
+              </label>
             </div>
 
             <label className="space-y-1">
-              <span className="text-sm font-medium text-text-strong">Professional summary</span>
+              <span className="text-sm font-medium text-text-strong">
+                Professional summary
+              </span>
               <Textarea
                 name="bio"
                 placeholder="Describe your local market knowledge, sales style, and communication approach for homeowners."
@@ -325,14 +497,24 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
               <Button formAction={saveAgentProfileDraftAction} type="submit">
                 Save draft
               </Button>
-              <Button formAction={publishAgentProfileAction} type="submit" variant="secondary">
+              <Button
+                formAction={publishAgentProfileAction}
+                type="submit"
+                variant="secondary"
+              >
                 Publish profile
               </Button>
-              <Link href="/agent/onboarding" className={cn(buttonVariants({ variant: "tertiary" }))}>
+              <Link
+                href="/agent/onboarding"
+                className={cn(buttonVariants({ variant: "tertiary" }))}
+              >
                 Back to onboarding
               </Link>
               {slug && profile?.verificationStatus === "VERIFIED" ? (
-                <Link href={`/agents/${slug}`} className={cn(buttonVariants({ variant: "tertiary" }))}>
+                <Link
+                  href={`/agents/${slug}`}
+                  className={cn(buttonVariants({ variant: "tertiary" }))}
+                >
                   View public profile
                 </Link>
               ) : null}
@@ -343,18 +525,29 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
 
         <Card className="space-y-4">
           <div>
-            <h3 className="text-base font-semibold text-text-strong">Profile readiness</h3>
+            <h3 className="text-base font-semibold text-text-strong">
+              Profile readiness
+            </h3>
             <p className="mt-1 text-sm text-text-muted">
-              Publishing requires at least {MIN_AGENT_PUBLISH_COMPLETENESS}% completeness and core professional fields.
+              Publishing requires at least {MIN_AGENT_PUBLISH_COMPLETENESS}%
+              completeness and core professional fields.
             </p>
           </div>
           <div className="space-y-2">
-            <p className="text-3xl font-semibold text-text-strong">{profile?.profileCompleteness ?? 0}%</p>
-            <p className="text-sm text-text-muted">
-              Status: <span className="font-medium text-text-strong">{profile?.profileStatus ?? "DRAFT"}</span>
+            <p className="text-3xl font-semibold text-text-strong">
+              {profile?.profileCompleteness ?? 0}%
             </p>
             <p className="text-sm text-text-muted">
-              Verification: <span className="font-medium text-text-strong">{profile?.verificationStatus ?? "UNVERIFIED"}</span>
+              Status:{" "}
+              <span className="font-medium text-text-strong">
+                {profile?.profileStatus ?? "DRAFT"}
+              </span>
+            </p>
+            <p className="text-sm text-text-muted">
+              Verification:{" "}
+              <span className="font-medium text-text-strong">
+                {profile?.verificationStatus ?? "UNVERIFIED"}
+              </span>
             </p>
           </div>
           <ActivationChecklist
@@ -366,10 +559,16 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
             description="Track your progress across profile quality, activity, sharing, and inbound enquiries."
           />
 
-          <div className="space-y-3 rounded-md border border-line bg-surface-1 px-4 py-3">
-            <p className="text-sm font-semibold text-text-strong">Log a historic deal</p>
+          <div
+            id="credibility-boost"
+            className="space-y-3 rounded-md border border-line bg-surface-1 px-4 py-3"
+          >
+            <p className="text-sm font-semibold text-text-strong">
+              Log a historic deal
+            </p>
             <p className="text-xs text-text-muted">
-              Capture one completed transaction to strengthen trust on your public profile.
+              Capture one completed transaction to strengthen trust on your
+              public profile.
             </p>
             <form action={logHistoricTransactionAction} className="grid gap-2">
               <Input
@@ -391,9 +590,12 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
           </div>
 
           <div className="space-y-3 rounded-md border border-line bg-surface-1 px-4 py-3">
-            <p className="text-sm font-semibold text-text-strong">Log a live collaboration opportunity</p>
+            <p className="text-sm font-semibold text-text-strong">
+              Log a live collaboration opportunity
+            </p>
             <p className="text-xs text-text-muted">
-              Record one live collaboration activity to show current demand and momentum.
+              Record one live collaboration activity to show current demand and
+              momentum.
             </p>
             <form action={logLiveCollaborationAction} className="grid gap-2">
               <Input

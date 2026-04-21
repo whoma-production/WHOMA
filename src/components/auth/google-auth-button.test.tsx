@@ -30,7 +30,7 @@ describe("GoogleAuthButton", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows unavailable states when providers are disabled", () => {
+  it("hides Google and shows the email unavailable state when providers are disabled", () => {
     render(
       <GoogleAuthButton
         providerAvailability={{
@@ -44,14 +44,11 @@ describe("GoogleAuthButton", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: /continue with google/i })
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: /continue with google/i })
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /continue with email/i })
     ).toBeDisabled();
-    expect(
-      screen.getByText(/google sign-in is currently unavailable/i)
-    ).toBeInTheDocument();
     expect(
       screen.getByText(/email sign-in is currently unavailable/i)
     ).toBeInTheDocument();
@@ -74,5 +71,24 @@ describe("GoogleAuthButton", () => {
     expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
+  });
+
+  it("renders otp copy when email auth is configured for codes", () => {
+    render(
+      <GoogleAuthButton
+        providerAvailability={{
+          google: false,
+          email: true,
+          any: true
+        }}
+        emailAuthMethod="otp"
+        uxMode="public"
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: /email me a code/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/sign-in link sent/i)).not.toBeInTheDocument();
   });
 });

@@ -3,22 +3,16 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { resolveAuthOrigin } from "@/lib/auth/callback-origin";
 import { defaultRouteForRole, normalizeRedirectPath } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function resolveAppOrigin(request: NextRequest): string {
-  const configuredOrigin =
-    process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL;
-
-  if (configuredOrigin) {
-    try {
-      return new URL(configuredOrigin).origin;
-    } catch {
-      // Fall back to request origin.
-    }
-  }
-
-  return request.nextUrl.origin;
+  return (
+    resolveAuthOrigin({
+      fallbackOrigin: request.nextUrl.origin
+    }) ?? request.nextUrl.origin
+  );
 }
 
 function mapCallbackErrorCode(message: string): string {

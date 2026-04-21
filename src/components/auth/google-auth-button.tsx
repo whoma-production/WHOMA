@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { buildAuthCallbackUrl } from "@/lib/auth/callback-origin";
 import { getAuthErrorMessage } from "@/lib/auth/session";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type {
@@ -24,7 +25,9 @@ interface GoogleAuthButtonProps {
   oauthError?: string | null;
 }
 
-type PendingAction = "google" | "email" | null;
+type PendingAction = "google" | "email" | "verify-email" | null;
+
+const EMAIL_AUTH_RESEND_COOLDOWN_SECONDS = 60;
 
 function GoogleMark(): JSX.Element {
   return (
@@ -72,25 +75,44 @@ function isEmailCandidate(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function buildAuthCallbackUrl(target: string): string {
-  const callbackUrl = new URL("/auth/callback", window.location.origin);
-  callbackUrl.searchParams.set("next", target);
-  return callbackUrl.toString();
+function normalizeOtpCode(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 6);
 }
 
-function mapSupabaseErrorMessage(message: string): string {
+function isSupabaseRateLimitMessage(message: string): boolean {
+  return message.toLowerCase().includes("rate limit");
+}
+
+function mapSupabaseErrorMessage(
+  message: string,
+  options?: { authMode?: "sign-in" | "sign-up" }
+): string {
   const normalized = message.toLowerCase();
 
   if (normalized.includes("provider") && normalized.includes("not enabled")) {
     return "That sign-in method is unavailable right now. Try email instead.";
   }
 
-  if (normalized.includes("rate limit")) {
-    return "Too many sign-in attempts right now. Please wait a moment and try again.";
+  if (isSupabaseRateLimitMessage(message)) {
+    return "Too many sign-in attempts right now. Please wait about a minute and try again.";
+  }
+
+  if (normalized.includes("signups not allowed")) {
+    return options?.authMode === "sign-in"
+      ? "We couldn't find an account for that email. Create your account first, then sign in."
+      : "We couldn't create your account right now. Please contact support.";
   }
 
   if (normalized.includes("invalid email")) {
     return "Enter a valid email address.";
+  }
+
+  if (
+    normalized.includes("otp") ||
+    normalized.includes("token") ||
+    normalized.includes("expired")
+  ) {
+    return "That code is invalid or expired. Request a new code and try again.";
   }
 
   return "We could not complete sign-in right now. Please try again.";
@@ -101,6 +123,7 @@ export function GoogleAuthButton({
   fullWidth = true,
   providerAvailability,
   emailAuthMethod = "none",
+  authMode = "sign-in",
   supportEmail,
   nextParam = null,
   oauthError = null
@@ -108,12 +131,42 @@ export function GoogleAuthButton({
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [emailAddress, setEmailAddress] = useState<string>("");
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
+  const [lastEmailRequestTo, setLastEmailRequestTo] = useState<string | null>(null);
+  const [emailCode, setEmailCode] = useState<string>("");
+  const [resendCooldownRemaining, setResendCooldownRemaining] = useState<number>(0);
   const [signInError, setSignInError] = useState<string | null>(null);
 
   const errorMessage = signInError ?? getAuthErrorMessage(oauthError);
   const target = nextParam ?? redirectTo;
   const isPending = pendingAction !== null;
   const hasPublicAuth = providerAvailability.any;
+  const usesEmailOtp = providerAvailability.email && emailAuthMethod === "otp";
+  const usesMagicLink =
+    providerAvailability.email && emailAuthMethod === "magic-link";
+  const isAwaitingEmailCode = usesEmailOtp && emailSentTo !== null;
+  const emailHint = usesEmailOtp
+    ? "No password needed. We'll email a 6-digit code to this address."
+    : usesMagicLink
+      ? "No password needed. We'll email a secure sign-in link to this address."
+      : null;
+
+  useEffect(() => {
+    if (resendCooldownRemaining <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setResendCooldownRemaining((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [resendCooldownRemaining]);
+
+  function startResendCooldown(): void {
+    setResendCooldownRemaining(EMAIL_AUTH_RESEND_COOLDOWN_SECONDS);
+  }
 
   async function handleGoogleSignIn(): Promise<void> {
     if (isPending) {
@@ -129,27 +182,154 @@ export function GoogleAuthButton({
     setSignInError(null);
     setEmailSentTo(null);
 
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: buildAuthCallbackUrl(target)
-      }
-    });
+    let callbackUrl: string;
 
-    if (error) {
-      setSignInError(mapSupabaseErrorMessage(error.message));
+    try {
+      callbackUrl = buildAuthCallbackUrl(target, {
+        fallbackOrigin: window.location.origin
+      });
+    } catch {
+      setSignInError("Sign-in is currently unavailable due to configuration.");
       setPendingAction(null);
       return;
     }
 
-    if (data.url) {
-      window.location.assign(data.url);
+    try {
+      const availabilityResponse = await fetch(
+        `/api/auth/providers/google?next=${encodeURIComponent(target)}`,
+        {
+          cache: "no-store"
+        }
+      );
+
+      if (!availabilityResponse.ok) {
+        const payload = (await availabilityResponse
+          .json()
+          .catch(() => null)) as { error?: string } | null;
+        setSignInError(
+          payload?.error ??
+            "Google sign-in is temporarily unavailable. Try email instead."
+        );
+        return;
+      }
+
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: callbackUrl
+        }
+      });
+
+      if (error) {
+        setSignInError(mapSupabaseErrorMessage(error.message));
+        return;
+      }
+
+      if (data.url) {
+        window.location.assign(data.url);
+        return;
+      }
+
+      setSignInError("Google sign-in did not return a redirect URL.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? mapSupabaseErrorMessage(error.message)
+          : "We could not complete sign-in right now. Please try again.";
+      setSignInError(message);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function sendEmailAuth(email: string): Promise<void> {
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!isEmailCandidate(trimmedEmail)) {
+      setSignInError("Enter a valid email address.");
       return;
     }
 
-    setSignInError("Google sign-in did not return a redirect URL.");
-    setPendingAction(null);
+    if (
+      resendCooldownRemaining > 0 &&
+      lastEmailRequestTo &&
+      lastEmailRequestTo === trimmedEmail
+    ) {
+      setSignInError(
+        `Please wait about ${resendCooldownRemaining} seconds before requesting another ${usesEmailOtp ? "code" : "sign-in link"}.`
+      );
+      return;
+    }
+
+    setPendingAction("email");
+    setSignInError(null);
+    setEmailSentTo(null);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const options: {
+        shouldCreateUser: boolean;
+        emailRedirectTo?: string;
+      } = {
+        shouldCreateUser: authMode === "sign-up"
+      };
+
+      if (usesMagicLink) {
+        let callbackUrl: string;
+
+        try {
+          callbackUrl = buildAuthCallbackUrl(target, {
+            fallbackOrigin: window.location.origin
+          });
+        } catch {
+          setSignInError("Sign-in is currently unavailable due to configuration.");
+          setPendingAction(null);
+          return;
+        }
+
+        options.emailRedirectTo = callbackUrl;
+      }
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options
+      });
+
+      if (error) {
+        if (isSupabaseRateLimitMessage(error.message)) {
+          setLastEmailRequestTo(trimmedEmail);
+          startResendCooldown();
+        }
+
+        setSignInError(
+          mapSupabaseErrorMessage(error.message, {
+            authMode
+          })
+        );
+        return;
+      }
+
+      startResendCooldown();
+      setEmailAddress(trimmedEmail);
+      setEmailSentTo(trimmedEmail);
+      setLastEmailRequestTo(trimmedEmail);
+      setEmailCode("");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? mapSupabaseErrorMessage(error.message, {
+              authMode
+            })
+          : "We could not complete sign-in right now. Please try again.";
+      if (error instanceof Error && isSupabaseRateLimitMessage(error.message)) {
+        setLastEmailRequestTo(trimmedEmail);
+        startResendCooldown();
+      }
+      setSignInError(message);
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   async function handleEmailSubmit(
@@ -161,62 +341,78 @@ export function GoogleAuthButton({
       return;
     }
 
-    if (!providerAvailability.email || emailAuthMethod !== "magic-link") {
+    if (!usesMagicLink && !usesEmailOtp) {
       setSignInError("Email sign-in is currently unavailable.");
       return;
     }
 
     const trimmedEmail = emailAddress.trim().toLowerCase();
+    await sendEmailAuth(trimmedEmail);
+  }
 
-    if (!isEmailCandidate(trimmedEmail)) {
-      setSignInError("Enter a valid email address.");
+  async function handleEmailCodeSubmit(
+    event: React.FormEvent<HTMLFormElement>
+  ): Promise<void> {
+    event.preventDefault();
+
+    if (isPending || !emailSentTo) {
       return;
     }
 
-    setPendingAction("email");
+    if (emailCode.length !== 6) {
+      setSignInError("Enter the 6-digit code from your email.");
+      return;
+    }
+
+    setPendingAction("verify-email");
     setSignInError(null);
-    setEmailSentTo(null);
 
-    const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: trimmedEmail,
-      options: {
-        emailRedirectTo: buildAuthCallbackUrl(target)
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.auth.verifyOtp({
+        email: emailSentTo,
+        token: emailCode,
+        type: "email"
+      });
+
+      if (error) {
+        setSignInError(mapSupabaseErrorMessage(error.message));
+        return;
       }
-    });
 
-    if (error) {
-      setSignInError(mapSupabaseErrorMessage(error.message));
+      window.location.assign(target);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? mapSupabaseErrorMessage(error.message)
+          : "We could not complete sign-in right now. Please try again.";
+      setSignInError(message);
+    } finally {
       setPendingAction(null);
-      return;
     }
-
-    setEmailSentTo(trimmedEmail);
-    setPendingAction(null);
   }
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Button
-          type="button"
-          variant="secondary"
-          fullWidth={fullWidth}
-          onClick={() => {
-            void handleGoogleSignIn();
-          }}
-          disabled={isPending || !providerAvailability.google}
-          aria-busy={isPending}
-        >
-          <GoogleMark />
-          {pendingAction === "google"
-            ? "Redirecting to Google..."
-            : "Continue with Google"}
-        </Button>
-        {!providerAvailability.google ? (
-          <p className="text-xs text-text-muted">Google sign-in is currently unavailable.</p>
-        ) : null}
-      </div>
+      {providerAvailability.google ? (
+        <div className="space-y-2">
+          <Button
+            type="button"
+            variant="secondary"
+            fullWidth={fullWidth}
+            onClick={() => {
+              void handleGoogleSignIn();
+            }}
+            disabled={isPending}
+            aria-busy={isPending}
+          >
+            <GoogleMark />
+            {pendingAction === "google"
+              ? "Redirecting to Google..."
+              : "Continue with Google"}
+          </Button>
+        </div>
+      ) : null}
 
       <div className="rounded-md border border-line bg-surface-1 p-4">
         <div className="mb-3 flex items-center gap-2">
@@ -224,43 +420,129 @@ export function GoogleAuthButton({
           <p className="text-sm font-medium text-text-strong">Continue with email</p>
         </div>
 
-        <form onSubmit={handleEmailSubmit} className="space-y-3">
-          <label className="space-y-1">
-            <span className="text-sm text-text-muted">Email</span>
-            <Input
-              type="email"
-              value={emailAddress}
-              autoComplete="email"
-              onChange={(event) => {
-                setEmailAddress(event.target.value);
-                if (signInError) {
+        {!isAwaitingEmailCode ? (
+          <form onSubmit={handleEmailSubmit} className="space-y-3">
+            <label className="space-y-1">
+              <span className="text-sm text-text-muted">Email</span>
+              <Input
+                type="email"
+                value={emailAddress}
+                autoComplete="email"
+                onChange={(event) => {
+                  setEmailAddress(event.target.value);
+                  if (signInError) {
+                    setSignInError(null);
+                  }
+                }}
+                placeholder="you@example.com"
+                disabled={isPending || !providerAvailability.email}
+              />
+            </label>
+
+            <Button
+              type="submit"
+              fullWidth
+              disabled={
+                isPending ||
+                !providerAvailability.email ||
+                (resendCooldownRemaining > 0 &&
+                  lastEmailRequestTo !== null &&
+                  emailAddress.trim().toLowerCase() === lastEmailRequestTo)
+              }
+              aria-busy={isPending}
+            >
+              {pendingAction === "email"
+                ? usesEmailOtp
+                  ? "Sending sign-in code..."
+                  : "Sending secure sign-in link..."
+                : resendCooldownRemaining > 0 &&
+                    lastEmailRequestTo !== null &&
+                    emailAddress.trim().toLowerCase() === lastEmailRequestTo
+                  ? usesEmailOtp
+                    ? `Wait ${resendCooldownRemaining}s to resend`
+                    : `Wait ${resendCooldownRemaining}s to resend`
+                : usesEmailOtp
+                  ? "Email me a code"
+                  : "Continue with email"}
+            </Button>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+              Code sent to {emailSentTo}. Enter it below to continue.
+            </p>
+
+            <form onSubmit={handleEmailCodeSubmit} className="space-y-3">
+              <label className="space-y-1">
+                <span className="text-sm text-text-muted">6-digit code</span>
+                <Input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  value={emailCode}
+                  onChange={(event) => {
+                    setEmailCode(normalizeOtpCode(event.target.value));
+                    if (signInError) {
+                      setSignInError(null);
+                    }
+                  }}
+                  placeholder="123456"
+                  disabled={isPending}
+                />
+              </label>
+
+              <Button
+                type="submit"
+                fullWidth
+                disabled={isPending || emailCode.length !== 6}
+                aria-busy={isPending}
+              >
+                {pendingAction === "verify-email"
+                  ? "Verifying code..."
+                  : "Verify code and continue"}
+              </Button>
+            </form>
+
+            <div className="flex flex-wrap gap-3 text-sm">
+              <button
+                type="button"
+                className="text-brand-ink underline"
+                onClick={() => {
+                  void sendEmailAuth(emailSentTo);
+                }}
+                disabled={isPending || resendCooldownRemaining > 0}
+              >
+                {resendCooldownRemaining > 0
+                  ? `Resend in ${resendCooldownRemaining}s`
+                  : "Resend code"}
+              </button>
+              <button
+                type="button"
+                className="text-text-muted underline"
+                onClick={() => {
+                  setEmailSentTo(null);
+                  setEmailCode("");
                   setSignInError(null);
-                }
-              }}
-              placeholder="you@example.com"
-              disabled={isPending || !providerAvailability.email}
-            />
-          </label>
+                }}
+                disabled={isPending}
+              >
+                Use a different email
+              </button>
+            </div>
+          </div>
+        )}
 
-          <Button
-            type="submit"
-            fullWidth
-            disabled={isPending || !providerAvailability.email}
-            aria-busy={isPending}
-          >
-            {pendingAction === "email"
-              ? "Sending secure sign-in link..."
-              : "Continue with email"}
-          </Button>
-        </form>
+        {emailHint ? (
+          <p className="mt-2 text-xs text-text-muted">{emailHint}</p>
+        ) : null}
 
-        {!providerAvailability.email || emailAuthMethod !== "magic-link" ? (
+        {!providerAvailability.email || emailAuthMethod === "none" ? (
           <p className="mt-2 text-xs text-text-muted">
             Email sign-in is currently unavailable.
           </p>
         ) : null}
 
-        {emailSentTo ? (
+        {usesMagicLink && emailSentTo ? (
           <p className="mt-3 rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
             Sign-in link sent to {emailSentTo}. Open your inbox to continue.
           </p>
@@ -274,7 +556,7 @@ export function GoogleAuthButton({
       ) : null}
 
       <p className="text-xs text-text-muted">
-        Access is reviewed after sign-in.{" "}
+        WHOMA uses passwordless sign-in. Access is reviewed after sign-in.{" "}
         {supportEmail ? (
           <>
             Need help?{" "}

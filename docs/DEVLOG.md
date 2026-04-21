@@ -4243,3 +4243,672 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 1. Run full auth-enabled E2E flow in the intended preview-auth harness to unskip phase1 browser automation.
 2. Deploy branch when approved and verify live `/agents/[slug]` proof-ledger rendering against production URL.
+
+---
+
+## Session: 2026-04-13 / 10:57 (CEST) — Agent onboarding IA simplification + targeted interview flow
+
+**Author:** Codex  
+**Context:** User asked to make agent onboarding feel much lighter and more intuitive by turning the current cluttered review form into a CV-first draft flow with a short, surgical follow-up interview.  
+**Branch/PR:** `codex/phase1-proof-ledger` (working tree)
+
+### Goal
+
+- Reduce onboarding navigation clutter by reshaping `/agent/onboarding` into a guided sequence: import -> draft preview -> confirm -> quick interview -> verify -> publish-ready handoff.
+
+### Changes Made
+
+- Rebuilt `src/app/(app)/agent/onboarding/page.tsx` around a six-step guided flow with:
+  - dominant CV import entry,
+  - ready-looking profile draft preview,
+  - separate confirm-state buckets (`detected and ready`, `needs confirmation`, `still missing`),
+  - targeted question-only interview surface,
+  - collapsible manual editor for non-primary fields,
+  - explicit publish-ready / next-win handoff.
+- Extended onboarding submission to accept optional `achievements` and `languages` so agents can capture trust-strengthening detail before reaching the full profile editor.
+- Extended resume intake to accept an optional LinkedIn URL as supplemental extraction context during onboarding import.
+- Updated `/agent/profile/edit` to recognize `success=onboarding-complete` and immediately route attention toward the first credibility action (`#credibility-boost` / log a past deal).
+- Updated onboarding Playwright UX assertions to match the new IA and step wording.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/(app)/agent/onboarding/page.tsx` — step-led onboarding IA, targeted interview, LinkedIn import field, publish-ready handoff
+- `src/lib/validation/agent-profile.ts` — onboarding schema now accepts optional `achievements` / `languages`
+- `src/server/agent-profile/service.ts` — onboarding completion now persists optional trust fields and counts them in completeness
+- `src/server/agent-profile/resume-ai.ts` — optional supplemental extraction text support for LinkedIn URL context
+- `src/app/(app)/agent/profile/edit/page.tsx` — onboarding-complete success state + credibility-boost anchor
+- `tests/e2e/agent-onboarding-ux.spec.ts` — aligned onboarding IA assertions to the new flow
+
+### Decisions (and why)
+
+- **Decision:** Keep the existing server actions and authorization model intact while changing the choreography of the page.
+  - **Why:** This delivers a much better UX without reopening auth/validation risk.
+- **Decision:** Use a targeted-question panel plus collapsible manual editor instead of fully removing form access.
+  - **Why:** Agents see only the 3–7 likely gaps first, but we preserve a safe manual escape hatch for corrections.
+- **Decision:** Save `achievements` and `languages` during onboarding.
+  - **Why:** These fields already exist in the profile model and materially improve the “this platform did the work for me” feeling.
+- **Decision:** Point the post-onboarding success state at `log a historic deal`.
+  - **Why:** It gives the user an immediate trust-building action instead of a dead-end completion message.
+
+### Verification
+
+- `npm run typecheck` — passed
+- `npm run lint` — passed
+- `npx playwright test tests/e2e/agent-onboarding-ux.spec.ts tests/e2e/phase1-agent-flow.spec.ts` — skipped in this environment because preview-auth callback flow is not enabled locally
+
+### Status
+
+- Onboarding IA simplification pass: `GREEN` for compile/lint; browser coverage updated but auth-dependent specs remain environment-skipped.
+
+### Remaining Sign-off Work
+
+1. Run the updated onboarding/phase1 Playwright specs in an environment where preview-auth callback flow is enabled.
+2. Do one manual desktop/mobile pass on `/agent/onboarding` to tune spacing/copy now that the IA is simplified.
+
+---
+
+## Session: 2026-04-13 / 11:40 (CEST) — Structured onboarding signals + auth-enabled QA + Railway deploy
+
+**Author:** Codex  
+**Context:** User asked to complete the natural follow-through from the onboarding IA pass: run auth-enabled onboarding QA, deploy the branch to Railway, verify live routes, and tighten the quick interview with structured working-style signals.  
+**Branch/PR:** `codex/phase1-proofloop-narrative-hardening` (working tree)
+
+### Goal
+
+- Finish the CV-first onboarding refinement by adding higher-value structured gap questions, running real auth-backed browser QA, and shipping/verifying the change on Railway production.
+
+### Changes Made
+
+- Added first-class structured working-style fields to `AgentProfile` and the onboarding/profile stack:
+  - `feePreference`
+  - `transactionBand`
+  - `collaborationPreference`
+  - `responseTimeMinutes`
+- Added Prisma migration `20260413091449_agent_profile_structured_preferences` and regenerated the Prisma client locally.
+- Updated `/agent/onboarding` so the quick interview prioritizes the highest-value questions inside the 7-question budget:
+  - `service areas`
+  - `specialties`
+  - `professional summary`
+  - `fee style`
+  - `transaction band`
+  - `collaboration posture`
+  - `response time`
+- Extended `/agent/profile/edit` and `/agents/[slug]` to show/edit the new structured fields as persistent profile data, including a public `Working style` card.
+- Reworked onboarding browser QA to use a Supabase-compatible mock-auth harness instead of the retired preview callback flow:
+  - added `tests/e2e/support/mock-supabase-server.mjs`
+  - reused `tests/e2e/support/mock-auth.ts`
+  - updated `tests/e2e/agent-onboarding-ux.spec.ts`
+- Fixed a server-action form warning on `/agent/onboarding` by removing the redundant explicit `encType` on the upload form.
+- Deployed the current working tree to Railway production service `whoma-web`.
+
+### Files / Modules Touched (high signal only)
+
+- `prisma/schema.prisma`
+- `prisma/migrations/20260413091449_agent_profile_structured_preferences/migration.sql`
+- `src/lib/validation/agent-profile.ts`
+- `src/server/agent-profile/service.ts`
+- `src/app/(app)/agent/onboarding/page.tsx`
+- `src/app/(app)/agent/profile/edit/page.tsx`
+- `src/app/agents/[slug]/page.tsx`
+- `tests/e2e/agent-onboarding-ux.spec.ts`
+- `tests/e2e/support/mock-supabase-server.mjs`
+
+### Decisions (and why)
+
+- **Decision:** Persist the new working-style interview answers as first-class schema fields instead of hiding them inside bio/free text.
+  - **Why:** They are meant to become comparable, reusable profile signals across onboarding, edit, and public profile surfaces.
+- **Decision:** Spend the quick-interview budget on high-value profile signals first, even when lower-signal required fields are still blank.
+  - **Why:** This keeps the interview aligned with the user’s desired “surgical, high-value questions” pattern instead of letting basic operational fields consume the whole question budget.
+- **Decision:** Switch local onboarding QA to a Supabase mock server instead of resurrecting the preview callback route.
+  - **Why:** The app now runs on Supabase auth, so the browser harness should match the actual auth contract.
+- **Decision:** Treat production verification honestly as two layers: route/deploy health and authenticated live flow.
+  - **Why:** The deploy is healthy, but the signed-in production pass exposed an external auth redirect issue that should be recorded explicitly rather than hand-waved.
+
+### Data / Schema Notes
+
+- New enum types:
+  - `AgentFeePreference`
+  - `AgentTransactionBand`
+  - `CollaborationPreference`
+- New checked-in migration:
+  - `prisma/migrations/20260413091449_agent_profile_structured_preferences/migration.sql`
+- Completeness scoring now includes the new structured working-style signals as optional bonus depth.
+
+### How to Run / Test
+
+- `npm run typecheck` — passed
+- `npm run lint` — passed
+- `NEXT_PUBLIC_APP_URL=http://127.0.0.1:3012 AUTH_URL=http://127.0.0.1:3012 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=test-anon-key SUPABASE_ANON_KEY=test-anon-key npm run build` — passed
+- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3012 AUTH_URL=http://127.0.0.1:3012 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3012 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=test-anon-key SUPABASE_ANON_KEY=test-anon-key PLAYWRIGHT_SUPABASE_URL=http://127.0.0.1:54321 npx playwright test tests/e2e/agent-onboarding-ux.spec.ts --project=chromium --workers=1` — passed (`2 passed`)
+- `railway up -s whoma-web -e production --ci -m "Agent onboarding structured quick interview + auth QA"` — succeeded
+- Live checks:
+  - `GET https://whoma-web-production.up.railway.app/api/health` -> `200`, `database=up`
+  - `GET /agent/onboarding` -> `307 /sign-in?next=%2Fagent%2Fonboarding`
+  - `GET /agent/profile/edit` -> `307 /sign-in?next=%2Fagent%2Fprofile%2Fedit`
+
+### Known Issues / Risks
+
+- Live Supabase magic-link emails are still embedding `redirect_to=http://localhost:3000` instead of the Railway production host, which blocked a full signed-in production verification pass through `/agent/onboarding` and `/agent/profile/edit`.
+- Immediate retry attempts on live magic-link sign-in can hit Supabase rate limiting (`Too many sign-in attempts right now`), which makes this production redirect issue harder to brute-force around during QA.
+- The deployment itself is healthy; the remaining live verification blocker is external auth redirect configuration rather than the shipped onboarding code.
+
+### Status
+
+- Structured onboarding + auth-backed QA: `GREEN`
+- Railway deploy + protected-route verification: `GREEN`
+- Full authenticated production onboarding/profile verification: `YELLOW` pending Supabase redirect target fix
+
+### Remaining Sign-off Work
+
+1. Update Supabase production auth settings so magic-link emails point at `https://whoma-web-production.up.railway.app/auth/callback` instead of `http://localhost:3000`.
+2. Re-run one authenticated production sanity pass through `/agent/onboarding` -> `/agent/profile/edit` and confirm the post-onboarding `Boost credibility in 2 minutes` handoff on live data.
+
+---
+
+## Session: 2026-04-13 / 17:15 (CEST) — Supabase sign-in callback-origin hardening
+
+**Author:** Codex  
+**Context:** User requested an immediate sign-in fix and production-scale reliability hardening for the current Supabase auth setup.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Remove callback-origin ambiguity from sign-in flows so Google OAuth and magic-link redirects resolve consistently across local and production environments.
+
+### Changes Made
+
+- Added shared callback-origin resolver module:
+  - `src/lib/auth/callback-origin.ts`
+  - centralizes callback origin precedence and URL building for auth redirects.
+- Updated public sign-in client logic in `src/components/auth/google-auth-button.tsx`:
+  - OAuth and email magic-link callbacks now use the shared resolver instead of direct `window.location.origin` composition.
+  - Added explicit fail-fast UI message when callback-origin config is invalid.
+- Updated `/auth/callback` route (`src/app/auth/callback/route.ts`) to use the same origin resolver for server-side redirect consistency.
+- Added focused tests in `src/lib/auth/callback-origin.test.ts`:
+  - explicit callback-origin precedence,
+  - runtime fallback handling,
+  - production localhost-guard behavior,
+  - callback URL construction contract.
+- Updated env and setup docs:
+  - `.env.example`: added `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN`.
+  - `docs/SUPABASE_AUTH_SETUP.md`: documented canonical callback-origin env alignment.
+
+### Decisions (and why)
+
+- **Decision:** Introduce one callback-origin utility shared by client and callback route.
+  - **Why:** Avoids split logic where one path resolves to production origin and another drifts to localhost.
+- **Decision:** Add a production-only localhost guard in callback-origin resolution.
+  - **Why:** Prevents a common high-severity auth misconfiguration from silently breaking magic-link flow on live hosts.
+- **Decision:** Keep this pass migration-free and focused on auth reliability.
+  - **Why:** User priority is immediate sign-in restoration and operational stability, not schema changes.
+
+### Verification
+
+- `npm run test -- src/lib/auth/callback-origin.test.ts src/components/auth/google-auth-button.test.tsx` — passed (`7 passed`)
+- `npm run typecheck` — passed
+
+### Status
+
+- Callback-origin hardening: `GREEN` (tests + typecheck passing locally)
+
+### Remaining Sign-off Work
+
+1. Set Railway/Supabase env `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN` to your live domain.
+2. In Supabase dashboard URL configuration, ensure Site URL + Redirect URLs match the same live callback domain.
+3. Run one production magic-link sign-in click-through to confirm email links now return to live `/auth/callback`.
+
+---
+
+## Session: 2026-04-13 / 17:20 (CEST) — Auth guardrail completion with subagent verification
+
+**Author:** Codex  
+**Context:** User requested auth solved today and explicitly asked for end-to-end subagent/browser verification.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Close remaining auth reliability gaps discovered by parallel code + browser diagnostics.
+
+### Changes Made
+
+- Ran parallel subagents for:
+  - auth code-path audit,
+  - browser/test verification,
+  - production config runbook synthesis.
+- Hardened middleware auth enforcement in `src/middleware.ts`:
+  - authenticated users with missing/mismatched access-hint cookie are no longer allowed to pass through protected route checks,
+  - they are redirected to `/sign-in?next=...` (except `/sign-in` and `/sign-up`).
+- Hardened client sign-in robustness in `src/components/auth/google-auth-button.tsx`:
+  - wrapped OAuth and magic-link calls in `try/catch/finally`,
+  - ensured `pendingAction` always resets even on thrown client/runtime errors.
+
+### Verification
+
+- `npm run test -- src/lib/auth/callback-origin.test.ts src/components/auth/google-auth-button.test.tsx` — passed (`7 passed`)
+- `npm run typecheck` — passed
+- Subagent browser diagnostics:
+  - production route checks passed (`/api/health`, `/sign-in`, callback error redirect),
+  - local onboarding Playwright auth harness still has one expectation mismatch in onboarding copy flow (non-auth-core regression).
+
+### Status
+
+- Auth callback-origin + middleware + client pending-state hardening: `GREEN`
+- Production dashboard/env alignment still required to eliminate bad magic-link targets in outgoing emails: `YELLOW` (configuration-side)
+
+---
+
+## Session: 2026-04-20 / 14:12 (CEST) — Public auth recovery + host drift diagnosis
+
+**Author:** Codex  
+**Context:** User requested an end-to-end fix for Google sign-in and Supabase magic-link completion, explicitly asked for subagents, and wanted browser-level diagnostics instead of repo-only analysis.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Restore reliable public sign-in completion for the current Supabase auth stack, reduce user-visible auth dead ends, and document the remaining live configuration blockers clearly enough to finish them today.
+
+### Changes Made
+
+- Ran parallel subagents plus browser/computer-use diagnostics to trace the current auth path and compare repo logic against live browser behavior.
+- Confirmed an external host problem in live production:
+  - `https://whoma.co.uk/` serves a static redirect page to `https://app.whoma.co.uk/`
+  - `https://whoma.co.uk/sign-in` returns `404`
+  - `https://app.whoma.co.uk` does not resolve externally
+  - `https://whoma-production.up.railway.app/sign-in` is the only live host currently serving the sign-in route
+- Fixed the WHOMA access-hint identity contract:
+  - `src/lib/auth/access-hint.ts` now stores both the local WHOMA user id and the Supabase auth user id
+  - `src/auth.ts` now writes the Supabase auth id into the hint cookie
+  - `src/middleware.ts` now stops comparing mismatched local-vs-Supabase ids and instead lets authenticated requests rebuild stale/missing hints from the live session
+- Added callback-return recovery helpers:
+  - `src/lib/auth/callback-return.ts`
+  - `src/lib/auth/callback-return.test.ts`
+- Hardened public auth-return handling:
+  - `/`
+  - `/sign-in`
+  - `/sign-up`
+  now detect stray Supabase auth params (`code`, `token_hash`, provider error params) and redirect internally to `/auth/callback` instead of rendering a normal page and leaving login incomplete.
+- Made `/sign-in` and `/sign-up` self-heal partially authenticated sessions:
+  - both pages now call `auth()` server-side
+  - authenticated users are forwarded to `/onboarding/role`, `/access/pending`, `/access/denied`, or their role-default app route instead of staying on the public auth form
+- Added Google provider preflight:
+  - new route `src/app/api/auth/providers/google/route.ts`
+  - `GoogleAuthButton` now checks that route before launching OAuth so a disabled Google provider fails inside WHOMA with a clear email fallback message instead of exposing Supabase’s raw JSON error page
+- Updated callback-origin resolution to prefer the active public host in production when it differs from configured production host env, reducing cross-host auth drift.
+- Updated FAQ/contact/setup docs so public copy no longer hardcodes Google when the secure method mix is environment-dependent.
+
+### Decisions (and why)
+
+- **Decision:** Bind access hints to the Supabase auth id instead of relying on the local Prisma id for middleware matching.
+  - **Why:** Middleware gets the Supabase auth id from `supabase.auth.getUser()`. Comparing that to the local Prisma `User.id` created a false “not logged in” state.
+- **Decision:** Recover auth returns on public pages instead of assuming every provider always lands on `/auth/callback`.
+  - **Why:** Browser diagnostics found a live tab stranded at `/?code=...`, which the app previously treated as a normal page view rather than a login completion step.
+- **Decision:** Let authenticated requests continue when only the access-hint cookie is stale/missing.
+  - **Why:** Server-rendered pages can rebuild the hint from the live Supabase session; bouncing straight to `/sign-in` only increases auth friction.
+- **Decision:** Add a server-side Google preflight rather than trusting env flags alone.
+  - **Why:** The UI cannot safely infer real provider readiness from `SUPABASE_GOOGLE_AUTH_ENABLED` when the Supabase dashboard provider state can drift.
+- **Decision:** Keep the remaining live-host fix out of code and document it as an explicit external sign-off item.
+  - **Why:** The canonical public host mismatch is now clearly operational, not a local code regression.
+
+### Verification
+
+- `npm run test -- src/lib/auth/callback-origin.test.ts src/lib/auth/callback-return.test.ts src/components/auth/google-auth-button.test.tsx src/lib/auth/session.test.ts` — passed (`17 passed`)
+- `npm run build` — passed
+- Live host checks:
+  - `curl -sS -I https://whoma-production.up.railway.app/sign-in` — `200`
+  - `curl -sS -I https://whoma.co.uk/` — `200` static redirect page
+  - `curl -sS https://whoma.co.uk/ | head -n 30` — confirms client-side redirect to `https://app.whoma.co.uk/`
+  - `curl -sS -I https://whoma.co.uk/sign-in` — `404`
+
+### Status
+
+- App-side auth completion recovery: `GREEN`
+- Access-hint / Supabase session alignment: `GREEN`
+- Disabled-Google failure handling inside WHOMA: `GREEN`
+- Canonical public-host alignment: `RED` (external config)
+
+### Remaining Sign-off Work
+
+1. Pick one canonical public app host for auth today and use it everywhere:
+   - `AUTH_URL`
+   - `NEXT_PUBLIC_APP_URL`
+   - `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN`
+   - Supabase Site URL
+   - Supabase Redirect URLs
+   - any customized magic-link template links
+2. If Google is not fully enabled in Supabase right now, set `SUPABASE_GOOGLE_AUTH_ENABLED=false` until one successful live Google round-trip is confirmed.
+3. Re-run one live Google sign-in and one live magic-link sign-in on the canonical host after the above config alignment.
+
+---
+
+## Session: 2026-04-20 / 14:35 (CEST) — Codebase audit + README refresh + idempotency fallback hardening
+
+**Author:** Codex  
+**Context:** User requested a repo audit focused on optimization, scale, and future-proofing, plus an updated latest README.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Audit the current WHOMA runtime for scale and maintainability risks, refresh the root README so it reflects the actual platform, and harden any clear high-leverage safety gap found during the audit.
+
+### Changes Made
+
+- Refreshed `README.md` from the old foundation-scaffold snapshot into a current project overview covering:
+  - live platform state,
+  - runtime architecture,
+  - local workflow,
+  - current future-proofing priorities,
+  - key docs.
+- Added `docs/CODEBASE_AUDIT.md` with a repo-grounded audit and recommended PR order.
+- Audited the main runtime pressure points and documented the highest-value follow-up areas:
+  - public homepage request-time DB fanout,
+  - public directory in-memory filtering/no pagination,
+  - auth session sync write amplification and email-keyed identity mapping,
+  - inconsistent read-boundary discipline,
+  - oversized mixed-responsibility files.
+- Hardened `src/server/http/idempotency.ts` so the Prisma fallback now reserves a pending idempotency row before executing the write operation and clears that reservation on failure, matching the safer intent of the Upstash-backed path.
+- Added focused regression coverage in `src/server/http/idempotency.test.ts` for:
+  - concurrent pending-request rejection in Prisma fallback mode,
+  - reservation cleanup after failed operations.
+- Updated `docs/TASKS.md` with:
+  - a progress note on the idempotency hardening under `T015`,
+  - a new follow-up task `T103 — Read-model boundary + cached public summaries`.
+- Updated `docs/PLATFORM_MAP.md` and `docs/CHANGELOG.json` to reflect the audit and write-safety hardening.
+
+### Files / Modules Touched (high signal only)
+
+- `README.md` — current project state + architecture + future-proofing priorities
+- `docs/CODEBASE_AUDIT.md` — durable audit artifact
+- `src/server/http/idempotency.ts` — Prisma fallback reservation fix
+- `src/server/http/idempotency.test.ts` — concurrency/failure cleanup coverage
+- `docs/TASKS.md` — new scaling follow-up task + infra hardening progress
+- `docs/PLATFORM_MAP.md` — audit and runtime boundary deltas
+- `docs/CHANGELOG.json` — structured session record
+
+### Decisions (and why)
+
+- **Decision:** Ship one concrete hardening fix now instead of leaving the audit purely documentary.
+  - **Why:** The Prisma idempotency fallback had a real concurrent-write safety gap, and it was small enough to fix cleanly in-session.
+- **Decision:** Put the broader audit in a dedicated doc and keep the root README concise.
+  - **Why:** README should orient quickly; the audit should remain durable and specific.
+- **Decision:** Recommend cached/materialized public read models as the next PR-sized move.
+  - **Why:** The clearest scaling pressure is request-time aggregation on public traffic, not the core write path.
+
+### Verification
+
+- `npm run test -- src/server/http/idempotency.test.ts` — passed (`5 passed`)
+
+### Known Issues / Risks
+
+- Public homepage and directory read paths still need the follow-up boundary/caching work captured in `T103`.
+- Auth session resolution still upserts local users by email on request-time reads, which remains a future-proofing concern.
+- Full repo lint/typecheck/build were not re-run in this session because the functional change was isolated and the workspace already contains unrelated in-flight edits.
+
+### Next Steps
+
+1. Implement `T103` to move public proof metrics and directory reads onto better-bounded, cached read models.
+2. Introduce a stable provider-identity mapping so `auth()` no longer depends on request-time email-keyed upserts.
+3. Split the largest mixed-responsibility runtime files before additional product flows land in them.
+
+## Session: 2026-04-20 / 14:42 (CEST) — Live auth-host stabilization + Google fallback rollout
+
+### Goal
+
+- Finish today’s public auth repair live: stop broken Google launches, align production auth traffic onto one working host, and verify the real public sign-in surface after deploy.
+
+### Changes Made
+
+- Patched `src/middleware.ts` so matched auth/app routes now canonicalize to the configured production auth host, then corrected the redirect construction to avoid leaking Railway’s internal `:8080` port in public `Location` headers.
+- Updated public auth UX so Google disappears entirely when `SUPABASE_GOOGLE_AUTH_ENABLED=false`, leaving a simpler email-only sign-in surface instead of a broken disabled button.
+- Switched Railway production env to:
+  - `AUTH_URL=https://whoma-production.up.railway.app`
+  - `NEXT_PUBLIC_APP_URL=https://whoma-production.up.railway.app`
+  - `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN=https://whoma-production.up.railway.app`
+  - `SUPABASE_GOOGLE_AUTH_ENABLED=false`
+- Deployed the auth hotfix from a scoped release bundle twice:
+  - `4adfbea8-4ba8-433c-b838-c592e7f2b0ac` for the canonical-host + email-only rollout
+  - `014a1f15-4357-4f72-bacf-7357bb9c326c` for the clean redirect URL fix
+
+### Verification
+
+- `npm run build` in the main workspace — passed.
+- `npm run build` in the isolated release bundle (`/tmp/whoma-auth-hotfix.K0nkBV`) — passed twice, including the redirect-fix redeploy.
+- Live checks after deploy:
+  - `https://www.whoma.co.uk/sign-in` -> `307 Location: https://whoma-production.up.railway.app/sign-in`
+  - `https://whoma-production.up.railway.app/sign-in` renders email-only sign-in (`providerAvailability.google=false`, `providerAvailability.email=true`)
+  - `https://whoma-production.up.railway.app/api/auth/providers/google?next=%2Fonboarding%2Frole` -> `503` with friendly WHOMA JSON fallback
+- Browser verification via Computer Use confirmed the live public site state and current custom-domain entry surface.
+
+### Decisions
+
+- Chose the Railway host as the live canonical auth host for today because Supabase URL configuration is still misaligned for the branded domain and the browser dashboard automation was unreliable.
+- Hid Google in production instead of leaving it visible because the live Supabase Google authorize endpoint still returns `validation_failed / Unsupported provider`.
+- Deployed from a scoped temp bundle instead of the dirty repo worktree so unrelated in-flight local changes were not published accidentally.
+
+### Known Issues / Risks
+
+- A full end-to-end production magic-link confirmation still needs one explicit approval to send a real login email to a specific inbox, because that action transmits personal email data to the live auth service.
+- `https://whoma.co.uk/` still behaves independently from the app auth host and remains a broader domain-routing cleanup outside this hotfix.
+- If the long-term desired canonical auth host is `https://www.whoma.co.uk`, Supabase URL configuration and redirect allow-lists still need to be updated before removing the Railway-host redirect.
+
+### Next Steps
+
+1. Run one real magic-link sign-in on `https://whoma-production.up.railway.app/sign-in` after explicit confirmation of the destination email address.
+2. Re-enable Google only after the Supabase provider is truly enabled and one successful live round-trip is verified.
+3. Decide whether to realign Supabase + Railway back onto `https://www.whoma.co.uk` or keep the Railway host as the durable auth canonical.
+
+---
+
+## Session: 2026-04-20 / 14:58 (CEST) — Senior subagent operating-model refresh
+
+**Author:** Codex  
+**Context:** User requested a practical efficiency refresh focused on subagent collaboration, asked to look up best practices, and asked for a full `AGENTS.md` update with senior-capability designations.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Convert `AGENTS.md` from a minimal startup/end-session note into a reusable multi-agent operating manual with clear senior roles, delegation rules, and a prioritized assignment list tied to active WHOMA roadmap items.
+
+### Changes Made
+
+- Looked up external best-practice references from OpenAI resources (`How OpenAI uses Codex`, `A practical guide to building agents`, `Introducing Codex`) and translated those patterns into repo-specific rules.
+- Spawned two parallel explorer subagents to pressure-test:
+  - delegation/orchestration best practices and anti-patterns,
+  - prioritized subagent-ready workstreams aligned to current architecture and backlog.
+- Rewrote `AGENTS.md` with:
+  - persistent product guardrails,
+  - delegation and parallelization principles,
+  - explicit senior role designations (`Principal Architect`, `Worktree Integrator`, `Senior Backend Reliability`, `Senior Frontend Systems`, `Senior Quality and Release`, `Senior Docs and ChangeOps`),
+  - required task-brief template and merge review protocol,
+  - anti-pattern list for dirty worktrees,
+  - prioritized workstreams linked to `T103`, `A010`, and `BV001`-`BV003`.
+- Updated `docs/TASKS.md` with completed task `T104 — Subagent operating model refresh`.
+- Updated `docs/PLATFORM_MAP.md` with a new feature-map delta describing the subagent operating-model rollout.
+- Updated `docs/CHANGELOG.json` with a structured session record.
+
+### Files / Modules Touched (high signal only)
+
+- `AGENTS.md` — operating-model refresh with senior subagent designation
+- `docs/TASKS.md` — added completed `T104`
+- `docs/PLATFORM_MAP.md` — added operating-model delta entry and cleaned adjacent section continuity
+- `docs/DEVLOG.md` — appended this session
+- `docs/CHANGELOG.json` — appended this session object
+
+### Decisions (and why)
+
+- **Decision:** Keep delegation rules concrete and path-owned, not aspirational.
+  - **Why:** This repo already has a dirty worktree and large high-churn modules; generic “delegate more” advice increases merge risk.
+- **Decision:** Add a `Worktree Integrator` role explicitly.
+  - **Why:** Parallel agent output is only useful if one owner safely integrates patches and validates scope boundaries.
+- **Decision:** Tie recommendations directly to current open work (`T103`, `A010`, `BV001`-`BV003`).
+  - **Why:** Keeps subagent usage aligned to business-critical outcomes rather than abstract process optimization.
+
+### Verification
+
+- Documentation and consistency pass:
+  - `AGENTS.md` now includes role model, handoff protocol, and prioritized workstreams.
+  - `TASKS`, `PLATFORM_MAP`, and `CHANGELOG` reflect the same operating-model update.
+- No runtime code paths changed in this session; tests were not required for the documentation-only refresh.
+
+### Next Steps
+
+1. Pilot the refreshed operating model on `T103` using two workers with disjoint ownership (`public read-model aggregation` and `directory filtering/pagination`) plus one integrator.
+2. Use the task-brief template in `AGENTS.md` for every delegated run and record evidence bundles in each handoff.
+3. Reassess after one full multi-agent cycle and tighten role boundaries based on observed conflicts or rework.
+
+---
+
+## Session: 2026-04-20 / 19:57 (CEST) — Branded auth-host recovery + live sign-out fix
+
+**Author:** Codex  
+**Context:** User asked for the sign-in workflow to be fixed end to end on the live site, with less auth friction, no Railway-host bounce on the public domain, and a production deploy completed today.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Restore branded-domain continuity on `https://www.whoma.co.uk` for public auth entry/exit.
+- Keep live auth safe and usable while Supabase Google remains disabled and the hosted email template is not yet OTP-ready.
+- Deploy from a scoped bundle so unrelated dirty-worktree changes do not ship.
+
+### Changes Made
+
+- Patched `src/app/auth/sign-out/route.ts` to resolve post-logout redirects through the shared callback-origin logic with request-origin fallback instead of assembling a redirect only from env-backed hosts.
+- Added `/auth/sign-out` to the middleware matcher so the same host canonicalization rules now cover logout as well as login/callback entry points.
+- Tightened `src/lib/auth/provider-config.ts` so production email auth no longer silently drifts back to magic-link when `SUPABASE_EMAIL_AUTH_METHOD` is missing or invalid; public availability now reflects only explicit valid auth-method config.
+- Updated `src/app/(auth)/sign-up/page.tsx` so public sign-up copy reflects the real live posture when Google is off and email is the only active method.
+- Reused the broader public-auth hardening already in the working tree for the live bundle: callback-return recovery, Google preflight fallback, access-hint binding to Supabase user id, and branded callback/sign-in continuity logic.
+- Switched Railway production back to `SUPABASE_EMAIL_AUTH_METHOD=magic-link` before deploy because the Supabase hosted email template could not be safely flipped to OTP via dashboard automation today.
+- Deployed the scoped live auth bundle to Railway production twice:
+  - `bb991f58-79ae-451a-8629-016a616ee86e`
+  - `cacc227b-c87d-4873-afa3-9b9d411ec87a`
+  The second deploy was required because the first build still served the old canonical-host behavior even after Railway showed corrected env values.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/auth/sign-out/route.ts`
+- `src/lib/auth/provider-config.ts`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/middleware.ts`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/auth/callback/route.ts`
+- `src/app/api/auth/providers/google/route.ts`
+- `src/components/auth/google-auth-button.tsx`
+- `src/lib/auth/access-hint.ts`
+- `src/lib/auth/callback-origin.ts`
+- `src/lib/auth/callback-return.ts`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Kept live email auth on `magic-link` for this deployment because the Supabase hosted email template was not confirmed safe for OTP delivery yet; shipping `otp` without the template flip would have broken production email auth.
+- Kept Google hidden in production because the live Supabase provider is still disabled and the safer product behavior is a clear WHOMA-owned fallback instead of a broken launch.
+- Used a scoped temp bundle and not the dirty repo root for deploys so unrelated ongoing work stayed local.
+- Redeployed the exact same scoped bundle after Railway env propagation settled, because the first live result still reflected the earlier canonical-host configuration.
+
+### Verification
+
+- `npm run test -- src/components/auth/google-auth-button.test.tsx src/lib/auth/callback-origin.test.ts src/lib/auth/callback-return.test.ts src/lib/auth/session.test.ts`
+  - `18 passed`
+- `npm run build`
+  - passed in the repo worktree
+- `npm run build`
+  - passed again inside the scoped temp deploy bundle
+- Live curl checks after deploy `cacc227b-c87d-4873-afa3-9b9d411ec87a`:
+  - `GET https://www.whoma.co.uk/sign-in` -> `200`
+  - `GET https://www.whoma.co.uk/auth/sign-out` -> `307 Location: https://www.whoma.co.uk/sign-in`
+  - `GET https://www.whoma.co.uk/api/auth/providers/google` -> `503 {"ok":false,"error":"Google sign-in is temporarily unavailable. Please use email instead."}`
+- Live HTML inspection confirmed:
+  - public sign-in is served directly on `www.whoma.co.uk`,
+  - the page is email-only in production,
+  - no Railway-host references remain in the rendered sign-in markup,
+  - public sign-up copy now reflects the email-only live posture.
+
+### Known Issues / Risks
+
+- One real production auth round-trip still needs an explicitly confirmed inbox address before it can be tested end to end, because sending a live login email transmits personal email data.
+- The OTP-capable client flow is in the app code, but live OTP activation still depends on changing the Supabase hosted magic-link template to use `{{ .Token }}` instead of `{{ .ConfirmationURL }}`.
+- Google sign-in remains intentionally unavailable until the provider is truly configured in Supabase (and, if needed, Google Cloud) and one live round-trip is verified.
+
+### Next Steps
+
+1. Finish the Supabase hosted email-template switch for OTP or fully enable Google in Supabase and verify that provider live.
+2. Run one explicit live auth round-trip on `https://www.whoma.co.uk` using a confirmed inbox address.
+3. Remove the remaining stale Railway-host instructions from `docs/SUPABASE_AUTH_SETUP.md` so future auth changes start from the branded-host baseline.
+
+---
+
+## Session: 2026-04-21 / 13:24 (CEST) — Passwordless auth guardrails + live sign-in clarification
+
+**Author:** Codex  
+**Context:** User asked to sort the sign-in workflow end to end, remove the confusion around missing passwords, reduce login lockouts, and keep the effort focused on agent onboarding.  
+**Branch/PR:** current working tree
+
+### Goal
+
+- Make the live passwordless auth flow easier to understand and harder to spam.
+- Stop `/sign-in` from silently acting like `/sign-up` for email auth.
+- Deploy only the auth slice from a dirty worktree without publishing unrelated local work.
+
+### Changes Made
+
+- Updated `src/components/auth/google-auth-button.tsx` so:
+  - email auth explicitly behaves as passwordless in the UI,
+  - sign-in email requests now use `shouldCreateUser=false`,
+  - sign-up email requests continue to use `shouldCreateUser=true`,
+  - a 60-second client-side resend cooldown now slows repeated requests before they hit Supabase rate limits,
+  - rate-limit copy is more explicit (`wait about a minute`),
+  - the footer now states clearly that WHOMA uses passwordless sign-in.
+- Updated `src/app/(auth)/sign-in/page.tsx` and `src/app/(auth)/sign-up/page.tsx` copy so live auth surfaces no longer imply a password flow.
+- Updated `docs/SUPABASE_AUTH_SETUP.md` to reflect the real desired production target:
+  - email OTP as the preferred agent-onboarding path,
+  - Google hidden until fully configured,
+  - sign-in/sign-up separation,
+  - auth lockouts managed in Supabase rather than WHOMA admin UI.
+- Built and deployed a scoped release bundle from `/tmp/whoma-auth-release.M3vQUP` to Railway production so unrelated dirty-worktree changes stayed local.
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/auth/google-auth-button.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `docs/SUPABASE_AUTH_SETUP.md`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Kept production on `SUPABASE_EMAIL_AUTH_METHOD=magic-link` for this deploy because the hosted Supabase email template has still not been safely switched to `{{ .Token }}`.
+- Did not re-enable Google because the live Supabase provider remains disabled and no production Google OAuth client credentials were found in Railway or the repo.
+- Shipped the repo-side safety/clarity improvements immediately instead of waiting on the remaining cloud-side blocker, because they materially improve the current live sign-in flow today.
+
+### Verification
+
+- `npm test -- src/components/auth/google-auth-button.test.tsx src/lib/auth/callback-origin.test.ts src/lib/auth/callback-return.test.ts src/lib/auth/session.test.ts`
+  - `18 passed`
+- `npm run typecheck`
+  - passed
+- `npm run build`
+  - passed in the main workspace
+- Scoped release bundle deploy:
+  - Railway deployment `4788a46d-fde1-410c-9892-6fa5323d1287` -> `SUCCESS`
+- Live raw HTML verification on `https://www.whoma.co.uk` confirmed:
+  - `/sign-in` now renders `Continue with email. No password needed. We will send a secure sign-in link.`
+  - the auth card footer now renders `WHOMA uses passwordless sign-in.`
+  - `/sign-up?role=AGENT` now renders `Create your account with email. No password needed. We will send a secure sign-up link.`
+  - Google remains hidden in production.
+
+### Known Issues / Risks
+
+- The current live email path is still magic-link, not OTP, until the Supabase hosted magic-link template is changed from `{{ .ConfirmationURL }}` to `{{ .Token }}` and Railway is switched to `SUPABASE_EMAIL_AUTH_METHOD=otp`.
+- Google sign-in remains unavailable because the Supabase provider is disabled and the Google OAuth client ID/secret are not currently available in repo/deploy config.
+- Supabase auth lockouts are still controlled outside WHOMA app code; support can triage, but the real controls are Supabase rate limits and cooldown windows.
+
+### Next Steps
+
+1. Switch the Supabase hosted magic-link template to `{{ .Token }}` and then change Railway production to `SUPABASE_EMAIL_AUTH_METHOD=otp`.
+2. Run one real branded-host sign-in round-trip on `https://www.whoma.co.uk/sign-in` using a confirmed inbox after the OTP switch.
+3. Either supply existing Google OAuth credentials or create a fresh Google OAuth client, then enable the provider in Supabase and verify one live Google round-trip before showing the button publicly.

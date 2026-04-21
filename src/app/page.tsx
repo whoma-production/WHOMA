@@ -1,10 +1,15 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { ArrowRight } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicHeader } from "@/components/layout/public-header";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  buildSupabaseAuthCallbackPath,
+  hasSupabaseAuthReturnParams
+} from "@/lib/auth/callback-return";
 import { getHomepageFaqPreview } from "@/lib/faqs";
 import {
   getPublicSiteConfig,
@@ -35,7 +40,23 @@ import { getPhase1ValidationSnapshot } from "@/server/phase1-validation";
 
 export const dynamic = "force-dynamic";
 
-export default async function LandingPage(): Promise<JSX.Element> {
+interface LandingPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function LandingPage({
+  searchParams
+}: LandingPageProps): Promise<JSX.Element> {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
+  if (hasSupabaseAuthReturnParams(resolvedSearchParams)) {
+    redirect(
+      buildSupabaseAuthCallbackPath(
+        resolvedSearchParams ?? {}
+      ) as Parameters<typeof redirect>[0]
+    );
+  }
+
   const site = getPublicSiteConfig();
 
   let publicAgents = [] as Awaited<ReturnType<typeof listPublicAgentProfiles>>;
@@ -214,7 +235,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
 
               <p className="max-w-xl text-sm text-text-muted">
                 {isLiveFeaturedProfile
-                  ? "This is a live production-verified public profile."
+                  ? "This is a live production-verified public profile with a visible proof ledger."
                   : `No live verified profile is public yet. This illustrative profile stays visible while the first verified profile clears publication checks (current verified count: ${qualifiedAgentDensityValue}).`}
               </p>
             </div>
@@ -224,10 +245,11 @@ export default async function LandingPage(): Promise<JSX.Element> {
         <section className="border-b border-line bg-surface-0 py-10">
           <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
             <div className="space-y-2">
-              <p className="public-kicker">Roadmap and positioning</p>
+              <p className="public-kicker">Proof infrastructure</p>
               <p className="max-w-4xl text-sm text-text-muted sm:text-base">
-                WHOMA sequence: verified identity first, collaboration
-                liquidity second, and structured tendering after proof.
+                WHOMA sequence: structured proof logging first, verified
+                milestones second, and selective collaboration routes after
+                proof.
               </p>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
@@ -252,12 +274,12 @@ export default async function LandingPage(): Promise<JSX.Element> {
           <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
             <div className="space-y-2">
               <p className="public-kicker">Phase 1 validation dashboard</p>
-              <h2>Evidence is judged by behaviour, not profile copy.</h2>
+              <h2>Live behavioural proof dashboard.</h2>
               <p className="max-w-4xl text-sm text-text-muted sm:text-base">
-                WHOMA tracks explicit Phase 1 signals: qualified density,
-                transaction logging, collaboration participation, and activity
-                cadence. This keeps the public narrative anchored to measurable
-                execution.
+                WHOMA reports production-backed Phase 1 signals: qualified
+                density, transaction logging, collaboration participation, and
+                engagement cadence. Each objective reflects either logged
+                signals or verified milestones from durable event records.
               </p>
             </div>
 
@@ -290,8 +312,8 @@ export default async function LandingPage(): Promise<JSX.Element> {
 
             <p className="text-xs text-text-muted">
               Derived from production profile state and durable product events.
-              Metrics are behavioural validation signals, not self-declared
-              claims. As of {phase1AsOf}.
+              Entries are logged signals unless explicitly marked as verified
+              milestones. As of {phase1AsOf}.
             </p>
           </div>
         </section>
@@ -300,12 +322,31 @@ export default async function LandingPage(): Promise<JSX.Element> {
           <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
             <div className="space-y-2">
               <p className="public-kicker">Public proof checklist</p>
-              <h2>How trust is earned from draft to live identity.</h2>
+              <h2>How proof is created from draft to live identity.</h2>
               <p className="max-w-4xl text-sm text-text-muted sm:text-base">
                 This is the visible proof loop for agents and partners: upload,
                 logging, evidence checks, engagement thresholds, then a
                 shareable WHOMA identity.
               </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border border-line bg-surface-1 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                  Logged signal
+                </p>
+                <p className="mt-1 text-sm text-text-muted">
+                  A structured event captured with source and timestamp
+                  metadata.
+                </p>
+              </div>
+              <div className="rounded-md border border-line bg-surface-1 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                  Verified milestone
+                </p>
+                <p className="mt-1 text-sm text-text-muted">
+                  A completed check that has passed verification controls.
+                </p>
+              </div>
             </div>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {PUBLIC_AGENT_PROOF_LOOP.map((step) => (
@@ -332,7 +373,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl space-y-3">
               <p className="public-kicker">Platform</p>
-              <h2>WHOMA makes professional standing easier to understand.</h2>
+              <h2>WHOMA is verification and proof-ledger infrastructure for estate agents.</h2>
             </div>
 
             <div className="mt-10 grid gap-8 md:grid-cols-3">
@@ -353,7 +394,7 @@ export default async function LandingPage(): Promise<JSX.Element> {
             <div className="space-y-5">
               <div className="space-y-3">
                 <p className="public-kicker">Featured profile</p>
-                <h2>A public profile should make professional standing easy to read.</h2>
+                <h2>A public profile should read like a live proof record.</h2>
                 <p className="max-w-2xl text-sm text-text-muted sm:text-base">
                   WHOMA brings identity, profile depth, and collaboration
                   readiness into one page that can be shared with confidence.
@@ -405,11 +446,12 @@ export default async function LandingPage(): Promise<JSX.Element> {
         <section className="public-section border-y border-line bg-surface-1">
           <div className="mx-auto w-full max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
             <div className="space-y-3">
-              <p className="public-kicker">Seeded proof</p>
-              <h2>Example profile quality and transaction proof.</h2>
+              <p className="public-kicker">Proof snapshots</p>
+              <h2>Profile benchmark and proof-ledger snapshots.</h2>
               <p className="max-w-3xl text-sm text-text-muted sm:text-base">
-                These examples show the quality bar we expect as we onboard the
-                first independent agent cohort.
+                These examples show target quality only. Live trust comes from
+                production event logs and verified milestones on real public
+                profiles.
               </p>
             </div>
 
