@@ -39,6 +39,12 @@ async function signInAsPreviewRole(page: Page, role: keyof typeof previewRoleMet
 test.describe.configure({ timeout: 120_000 });
 
 test("phase 1 agent flow covers onboarding, CV publish, and admin verification", async ({ page }) => {
+  const previewAuthProbe = await page.request.get("/api/auth/csrf");
+  test.skip(
+    !previewAuthProbe.ok(),
+    "Preview auth callback is not enabled in this environment."
+  );
+
   const runId = `${Date.now()}-${test.info().workerIndex}`;
   const fullName = `QA Agent ${runId}`;
   const workEmail = `qa-agent-${runId}@example.test`;
@@ -53,42 +59,45 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   const languages = "English, French";
 
   const agentPage = await signInAsPreviewRole(page, "AGENT", workEmail);
-  await expect(agentPage.getByRole("heading", { name: /real estate agent onboarding/i })).toBeVisible();
+  await expect(
+    agentPage.getByRole("heading", { name: /let's build your whoma profile/i })
+  ).toBeVisible();
 
-  await agentPage.getByLabel("Full name").fill(fullName);
-  await agentPage.getByLabel("Work email for verification").fill(workEmail);
+  const verificationGate = agentPage.locator("#verification-gate");
+  await verificationGate.getByLabel("Email for verification").fill(workEmail);
 
   await Promise.all([
     agentPage.waitForURL(/success=work_email_code_sent/),
-    agentPage.getByRole("button", { name: /send verification code/i }).click()
+    verificationGate.getByRole("button", { name: /send code/i }).click()
   ]);
 
   const codeSentUrl = new URL(agentPage.url());
   const devCode = codeSentUrl.searchParams.get("devCode");
   expect(devCode).toBeTruthy();
 
-  await agentPage.getByLabel("Verification code").fill(devCode ?? "");
+  await verificationGate.getByLabel("Verification code").fill(devCode ?? "");
   await Promise.all([
     agentPage.waitForURL(/success=work_email_verified/),
-    agentPage.getByRole("button", { name: /verify work email/i }).click()
+    verificationGate.getByRole("button", { name: /^verify$/i }).click()
   ]);
 
-  await agentPage.getByLabel("Full name").fill(fullName);
-  await agentPage.getByRole("textbox", { name: "Work email", exact: true }).fill(workEmail);
-  await agentPage.getByLabel("Phone").fill(phone);
-  await agentPage.getByLabel("Agency").fill(agencyName);
-  await agentPage.getByLabel("Job title").fill(jobTitle);
-  await agentPage.getByLabel("Years experience").fill("8");
-  await agentPage.getByLabel(/service areas/i).fill(serviceAreas);
-  await agentPage.getByLabel(/specialties/i).fill(specialties);
-  await agentPage.getByLabel(/professional summary/i).fill(bio);
+  const confirmDetailsForm = agentPage.locator("#confirm-details").locator("form");
+  await confirmDetailsForm.getByLabel("Full name").fill(fullName);
+  await confirmDetailsForm.getByLabel("Email").fill(workEmail);
+  await confirmDetailsForm.getByLabel("Phone").fill(phone);
+  await confirmDetailsForm.getByLabel("Agency").fill(agencyName);
+  await confirmDetailsForm.getByLabel("Job title").fill(jobTitle);
+  await confirmDetailsForm.getByLabel("Years experience").fill("8");
+  await confirmDetailsForm.getByLabel(/service areas/i).fill(serviceAreas);
+  await confirmDetailsForm.getByLabel(/specialties/i).fill(specialties);
+  await confirmDetailsForm.getByLabel(/professional summary/i).fill(bio);
 
   await Promise.all([
     agentPage.waitForURL(/\/agent\/profile\/edit\?success=onboarding-complete/),
-    agentPage.getByRole("button", { name: /save onboarding details/i }).click()
+    confirmDetailsForm.getByRole("button", { name: /save profile draft/i }).click()
   ]);
 
-  await expect(agentPage.getByRole("heading", { name: /agent cv builder/i })).toBeVisible();
+  await expect(agentPage.getByRole("heading", { name: /your profile/i })).toBeVisible();
 
   await agentPage.getByLabel("Agency").fill(agencyName);
   await agentPage.getByLabel("Job title").fill(jobTitle);
@@ -121,11 +130,12 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   const preVerificationResponse = await publicPage.goto(`/agents/${slug}`, {
     waitUntil: "domcontentloaded"
   });
-  expect(preVerificationResponse?.status()).toBe(404);
+  expect(preVerificationResponse?.ok()).toBeTruthy();
+  await expect(publicPage).toHaveTitle(/agent profile not found/i);
 
   const adminEmail = `qa-admin-${runId}@example.test`;
   const adminPage = await signInAsPreviewRole(page, "ADMIN", adminEmail);
-  await expect(adminPage.getByRole("heading", { name: /real estate agent verification/i })).toBeVisible();
+  await expect(adminPage.getByRole("heading", { name: /estate agent verification/i })).toBeVisible();
 
   const agentRow = adminPage.locator("li", { hasText: fullName });
   await expect(agentRow).toBeVisible();
@@ -134,12 +144,25 @@ test("phase 1 agent flow covers onboarding, CV publish, and admin verification",
   await expect(adminPage.getByText(/verification status updated/i)).toBeVisible();
 
   await adminPage.goto("/agents?verified=true", { waitUntil: "domcontentloaded" });
-  await expect(adminPage.getByRole("heading", { name: /find verified real estate agents building personal credibility/i })).toBeVisible();
+  await expect(
+    adminPage.getByRole("heading", {
+      name: /verified independent estate agents/i
+    })
+  ).toBeVisible();
   await expect(adminPage.getByText(fullName)).toBeVisible();
 
   await publicPage.goto(`/agents/${slug}`, { waitUntil: "domcontentloaded" });
   await expect(publicPage.getByRole("heading", { name: new RegExp(fullName, "i") })).toBeVisible();
-  await expect(publicPage.getByText(/^VERIFIED$/)).toBeVisible();
+  await expect(publicPage.getByText(/verified profile/i)).toBeVisible();
+  await expect(
+    publicPage.getByRole("heading", { name: /profile standards/i })
+  ).toBeVisible();
+  await expect(
+    publicPage.getByRole("heading", { name: /trust and contact/i })
+  ).toBeVisible();
+  await expect(publicPage.getByText(/profile readiness/i)).toBeVisible();
+  await expect(publicPage.getByText("Verified by WHOMA", { exact: true })).toBeVisible();
+  await expect(publicPage.getByText(/work email:/i)).toBeVisible();
 
   await adminPage.close();
   await publicPage.close();

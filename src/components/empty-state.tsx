@@ -13,14 +13,14 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, ctaLabel, onCta, footer }: EmptyStateProps): JSX.Element {
   return (
-    <Card className="relative overflow-hidden border-dashed">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-6xl font-semibold text-brand-ink/5">
-        ∞
-      </div>
-      <div className="relative max-w-xl space-y-4">
+    <Card className="border-dashed bg-surface-0">
+      <div className="max-w-xl space-y-4">
         <div>
-          <h3 className="text-lg font-semibold text-text-strong">{title}</h3>
-          <p className="mt-1 text-sm text-text-muted">{description}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+            Nothing here yet
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-text-strong">{title}</h3>
+          <p className="mt-2 text-sm text-text-muted">{description}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={onCta}>{ctaLabel}</Button>

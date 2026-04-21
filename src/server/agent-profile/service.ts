@@ -3,26 +3,62 @@ import crypto from "node:crypto";
 import type { Prisma, VerificationStatus } from "@prisma/client";
 import { AgentProfileStatus } from "@prisma/client";
 
+import { MIN_AGENT_PUBLISH_COMPLETENESS } from "@/lib/agent-activation";
 import { prisma } from "@/lib/prisma";
 import type { AgentOnboardingInput, AgentProfileDraftInput, AgentProfilePublishInput } from "@/lib/validation/agent-profile";
+import { trackEvent } from "@/server/analytics";
+import {
+  sendWorkEmailVerificationCodeEmail,
+  WorkEmailDeliveryError
+} from "@/server/agent-profile/work-email-delivery";
+import { PRODUCT_EVENT_NAMES } from "@/server/product-events";
 
-const MIN_PUBLISH_COMPLETENESS = 70;
 const WORK_EMAIL_VERIFICATION_CODE_TTL_MINUTES = 15;
+
+function parsePositiveIntEnvValue(
+  rawValue: string | undefined,
+  fallbackValue: number
+): number {
+  const parsed = Number(rawValue);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallbackValue;
+}
+
+const WORK_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = parsePositiveIntEnvValue(
+  process.env.WORK_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS,
+  60
+);
+const WORK_EMAIL_VERIFICATION_MAX_ATTEMPTS = parsePositiveIntEnvValue(
+  process.env.WORK_EMAIL_VERIFICATION_MAX_ATTEMPTS,
+  5
+);
+const WORK_EMAIL_VERIFICATION_LOCK_MINUTES = parsePositiveIntEnvValue(
+  process.env.WORK_EMAIL_VERIFICATION_LOCK_MINUTES,
+  15
+);
 
 export type WorkEmailVerificationErrorCode =
   | "EMAIL_NOT_VERIFIED"
   | "CODE_NOT_REQUESTED"
   | "CODE_EXPIRED"
   | "CODE_INVALID"
-  | "EMAIL_MISMATCH";
+  | "EMAIL_MISMATCH"
+  | "RESEND_COOLDOWN"
+  | "ATTEMPTS_EXCEEDED"
+  | "EMAIL_DELIVERY_UNAVAILABLE";
 
 export class WorkEmailVerificationError extends Error {
   readonly code: WorkEmailVerificationErrorCode;
+  readonly details?: unknown;
 
-  constructor(code: WorkEmailVerificationErrorCode, message: string) {
+  constructor(
+    code: WorkEmailVerificationErrorCode,
+    message: string,
+    details?: unknown
+  ) {
     super(message);
     this.code = code;
     this.name = "WorkEmailVerificationError";
+    this.details = details;
   }
 }
 
@@ -32,6 +68,19 @@ function normalizeEmail(email: string): string {
 
 function normalizeTextValue(value: string | null | undefined): string {
   return value?.trim() ?? "";
+}
+
+function toNullableString(value: string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function toNullableNumber(value: number | undefined): number | null {
+  return value ?? null;
 }
 
 function normalizeStringList(values: string[] | null | undefined): string[] {
@@ -192,10 +241,33 @@ function mapAgentProfile(profile: AgentProfileWithUser): AgentProfileWithUser {
   return profile;
 }
 
+function shouldRestrictOfficialProductionData(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+function getOfficialAgentProfileFilter(): Prisma.AgentProfileWhereInput {
+  if (!shouldRestrictOfficialProductionData()) {
+    return {};
+  }
+
+  return {
+    user: {
+      is: {
+        dataOrigin: "PRODUCTION"
+      }
+    }
+  };
+}
+
 export async function completeAgentOnboarding(userId: string, input: AgentOnboardingInput): Promise<AgentProfileWithUser> {
   const existingProfile = await prisma.agentProfile.findUnique({
     where: { userId },
-    select: { profileSlug: true, workEmail: true, workEmailVerifiedAt: true }
+    select: {
+      profileSlug: true,
+      workEmail: true,
+      workEmailVerifiedAt: true,
+      onboardingCompletedAt: true
+    }
   });
 
   const normalizedWorkEmail = normalizeEmail(input.workEmail);
@@ -206,7 +278,7 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
   if (!hasVerifiedWorkEmail) {
     throw new WorkEmailVerificationError(
       "EMAIL_NOT_VERIFIED",
-      "Verify your business work email before completing onboarding."
+      "Verify your email before completing onboarding."
     );
   }
 
@@ -276,6 +348,38 @@ export async function completeAgentOnboarding(userId: string, input: AgentOnboar
     }
   });
 
+  if (!existingProfile?.onboardingCompletedAt) {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.profileStarted,
+      {
+        userId,
+        profileCompleteness: profile.profileCompleteness
+      },
+      {
+        actorId: userId,
+        actorRole: "AGENT",
+        subjectUserId: userId,
+        source: "/agent/onboarding"
+      }
+    );
+  }
+
+  if (profile.profileCompleteness >= MIN_AGENT_PUBLISH_COMPLETENESS) {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.profileCompleted,
+      {
+        userId,
+        profileCompleteness: profile.profileCompleteness
+      },
+      {
+        actorId: userId,
+        actorRole: "AGENT",
+        subjectUserId: userId,
+        source: "/agent/onboarding"
+      }
+    );
+  }
+
   return mapAgentProfile(profile);
 }
 
@@ -296,6 +400,7 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       specialties: true,
       achievements: true,
       languages: true,
+      onboardingCompletedAt: true,
       user: { select: { name: true } }
     }
   });
@@ -307,7 +412,20 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
   const requiresReverification =
     existing?.verificationStatus === "VERIFIED" &&
     hasMaterialProfileChanges(existing, input, normalizedWorkEmail);
-  const completeness = calculateAgentProfileCompleteness({ ...input, workEmail: normalizedWorkEmail });
+  const normalizedYearsExperience = toNullableNumber(input.yearsExperience);
+  const normalizedBio = toNullableString(input.bio);
+  const completeness = calculateAgentProfileCompleteness({
+    agencyName: input.agencyName,
+    jobTitle: input.jobTitle,
+    workEmail: normalizedWorkEmail,
+    phone: input.phone,
+    yearsExperience: normalizedYearsExperience,
+    bio: normalizedBio,
+    serviceAreas: input.serviceAreas,
+    specialties: input.specialties,
+    achievements: input.achievements,
+    languages: input.languages
+  });
 
   const profile = await prisma.agentProfile.upsert({
     where: { userId },
@@ -320,8 +438,8 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       workEmailVerificationCodeHash: null,
       workEmailVerificationCodeExpiresAt: null,
       phone: input.phone,
-      yearsExperience: input.yearsExperience,
-      bio: input.bio,
+      yearsExperience: normalizedYearsExperience,
+      bio: normalizedBio,
       serviceAreas: input.serviceAreas,
       specialties: input.specialties,
       achievements: input.achievements,
@@ -337,8 +455,8 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       workEmailVerifiedAt: workEmailChanged ? null : existing?.workEmailVerifiedAt ?? null,
       ...(workEmailChanged ? { workEmailVerificationCodeHash: null, workEmailVerificationCodeExpiresAt: null } : {}),
       phone: input.phone,
-      yearsExperience: input.yearsExperience,
-      bio: input.bio,
+      yearsExperience: normalizedYearsExperience,
+      bio: normalizedBio,
       serviceAreas: input.serviceAreas,
       specialties: input.specialties,
       achievements: input.achievements,
@@ -354,6 +472,41 @@ export async function saveAgentProfileDraft(userId: string, input: AgentProfileD
       }
     }
   });
+
+  if (!existing) {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.profileStarted,
+      {
+        userId,
+        profileCompleteness: profile.profileCompleteness
+      },
+      {
+        actorId: userId,
+        actorRole: "AGENT",
+        subjectUserId: userId,
+        source: "/agent/profile/edit"
+      }
+    );
+  }
+
+  if (
+    profile.onboardingCompletedAt &&
+    profile.profileCompleteness >= MIN_AGENT_PUBLISH_COMPLETENESS
+  ) {
+    await trackEvent(
+      PRODUCT_EVENT_NAMES.profileCompleted,
+      {
+        userId,
+        profileCompleteness: profile.profileCompleteness
+      },
+      {
+        actorId: userId,
+        actorRole: "AGENT",
+        subjectUserId: userId,
+        source: "/agent/profile/edit"
+      }
+    );
+  }
 
   return mapAgentProfile(profile);
 }
@@ -389,15 +542,30 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
   if (!hasVerifiedWorkEmail) {
     throw new WorkEmailVerificationError(
       "EMAIL_NOT_VERIFIED",
-      "Verify your business work email before publishing your profile."
+      "Verify your email before publishing your profile."
     );
   }
 
   const slug = existing?.profileSlug ?? (await buildUniqueSlug(`${existing?.user.name ?? "agent"}-${input.agencyName}`, userId));
-  const completeness = calculateAgentProfileCompleteness({ ...input, workEmail: normalizedWorkEmail });
+  const normalizedYearsExperience = toNullableNumber(input.yearsExperience);
+  const normalizedBio = toNullableString(input.bio);
+  const completeness = calculateAgentProfileCompleteness({
+    agencyName: input.agencyName,
+    jobTitle: input.jobTitle,
+    workEmail: normalizedWorkEmail,
+    phone: input.phone,
+    yearsExperience: normalizedYearsExperience,
+    bio: normalizedBio,
+    serviceAreas: input.serviceAreas,
+    specialties: input.specialties,
+    achievements: input.achievements,
+    languages: input.languages
+  });
 
-  if (completeness < MIN_PUBLISH_COMPLETENESS) {
-    throw new Error(`Profile completeness must be at least ${MIN_PUBLISH_COMPLETENESS}% before publishing.`);
+  if (completeness < MIN_AGENT_PUBLISH_COMPLETENESS) {
+    throw new Error(
+      `Profile completeness must be at least ${MIN_AGENT_PUBLISH_COMPLETENESS}% before publishing.`
+    );
   }
 
   const profile = await prisma.agentProfile.upsert({
@@ -411,8 +579,8 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
       workEmailVerificationCodeHash: null,
       workEmailVerificationCodeExpiresAt: null,
       phone: input.phone,
-      yearsExperience: input.yearsExperience,
-      bio: input.bio,
+      yearsExperience: normalizedYearsExperience,
+      bio: normalizedBio,
       serviceAreas: input.serviceAreas,
       specialties: input.specialties,
       achievements: input.achievements,
@@ -431,8 +599,8 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
       workEmailVerificationCodeHash: null,
       workEmailVerificationCodeExpiresAt: null,
       phone: input.phone,
-      yearsExperience: input.yearsExperience,
-      bio: input.bio,
+      yearsExperience: normalizedYearsExperience,
+      bio: normalizedBio,
       serviceAreas: input.serviceAreas,
       specialties: input.specialties,
       achievements: input.achievements,
@@ -449,6 +617,21 @@ export async function publishAgentProfile(userId: string, input: AgentProfilePub
       }
     }
   });
+
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.profileCompleted,
+    {
+      userId,
+      profileCompleteness: profile.profileCompleteness,
+      published: true
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/profile/edit"
+    }
+  );
 
   return mapAgentProfile(profile);
 }
@@ -469,6 +652,7 @@ export async function getAgentProfileByUserId(userId: string): Promise<AgentProf
 export async function getPublicAgentProfileBySlug(slug: string): Promise<AgentProfileWithUser | null> {
   const profile = await prisma.agentProfile.findFirst({
     where: {
+      ...getOfficialAgentProfileFilter(),
       profileSlug: slug,
       profileStatus: AgentProfileStatus.PUBLISHED,
       verificationStatus: "VERIFIED"
@@ -491,6 +675,7 @@ export async function listPublicAgentProfiles(filters: {
   const normalizedSpecialty = filters.specialty?.trim().toLowerCase();
   const profiles = await prisma.agentProfile.findMany({
     where: {
+      ...getOfficialAgentProfileFilter(),
       profileStatus: AgentProfileStatus.PUBLISHED,
       verificationStatus: "VERIFIED",
       ...(filters.serviceArea ? { serviceAreas: { has: filters.serviceArea.toUpperCase() } } : {})
@@ -515,14 +700,58 @@ export async function requestAgentWorkEmailVerificationCode(userId: string, work
   devCode?: string;
 }> {
   const normalizedWorkEmail = normalizeEmail(workEmail);
-  const verificationCode = createVerificationCode();
-  const verificationCodeHash = hashWorkEmailVerificationCode(normalizedWorkEmail, verificationCode);
-  const expiresAt = new Date(Date.now() + WORK_EMAIL_VERIFICATION_CODE_TTL_MINUTES * 60 * 1000);
+  const now = new Date();
+  const cooldownCutoff = new Date(
+    now.getTime() - WORK_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS * 1000
+  );
 
   const existing = await prisma.agentProfile.findUnique({
     where: { userId },
-    select: { workEmail: true, workEmailVerifiedAt: true }
+    select: {
+      workEmail: true,
+      workEmailVerifiedAt: true,
+      workEmailVerificationCodeSentAt: true,
+      workEmailVerificationLockedUntil: true
+    }
   });
+
+  if (
+    existing?.workEmailVerificationLockedUntil &&
+    existing.workEmailVerificationLockedUntil > now
+  ) {
+    throw new WorkEmailVerificationError(
+      "ATTEMPTS_EXCEEDED",
+      "Too many incorrect verification attempts. Request a new code after the lock period.",
+      {
+        lockedUntil: existing.workEmailVerificationLockedUntil.toISOString()
+      }
+    );
+  }
+
+  if (
+    existing?.workEmailVerificationCodeSentAt &&
+    existing.workEmailVerificationCodeSentAt > cooldownCutoff
+  ) {
+    const retryAfterSeconds = Math.max(
+      0,
+      Math.ceil(
+        (existing.workEmailVerificationCodeSentAt.getTime() +
+          WORK_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS * 1000 -
+          now.getTime()) /
+          1000
+      )
+    );
+
+    throw new WorkEmailVerificationError(
+      "RESEND_COOLDOWN",
+      "Please wait before requesting another verification code.",
+      { retryAfterSeconds }
+    );
+  }
+
+  const verificationCode = createVerificationCode();
+  const verificationCodeHash = hashWorkEmailVerificationCode(normalizedWorkEmail, verificationCode);
+  const expiresAt = new Date(Date.now() + WORK_EMAIL_VERIFICATION_CODE_TTL_MINUTES * 60 * 1000);
   const workEmailChanged =
     Boolean(existing?.workEmail) && normalizeEmail(existing?.workEmail ?? "") !== normalizedWorkEmail;
 
@@ -533,19 +762,68 @@ export async function requestAgentWorkEmailVerificationCode(userId: string, work
       workEmail: normalizedWorkEmail,
       workEmailVerifiedAt: null,
       workEmailVerificationCodeHash: verificationCodeHash,
-      workEmailVerificationCodeExpiresAt: expiresAt
+      workEmailVerificationCodeExpiresAt: expiresAt,
+      workEmailVerificationCodeSentAt: now,
+      workEmailVerificationAttemptCount: 0,
+      workEmailVerificationLockedUntil: null
     },
     update: {
       workEmail: normalizedWorkEmail,
       workEmailVerifiedAt: workEmailChanged ? null : existing?.workEmailVerifiedAt ?? null,
       workEmailVerificationCodeHash: verificationCodeHash,
-      workEmailVerificationCodeExpiresAt: expiresAt
+      workEmailVerificationCodeExpiresAt: expiresAt,
+      workEmailVerificationCodeSentAt: now,
+      workEmailVerificationAttemptCount: 0,
+      workEmailVerificationLockedUntil: null
     }
   });
+
+  if (process.env.NODE_ENV === "production") {
+    try {
+      await sendWorkEmailVerificationCodeEmail({
+        workEmail: normalizedWorkEmail,
+        verificationCode,
+        expiresAt
+      });
+    } catch (error) {
+      if (error instanceof WorkEmailDeliveryError) {
+        await prisma.agentProfile.update({
+          where: { userId },
+          data: {
+            workEmailVerificationCodeHash: null,
+            workEmailVerificationCodeExpiresAt: null,
+            workEmailVerificationCodeSentAt: null
+          }
+        });
+
+        throw new WorkEmailVerificationError(
+          "EMAIL_DELIVERY_UNAVAILABLE",
+          "We could not send the verification email right now.",
+          error.details
+        );
+      }
+
+      throw error;
+    }
+  }
 
   if (process.env.NODE_ENV !== "production") {
     console.info(`[WHOMA] Work email verification code for ${normalizedWorkEmail}: ${verificationCode}`);
   }
+
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.verificationSent,
+    {
+      userId,
+      destinationDomain: normalizedWorkEmail.split("@")[1] ?? null
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/onboarding"
+    }
+  );
 
   return {
     expiresAt,
@@ -559,14 +837,30 @@ export async function confirmAgentWorkEmailVerificationCode(
   verificationCode: string
 ): Promise<void> {
   const normalizedWorkEmail = normalizeEmail(workEmail);
+  const now = new Date();
   const profile = await prisma.agentProfile.findUnique({
     where: { userId },
     select: {
       workEmail: true,
       workEmailVerificationCodeHash: true,
-      workEmailVerificationCodeExpiresAt: true
+      workEmailVerificationCodeExpiresAt: true,
+      workEmailVerificationAttemptCount: true,
+      workEmailVerificationLockedUntil: true
     }
   });
+
+  if (
+    profile?.workEmailVerificationLockedUntil &&
+    profile.workEmailVerificationLockedUntil > now
+  ) {
+    throw new WorkEmailVerificationError(
+      "ATTEMPTS_EXCEEDED",
+      "Too many incorrect verification attempts. Please request a new code later.",
+      {
+        lockedUntil: profile.workEmailVerificationLockedUntil.toISOString()
+      }
+    );
+  }
 
   if (
     !profile?.workEmailVerificationCodeHash ||
@@ -574,18 +868,18 @@ export async function confirmAgentWorkEmailVerificationCode(
   ) {
     throw new WorkEmailVerificationError(
       "CODE_NOT_REQUESTED",
-      "Request a verification code before verifying your work email."
+      "Request a verification code before verifying your email."
     );
   }
 
   if (normalizeEmail(profile.workEmail ?? "") !== normalizedWorkEmail) {
     throw new WorkEmailVerificationError(
       "EMAIL_MISMATCH",
-      "The verification code was requested for a different work email address."
+      "The verification code was requested for a different email address."
     );
   }
 
-  if (profile.workEmailVerificationCodeExpiresAt < new Date()) {
+  if (profile.workEmailVerificationCodeExpiresAt < now) {
     throw new WorkEmailVerificationError(
       "CODE_EXPIRED",
       "That verification code has expired. Request a new code."
@@ -594,9 +888,43 @@ export async function confirmAgentWorkEmailVerificationCode(
 
   const expectedHash = hashWorkEmailVerificationCode(normalizedWorkEmail, verificationCode);
   if (expectedHash !== profile.workEmailVerificationCodeHash) {
+    const nextAttemptCount = (profile.workEmailVerificationAttemptCount ?? 0) + 1;
+    const exceededAttempts =
+      nextAttemptCount >= WORK_EMAIL_VERIFICATION_MAX_ATTEMPTS;
+    const lockUntil = exceededAttempts
+      ? new Date(
+          now.getTime() + WORK_EMAIL_VERIFICATION_LOCK_MINUTES * 60 * 1000
+        )
+      : null;
+
+    await prisma.agentProfile.update({
+      where: { userId },
+      data: {
+        workEmailVerificationAttemptCount: nextAttemptCount,
+        workEmailVerificationLockedUntil: lockUntil
+      }
+    });
+
+    if (exceededAttempts) {
+      throw new WorkEmailVerificationError(
+        "ATTEMPTS_EXCEEDED",
+        "Too many incorrect verification attempts. Please request a new code later.",
+        {
+          lockedUntil: lockUntil?.toISOString(),
+          maxAttempts: WORK_EMAIL_VERIFICATION_MAX_ATTEMPTS
+        }
+      );
+    }
+
     throw new WorkEmailVerificationError(
       "CODE_INVALID",
-      "The verification code is invalid."
+      "The verification code is invalid.",
+      {
+        remainingAttempts: Math.max(
+          WORK_EMAIL_VERIFICATION_MAX_ATTEMPTS - nextAttemptCount,
+          0
+        )
+      }
     );
   }
 
@@ -604,11 +932,27 @@ export async function confirmAgentWorkEmailVerificationCode(
     where: { userId },
     data: {
       workEmail: normalizedWorkEmail,
-      workEmailVerifiedAt: new Date(),
+      workEmailVerifiedAt: now,
       workEmailVerificationCodeHash: null,
-      workEmailVerificationCodeExpiresAt: null
+      workEmailVerificationCodeExpiresAt: null,
+      workEmailVerificationCodeSentAt: null,
+      workEmailVerificationAttemptCount: 0,
+      workEmailVerificationLockedUntil: null
     }
   });
+
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.verificationCompleted,
+    {
+      userId
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/onboarding"
+    }
+  );
 }
 
 export async function isAgentWorkEmailVerified(
@@ -628,6 +972,84 @@ export async function isAgentWorkEmailVerified(
   return normalizeEmail(profile.workEmail) === normalizedWorkEmail;
 }
 
+function normalizeOptionalMetadataValue(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : null;
+}
+
+export async function logAgentHistoricTransaction(
+  userId: string,
+  input: {
+    postcodeDistrict?: string;
+    propertyType?: string;
+    completionMonth?: string;
+  }
+): Promise<void> {
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.transactionLogged,
+    {
+      userId,
+      transactionKind: "historic",
+      postcodeDistrict: normalizeOptionalMetadataValue(input.postcodeDistrict),
+      propertyType: normalizeOptionalMetadataValue(input.propertyType),
+      completionMonth: normalizeOptionalMetadataValue(input.completionMonth)
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/profile/edit"
+    }
+  );
+}
+
+export async function logAgentLiveCollaboration(
+  userId: string,
+  input: {
+    postcodeDistrict?: string;
+    collaborationType?: string;
+  }
+): Promise<void> {
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.listingCreated,
+    {
+      userId,
+      listingType: "agent_live_collaboration",
+      postcodeDistrict: normalizeOptionalMetadataValue(input.postcodeDistrict),
+      collaborationType: normalizeOptionalMetadataValue(input.collaborationType)
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/agent/profile/edit"
+    }
+  );
+}
+
+export async function logAgentProfileLinkShared(
+  userId: string,
+  input: {
+    profileSlug?: string;
+    channel?: string;
+  } = {}
+): Promise<void> {
+  await trackEvent(
+    PRODUCT_EVENT_NAMES.profileLinkShared,
+    {
+      userId,
+      profileSlug: normalizeOptionalMetadataValue(input.profileSlug),
+      channel: normalizeOptionalMetadataValue(input.channel) ?? "direct"
+    },
+    {
+      actorId: userId,
+      actorRole: "AGENT",
+      subjectUserId: userId,
+      source: "/api/agent/profile/share"
+    }
+  );
+}
+
 export async function setAgentVerificationStatus(userId: string, status: VerificationStatus): Promise<void> {
   if (status === "VERIFIED") {
     const profile = await prisma.agentProfile.findUnique({
@@ -635,7 +1057,11 @@ export async function setAgentVerificationStatus(userId: string, status: Verific
       select: { profileStatus: true, profileCompleteness: true }
     });
 
-    if (!profile || profile.profileStatus !== AgentProfileStatus.PUBLISHED || profile.profileCompleteness < MIN_PUBLISH_COMPLETENESS) {
+    if (
+      !profile ||
+      profile.profileStatus !== AgentProfileStatus.PUBLISHED ||
+      profile.profileCompleteness < MIN_AGENT_PUBLISH_COMPLETENESS
+    ) {
       throw new Error("Only published profiles meeting completeness requirements can be verified.");
     }
   }
@@ -648,6 +1074,7 @@ export async function setAgentVerificationStatus(userId: string, status: Verific
 
 export async function listAgentProfilesForVerification(limit = 200): Promise<AgentProfileWithUser[]> {
   const profiles = await prisma.agentProfile.findMany({
+    where: getOfficialAgentProfileFilter(),
     include: {
       user: {
         select: { id: true, name: true, image: true }
@@ -660,24 +1087,89 @@ export async function listAgentProfilesForVerification(limit = 200): Promise<Age
   return profiles.map(mapAgentProfile);
 }
 
-export async function getAgentOnboardingFunnelCounts(): Promise<{
+export interface AgentActivationMetrics {
   started: number;
+  workEmailVerified: number;
   completed: number;
+  publishReady: number;
   published: number;
+  pendingVerification: number;
   verified: number;
-}> {
-  const [started, completed, published, verified] = await Promise.all([
-    prisma.agentProfile.count(),
+  denied: number;
+}
+
+export async function getAgentActivationMetrics(): Promise<AgentActivationMetrics> {
+  const officialAgentProfileFilter = getOfficialAgentProfileFilter();
+  const [
+    started,
+    workEmailVerified,
+    completed,
+    publishReady,
+    published,
+    pendingVerification,
+    verified,
+    denied
+  ] = await Promise.all([
     prisma.agentProfile.count({
-      where: { onboardingCompletedAt: { not: null } }
+      where: officialAgentProfileFilter
     }),
     prisma.agentProfile.count({
-      where: { profileStatus: AgentProfileStatus.PUBLISHED }
+      where: {
+        ...officialAgentProfileFilter,
+        workEmailVerifiedAt: { not: null }
+      }
     }),
     prisma.agentProfile.count({
-      where: { verificationStatus: "VERIFIED" }
+      where: {
+        ...officialAgentProfileFilter,
+        onboardingCompletedAt: { not: null }
+      }
+    }),
+    prisma.agentProfile.count({
+      where: {
+        ...officialAgentProfileFilter,
+        onboardingCompletedAt: { not: null },
+        profileCompleteness: { gte: MIN_AGENT_PUBLISH_COMPLETENESS }
+      }
+    }),
+    prisma.agentProfile.count({
+      where: {
+        ...officialAgentProfileFilter,
+        profileStatus: AgentProfileStatus.PUBLISHED
+      }
+    }),
+    prisma.agentProfile.count({
+      where: {
+        ...officialAgentProfileFilter,
+        verificationStatus: "PENDING"
+      }
+    }),
+    prisma.agentProfile.count({
+      where: {
+        ...officialAgentProfileFilter,
+        verificationStatus: "VERIFIED"
+      }
+    }),
+    prisma.agentProfile.count({
+      where: {
+        ...officialAgentProfileFilter,
+        verificationStatus: "REJECTED"
+      }
     })
   ]);
 
-  return { started, completed, published, verified };
+  return {
+    started,
+    workEmailVerified,
+    completed,
+    publishReady,
+    published,
+    pendingVerification,
+    verified,
+    denied
+  };
+}
+
+export async function getAgentOnboardingFunnelCounts(): Promise<AgentActivationMetrics> {
+  return getAgentActivationMetrics();
 }

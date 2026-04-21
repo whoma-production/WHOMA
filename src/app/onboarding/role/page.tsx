@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { defaultRouteForRole, getAuthErrorMessage } from "@/lib/auth/session";
+import { getPublicSiteConfig } from "@/lib/public-site";
 
 const onboardingRoleSchema = z.object({
   role: z.enum(["HOMEOWNER", "AGENT"])
@@ -52,6 +53,10 @@ async function setRoleAction(formData: FormData): Promise<void> {
     select: { role: true }
   });
 
+  if (!updatedUser.role) {
+    redirect("/onboarding/role?error=invalid_role");
+  }
+
   await unstable_update({ user: { role: updatedUser.role } });
 
   redirect(defaultRouteForRole(updatedUser.role));
@@ -59,13 +64,15 @@ async function setRoleAction(formData: FormData): Promise<void> {
 
 export default async function RoleOnboardingPage({ searchParams }: RoleOnboardingPageProps): Promise<JSX.Element> {
   const session = await auth();
+  const site = getPublicSiteConfig();
 
   if (!session?.user) {
     redirect("/sign-in?next=/onboarding/role");
   }
 
-  if (session.user.role) {
-    redirect(defaultRouteForRole(session.user.role));
+  const sessionRole = session.user.role;
+  if (sessionRole) {
+    redirect(defaultRouteForRole(sessionRole));
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
@@ -79,14 +86,15 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
     <main className="grid min-h-screen place-items-center bg-surface-1 px-4 py-10">
       <div className="w-full max-w-2xl space-y-6">
         <div className="flex justify-center">
-          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
+          <Logo subtitle={site.logoSubtitle} />
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Choose your role</CardTitle>
+            <CardTitle>What brings you to Whoma?</CardTitle>
             <CardDescription>
-              You only do this once. Your role controls which routes you can access and what actions you can take.
+              You only do this once. We use it to route you into the right part
+              of WHOMA.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -101,9 +109,10 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
                 <input type="hidden" name="role" value="HOMEOWNER" />
                 <Card className="interactive-lift flex h-full flex-col justify-between gap-4 p-5">
                   <div>
-                    <h2 className="text-lg">Homeowner</h2>
+                    <h2 className="text-lg">I&apos;m selling my home</h2>
                     <p className="mt-2 text-sm text-text-muted">
-                      Create instructions, compare structured proposals, shortlist agents and award the instruction.
+                      Request selective seller access while WHOMA continues to
+                      expand collaboration coverage.
                     </p>
                   </div>
                   <Button type="submit" fullWidth>
@@ -116,13 +125,14 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
                 <input type="hidden" name="role" value="AGENT" />
                 <Card className="interactive-lift flex h-full flex-col justify-between gap-4 p-5">
                   <div>
-                    <h2 className="text-lg">Real Estate Agent</h2>
+                    <h2 className="text-lg">I&apos;m an estate agent</h2>
                     <p className="mt-2 text-sm text-text-muted">
-                      Build your professional profile, appear in the public directory, and submit structured proposals to LIVE instructions.
+                      Verify your email, complete your structured profile,
+                      and build a stronger public presence.
                     </p>
                   </div>
-                  <Button type="submit" variant="secondary" fullWidth>
-                    Continue as Real Estate Agent
+                  <Button type="submit" variant="primary" fullWidth>
+                    Continue as Agent
                   </Button>
                 </Card>
               </form>
@@ -136,7 +146,7 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
               className="pt-2"
             >
               <Button type="submit" variant="tertiary" fullWidth>
-                Sign out and use a different Google account
+                Sign out and use a different account
               </Button>
             </form>
           </CardContent>

@@ -1,64 +1,162 @@
-import { ProposalCompareTable, type ComparableProposal } from "@/components/proposal-compare-table";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { auth } from "@/auth";
 import { AppShell } from "@/components/layout/app-shell";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
+import { CompareClient, type CompareInstructionData } from "./compare-client";
 
-const proposals: ComparableProposal[] = [
-  {
-    id: "prop_1",
-    agentName: "Northbank Estates",
-    verificationStatus: "VERIFIED",
-    feeModel: "PERCENT",
-    feeValue: 1.15,
-    inclusions: ["Professional photography", "Floorplan", "Portal listings", "Sales progression support"],
-    timelineDays: 35,
-    marketingPlanSnippet: "Buyer-database first release, portal launch on day 3, weekly pricing review with vendor.",
-    cancellationTermsSnippet: "14-day notice. No withdrawal fee after cooling-off period.",
-    status: "SHORTLISTED"
-  },
-  {
-    id: "prop_2",
-    agentName: "Harbour & Co",
-    verificationStatus: "PENDING",
-    feeModel: "FIXED",
-    feeValue: 1800,
-    inclusions: ["Professional photography", "Floorplan", "Accompanied viewings"],
-    timelineDays: 49,
-    marketingPlanSnippet: "Immediate portal listing, social cutdowns, Saturday open-home strategy with accompanied viewings.",
-    cancellationTermsSnippet: "8-week sole agency term, then rolling with 21-day notice.",
-    status: "SUBMITTED"
-  },
-  {
-    id: "prop_3",
-    agentName: "Civic Property Sales",
-    verificationStatus: "UNVERIFIED",
-    feeModel: "HYBRID",
-    feeValue: 950,
-    inclusions: ["Portal listings", "Hosted viewings", "EPC assistance"],
-    timelineDays: 42,
-    marketingPlanSnippet: "Hybrid model combining upfront listing package and success fee after completion.",
-    cancellationTermsSnippet: "Upfront package non-refundable; success fee only on completion.",
-    status: "SUBMITTED"
+interface PageProps {
+  params: Promise<{ instructionId: string }>;
+}
+
+function formatEnumLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+function makeSnippet(value: string, maxLength = 120): string {
+  if (value.length <= maxLength) {
+    return value;
   }
-];
 
-export default function ProposalComparePage(): JSX.Element {
+  return `${value.slice(0, maxLength - 3).trimEnd()}...`;
+}
+
+function instructionNotFoundState(message: string): JSX.Element {
   return (
-    <AppShell role="HOMEOWNER" title="Compare Proposals">
-      <div className="space-y-6">
-        <Card className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Instruction status</p>
-            <h2 className="mt-1 text-lg">2-bed flat · SW1A · Bid window closed</h2>
-            <p className="text-sm text-text-muted">Comparison-first layout lets you shortlist and award without opening chat first.</p>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="accent">3 proposals received</Badge>
-            <Badge>Chat locked until shortlist/award</Badge>
-          </div>
-        </Card>
+    <EmptyState
+      title="Compare view unavailable"
+      description={message}
+      ctaLabel="Back to instructions"
+      footer={
+        <Link href="/homeowner/instructions" className={cn(buttonVariants({ variant: "secondary" }))}>
+          Review instructions
+        </Link>
+      }
+    />
+  );
+}
 
-        <ProposalCompareTable proposals={proposals} />
+export default async function ProposalComparePage({ params }: PageProps): Promise<JSX.Element> {
+  const session = await auth();
+
+  if (!session?.user?.id || session.user.role !== "HOMEOWNER") {
+    redirect("/sign-in?error=AccessDenied&next=/homeowner/instructions");
+  }
+
+  const { instructionId } = await params;
+
+  let compareData: CompareInstructionData | null = null;
+  let loadError: string | null = null;
+
+  try {
+    const instruction = await prisma.instruction.findFirst({
+      where: {
+        id: instructionId,
+        property: {
+          ownerId: session.user.id
+        }
+      },
+      select: {
+        id: true,
+        status: true,
+        sellerGoals: true,
+        targetTimeline: true,
+        bidWindowStartAt: true,
+        bidWindowEndAt: true,
+        property: {
+          select: {
+            addressLine1: true,
+            city: true,
+            postcode: true,
+            propertyType: true,
+            bedrooms: true
+          }
+        },
+        proposals: {
+          orderBy: {
+            createdAt: "asc"
+          },
+          select: {
+            id: true,
+            status: true,
+            feeModel: true,
+            feeValue: true,
+            inclusions: true,
+            timelineDays: true,
+            marketingPlan: true,
+            cancellationTerms: true,
+            agent: {
+              select: {
+                name: true,
+                email: true,
+                agentProfile: {
+                  select: {
+                    agencyName: true,
+                    verificationStatus: true,
+                    yearsExperience: true,
+                    serviceAreas: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!instruction) {
+      compareData = null;
+    } else {
+      compareData = {
+        instruction: {
+          id: instruction.id,
+          addressLine1: instruction.property.addressLine1,
+          city: instruction.property.city,
+          postcode: instruction.property.postcode,
+          propertyType: formatEnumLabel(instruction.property.propertyType),
+          bedrooms: instruction.property.bedrooms,
+          sellerGoals: instruction.sellerGoals,
+          targetTimeline: instruction.targetTimeline,
+          status: instruction.status,
+          bidWindowStartAt: instruction.bidWindowStartAt.toISOString(),
+          bidWindowEndAt: instruction.bidWindowEndAt.toISOString()
+        },
+        proposals: instruction.proposals.map((proposal) => ({
+          id: proposal.id,
+          agentName: proposal.agent.agentProfile?.agencyName ?? proposal.agent.name ?? proposal.agent.email,
+          verificationStatus: proposal.agent.agentProfile?.verificationStatus ?? "UNVERIFIED",
+          yearsExperience: proposal.agent.agentProfile?.yearsExperience ?? null,
+          serviceAreas: proposal.agent.agentProfile?.serviceAreas ?? [],
+          feeModel: proposal.feeModel,
+          feeValue: Number(proposal.feeValue),
+          inclusions: proposal.inclusions.map(formatEnumLabel),
+          timelineDays: proposal.timelineDays,
+          marketingPlanSnippet: makeSnippet(proposal.marketingPlan),
+          cancellationTermsSnippet: makeSnippet(proposal.cancellationTerms, 100),
+          status: proposal.status
+        }))
+      };
+    }
+  } catch {
+    loadError = "We could not load this compare view right now.";
+  }
+
+  return (
+    <AppShell role="HOMEOWNER" title="Compare Offers">
+      <div className="space-y-6">
+        {compareData ? (
+          <CompareClient initialData={compareData} />
+        ) : (
+          instructionNotFoundState(loadError ?? "That instruction was not found, or you do not have access to it.")
+        )}
       </div>
     </AppShell>
   );

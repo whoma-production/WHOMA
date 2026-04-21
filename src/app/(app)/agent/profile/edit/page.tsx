@@ -2,23 +2,34 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { ActivationChecklist } from "@/components/agent/activation-checklist";
+import { HeartbeatProgress } from "@/components/agent/heartbeat-progress";
+import { ProfileShareButton } from "@/components/agent/profile-share-button";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MIN_AGENT_PUBLISH_COMPLETENESS } from "@/lib/agent-activation";
 import { assertCan } from "@/lib/auth/rbac";
 import { agentProfileDraftSchema, agentProfilePublishSchema, parseCsvList } from "@/lib/validation/agent-profile";
 import { cn } from "@/lib/utils";
 import {
   WorkEmailVerificationError,
   getAgentProfileByUserId,
+  logAgentHistoricTransaction,
+  logAgentLiveCollaboration,
   publishAgentProfile,
   saveAgentProfileDraft
 } from "@/server/agent-profile/service";
+import { getAgentHeartbeatProgressState } from "@/server/agent-heartbeat";
 
 interface PageProps {
-  searchParams?: Promise<{ error?: string; success?: string; slug?: string }>;
+  searchParams?: Promise<{
+    error?: string;
+    success?: string;
+    slug?: string;
+  }>;
 }
 
 function parseProfilePayload(formData: FormData): unknown {
@@ -93,6 +104,69 @@ async function publishAgentProfileAction(formData: FormData): Promise<void> {
   redirect(`/agent/profile/edit?success=published&slug=${profile.profileSlug ?? ""}`);
 }
 
+function normalizeFieldValue(value: FormDataEntryValue | null): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+async function logHistoricTransactionAction(formData: FormData): Promise<void> {
+  "use server";
+
+  const session = await auth();
+
+  if (!session?.user?.id || session.user.role !== "AGENT") {
+    redirect("/sign-in?error=AccessDenied&next=/agent/profile/edit");
+  }
+
+  assertCan(session.user.role, "agent:profile:edit");
+
+  const postcodeDistrict = normalizeFieldValue(
+    formData.get("historicPostcodeDistrict")
+  );
+  const propertyType = normalizeFieldValue(formData.get("historicPropertyType"));
+  const completionMonth = normalizeFieldValue(
+    formData.get("historicCompletionMonth")
+  );
+
+  await logAgentHistoricTransaction(session.user.id, {
+    ...(postcodeDistrict ? { postcodeDistrict } : {}),
+    ...(propertyType ? { propertyType } : {}),
+    ...(completionMonth ? { completionMonth } : {})
+  });
+
+  redirect("/agent/profile/edit?success=historic_transaction_logged");
+}
+
+async function logLiveCollaborationAction(formData: FormData): Promise<void> {
+  "use server";
+
+  const session = await auth();
+
+  if (!session?.user?.id || session.user.role !== "AGENT") {
+    redirect("/sign-in?error=AccessDenied&next=/agent/profile/edit");
+  }
+
+  assertCan(session.user.role, "agent:profile:edit");
+
+  const postcodeDistrict = normalizeFieldValue(
+    formData.get("livePostcodeDistrict")
+  );
+  const collaborationType = normalizeFieldValue(
+    formData.get("liveCollaborationType")
+  );
+
+  await logAgentLiveCollaboration(session.user.id, {
+    ...(postcodeDistrict ? { postcodeDistrict } : {}),
+    ...(collaborationType ? { collaborationType } : {})
+  });
+
+  redirect("/agent/profile/edit?success=live_deal_logged");
+}
+
 export default async function AgentProfileEditPage({ searchParams }: PageProps): Promise<JSX.Element> {
   const session = await auth();
 
@@ -113,16 +187,21 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
   const error = resolvedSearchParams?.error;
   const success = resolvedSearchParams?.success;
   const slug = resolvedSearchParams?.slug ?? profile?.profileSlug ?? undefined;
+  const heartbeatState = await getAgentHeartbeatProgressState(
+    session.user.id,
+    profile?.profileCompleteness ?? 0
+  );
 
   return (
-    <AppShell role="AGENT" title="Agent CV Builder">
+    <AppShell role="AGENT" title="Your Profile">
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="space-y-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Professional identity</p>
-            <h2 className="text-lg font-semibold text-text-strong">Build your public real estate agent profile</h2>
+            <h2 className="text-lg font-semibold text-text-strong">Build your public estate agent profile</h2>
             <p className="text-sm text-text-muted">
-              Think of this as your estate-agency specific professional CV. Save drafts as you go, then publish when complete.
+              Build the profile clients and partners will see on WHOMA. Save
+              drafts as you go, then publish when ready.
             </p>
           </div>
 
@@ -146,7 +225,7 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
 
           {error === "publish_work_email_unverified" ? (
             <p className="rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning">
-              Verify your business work email on onboarding before publishing your profile.
+              Verify your email on onboarding before publishing your profile.
             </p>
           ) : null}
 
@@ -158,7 +237,20 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
 
           {success === "published" ? (
             <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Profile published. It is publicly visible only while your verification status is VERIFIED.
+              Profile published. It remains visible while your verification
+              status stays approved.
+            </p>
+          ) : null}
+
+          {success === "historic_transaction_logged" ? (
+            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+              Historic transaction added to your profile activity.
+            </p>
+          ) : null}
+
+          {success === "live_deal_logged" ? (
+            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+              Live collaboration activity logged successfully.
             </p>
           ) : null}
 
@@ -173,7 +265,7 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
                 <Input name="jobTitle" required defaultValue={profile?.jobTitle ?? ""} />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-medium text-text-strong">Work email</span>
+                <span className="text-sm font-medium text-text-strong">Email</span>
                 <Input name="workEmail" type="email" required defaultValue={profile?.workEmail ?? session.user.email ?? ""} />
               </label>
               <label className="space-y-1">
@@ -245,13 +337,16 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
                 </Link>
               ) : null}
             </div>
+            {slug ? <ProfileShareButton profileSlug={slug} /> : null}
           </form>
         </Card>
 
         <Card className="space-y-4">
           <div>
             <h3 className="text-base font-semibold text-text-strong">Profile readiness</h3>
-            <p className="mt-1 text-sm text-text-muted">Publishing requires at least 70% completeness and core professional fields.</p>
+            <p className="mt-1 text-sm text-text-muted">
+              Publishing requires at least {MIN_AGENT_PUBLISH_COMPLETENESS}% completeness and core professional fields.
+            </p>
           </div>
           <div className="space-y-2">
             <p className="text-3xl font-semibold text-text-strong">{profile?.profileCompleteness ?? 0}%</p>
@@ -262,12 +357,58 @@ export default async function AgentProfileEditPage({ searchParams }: PageProps):
               Verification: <span className="font-medium text-text-strong">{profile?.verificationStatus ?? "UNVERIFIED"}</span>
             </p>
           </div>
+          <ActivationChecklist
+            profile={profile}
+            description="Use your profile to reach the publish threshold, then wait for review to unlock public visibility."
+          />
+          <HeartbeatProgress
+            state={heartbeatState}
+            description="Track your progress across profile quality, activity, sharing, and inbound enquiries."
+          />
 
-          <ol className="space-y-2 text-sm text-text-muted">
-            <li className="rounded-md border border-line bg-surface-1 px-3 py-2">1. Complete your profile details and save draft.</li>
-            <li className="rounded-md border border-line bg-surface-1 px-3 py-2">2. Publish your profile to appear in the directory.</li>
-            <li className="rounded-md border border-line bg-surface-1 px-3 py-2">3. Admin verifies your profile for trust-badge visibility.</li>
-          </ol>
+          <div className="space-y-3 rounded-md border border-line bg-surface-1 px-4 py-3">
+            <p className="text-sm font-semibold text-text-strong">Log a historic deal</p>
+            <p className="text-xs text-text-muted">
+              Capture one completed transaction to strengthen trust on your public profile.
+            </p>
+            <form action={logHistoricTransactionAction} className="grid gap-2">
+              <Input
+                name="historicPostcodeDistrict"
+                placeholder="Postcode district (e.g. SW1A)"
+              />
+              <Input
+                name="historicPropertyType"
+                placeholder="Property type (e.g. Flat)"
+              />
+              <Input
+                name="historicCompletionMonth"
+                placeholder="Completion month (e.g. 2026-03)"
+              />
+              <Button type="submit" size="sm">
+                Log historic transaction
+              </Button>
+            </form>
+          </div>
+
+          <div className="space-y-3 rounded-md border border-line bg-surface-1 px-4 py-3">
+            <p className="text-sm font-semibold text-text-strong">Log a live collaboration opportunity</p>
+            <p className="text-xs text-text-muted">
+              Record one live collaboration activity to show current demand and momentum.
+            </p>
+            <form action={logLiveCollaborationAction} className="grid gap-2">
+              <Input
+                name="livePostcodeDistrict"
+                placeholder="Postcode district (e.g. SE1)"
+              />
+              <Input
+                name="liveCollaborationType"
+                placeholder="Collaboration type (e.g. Referral intro)"
+              />
+              <Button type="submit" size="sm">
+                Log live deal activity
+              </Button>
+            </form>
+          </div>
         </Card>
       </div>
     </AppShell>

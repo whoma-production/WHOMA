@@ -2,26 +2,42 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 
 import { Providers } from "@/app/providers";
+import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
+import { getPublicSiteConfig } from "@/lib/public-site";
 
 import "@/app/globals.css";
 
-const montserrat = Montserrat({
+const montserratUi = Montserrat({
   subsets: ["latin"],
   variable: "--font-ui",
   display: "swap"
 });
 
+const montserratDisplay = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap"
+});
+
 export const metadata: Metadata = {
-  title: "WHOMA | Real Estate Agent Profiles and Structured Home-Seller Tendering",
+  title: "WHOMA | Where Home Owners Meet Agents",
   description:
-    "Real estate agents build public professional profiles while homeowners compare structured agent proposals side-by-side."
+    "WHOMA helps independent estate agents build verified transaction identity with trusted profiles, structured proof, and measurable collaboration readiness."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {
+  const site = getPublicSiteConfig();
+
   return (
     <html lang="en-GB">
-      <body className={montserrat.variable}>
-        <Providers>{children}</Providers>
+      <body className={`${montserratUi.variable} ${montserratDisplay.variable}`}>
+        <a className="sr-only" href={`mailto:${site.supportEmail}`}>
+          Contact {site.brandName} support
+        </a>
+        <Providers>
+          {children}
+          <CookieConsentBanner />
+        </Providers>
       </body>
     </html>
   );

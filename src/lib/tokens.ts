@@ -1,25 +1,26 @@
 export const designTokens = {
   color: {
-    brandInk: "#1C1C3A",
-    brandAccent: "#02A79C",
+    brandInk: "#181917",
+    brandAccent: "#2D6660",
+    brandBrass: "#9A7C49",
     surface0: "#FFFFFF",
-    surface1: "#F7F7FA",
-    surface2: "#EFEFF4",
-    surfaceInverse: "#16162E",
-    line: "#D8D9E2",
-    textStrong: "#191A27",
-    textBase: "#2C2D3E",
-    textMuted: "#666A7A",
-    textInverse: "#F7F8FD",
-    success: "#197B4C",
-    warning: "#A06A00",
-    danger: "#A12828"
+    surface1: "#F5F5F3",
+    surface2: "#ECECEB",
+    surfaceInverse: "#20211F",
+    line: "#D8D7D3",
+    textStrong: "#181917",
+    textBase: "#2F302D",
+    textMuted: "#70706C",
+    textInverse: "#F8F8F6",
+    success: "#2F6C45",
+    warning: "#9B6F2F",
+    danger: "#9C4136"
   },
   radius: {
-    sm: 8,
+    sm: 6,
     md: 12,
-    lg: 16,
-    xl: 20
+    lg: 14,
+    xl: 18
   },
   spacing: {
     1: 4,
@@ -31,18 +32,22 @@ export const designTokens = {
     8: 32,
     10: 40,
     12: 48,
-    16: 64
+    16: 64,
+    20: 80,
+    24: 96,
+    28: 112
   },
   shadow: {
-    soft: "0 1px 3px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.04)",
-    lift: "0 2px 10px rgba(17, 24, 39, 0.08), 0 20px 40px rgba(17, 24, 39, 0.07)"
+    soft: "0 1px 2px rgba(18, 19, 17, 0.05)",
+    lift: "0 10px 28px rgba(18, 19, 17, 0.1)"
   },
   typeScale: {
-    h1: { sizeRem: 2.25, lineHeight: 1.1, weight: 600 },
-    h2: { sizeRem: 1.75, lineHeight: 1.15, weight: 600 },
-    h3: { sizeRem: 1.25, lineHeight: 1.2, weight: 600 },
-    body: { sizeRem: 1, lineHeight: 1.5, weight: 400 },
-    small: { sizeRem: 0.875, lineHeight: 1.4, weight: 400 },
-    caption: { sizeRem: 0.75, lineHeight: 1.3, weight: 500 }
+    display: { sizeRem: 3.5, lineHeight: 0.98, weight: 500 },
+    h1: { sizeRem: 2.75, lineHeight: 1.02, weight: 500 },
+    h2: { sizeRem: 2, lineHeight: 1.08, weight: 500 },
+    h3: { sizeRem: 1.3, lineHeight: 1.15, weight: 600 },
+    body: { sizeRem: 1, lineHeight: 1.65, weight: 400 },
+    small: { sizeRem: 0.875, lineHeight: 1.55, weight: 400 },
+    caption: { sizeRem: 0.75, lineHeight: 1.35, weight: 600 }
   }
 } as const;

@@ -14,7 +14,9 @@ const pilotBlueprints = [
     achievements: ["Top branch negotiator 2025", "Trusted local adviser"],
     languages: ["English", "Gujarati"],
     verificationStatus: "VERIFIED",
-    profileStatus: "PUBLISHED"
+    profileStatus: "PUBLISHED",
+    responseTimeMinutes: 38,
+    ratingAggregate: 4.9
   },
   {
     fullName: "Oliver Hughes",
@@ -26,7 +28,9 @@ const pilotBlueprints = [
     achievements: ["Consistent valuation accuracy", "High instruction conversion"],
     languages: ["English"],
     verificationStatus: "VERIFIED",
-    profileStatus: "PUBLISHED"
+    profileStatus: "PUBLISHED",
+    responseTimeMinutes: 52,
+    ratingAggregate: 4.8
   },
   {
     fullName: "Grace Thompson",
@@ -38,7 +42,9 @@ const pilotBlueprints = [
     achievements: ["Led top-performing sales team", "Fast average progression"],
     languages: ["English", "Spanish"],
     verificationStatus: "VERIFIED",
-    profileStatus: "PUBLISHED"
+    profileStatus: "PUBLISHED",
+    responseTimeMinutes: 44,
+    ratingAggregate: 4.7
   },
   {
     fullName: "Leo Morgan",
@@ -50,7 +56,9 @@ const pilotBlueprints = [
     achievements: ["High quality vendor feedback"],
     languages: ["English"],
     verificationStatus: "PENDING",
-    profileStatus: "PUBLISHED"
+    profileStatus: "PUBLISHED",
+    responseTimeMinutes: 61,
+    ratingAggregate: 4.6
   },
   {
     fullName: "Isabella Reed",
@@ -62,7 +70,9 @@ const pilotBlueprints = [
     achievements: ["Strong viewing-to-offer ratio"],
     languages: ["English", "French"],
     verificationStatus: "PENDING",
-    profileStatus: "PUBLISHED"
+    profileStatus: "PUBLISHED",
+    responseTimeMinutes: 73,
+    ratingAggregate: 4.5
   },
   {
     fullName: "Noah Bennett",
@@ -74,7 +84,9 @@ const pilotBlueprints = [
     achievements: ["Top fee retention in branch"],
     languages: ["English"],
     verificationStatus: "PENDING",
-    profileStatus: "PUBLISHED"
+    profileStatus: "PUBLISHED",
+    responseTimeMinutes: 48,
+    ratingAggregate: 4.6
   },
   {
     fullName: "Maya Khan",
@@ -86,7 +98,9 @@ const pilotBlueprints = [
     achievements: [],
     languages: [],
     verificationStatus: "PENDING",
-    profileStatus: "DRAFT"
+    profileStatus: "DRAFT",
+    responseTimeMinutes: null,
+    ratingAggregate: null
   },
   {
     fullName: "Ethan Clarke",
@@ -98,7 +112,9 @@ const pilotBlueprints = [
     achievements: [],
     languages: [],
     verificationStatus: "UNVERIFIED",
-    profileStatus: "DRAFT"
+    profileStatus: "DRAFT",
+    responseTimeMinutes: null,
+    ratingAggregate: null
   }
 ];
 
@@ -120,17 +136,20 @@ export async function seedPhase1PilotAgents() {
     const profileSlug = `pilot-agent-${rank}`;
     const bio = buildBio(blueprint.fullName, blueprint.agencyName, blueprint.specialties);
     const profileCompleteness = blueprint.profileStatus === "PUBLISHED" ? 100 : 60;
+    const workEmailVerifiedAt = blueprint.profileStatus === "PUBLISHED" ? now : null;
 
     const user = await prisma.user.upsert({
       where: { email },
       create: {
         email,
         name: blueprint.fullName,
-        role: "AGENT"
+        role: "AGENT",
+        dataOrigin: "SEED"
       },
       update: {
         name: blueprint.fullName,
-        role: "AGENT"
+        role: "AGENT",
+        dataOrigin: "SEED"
       }
     });
 
@@ -142,6 +161,7 @@ export async function seedPhase1PilotAgents() {
         jobTitle: blueprint.jobTitle,
         phone: `+44 20 7000 ${rank}${rank}`,
         workEmail: email,
+        workEmailVerifiedAt,
         bio,
         yearsExperience: blueprint.yearsExperience,
         serviceAreas: blueprint.serviceAreas,
@@ -152,6 +172,8 @@ export async function seedPhase1PilotAgents() {
         profileStatus: blueprint.profileStatus,
         profileCompleteness,
         verificationStatus: blueprint.verificationStatus,
+        ratingAggregate: blueprint.ratingAggregate,
+        responseTimeMinutes: blueprint.responseTimeMinutes,
         onboardingCompletedAt: now,
         publishedAt: blueprint.profileStatus === "PUBLISHED" ? now : null
       },
@@ -160,6 +182,7 @@ export async function seedPhase1PilotAgents() {
         jobTitle: blueprint.jobTitle,
         phone: `+44 20 7000 ${rank}${rank}`,
         workEmail: email,
+        workEmailVerifiedAt,
         bio,
         yearsExperience: blueprint.yearsExperience,
         serviceAreas: blueprint.serviceAreas,
@@ -170,6 +193,8 @@ export async function seedPhase1PilotAgents() {
         profileStatus: blueprint.profileStatus,
         profileCompleteness,
         verificationStatus: blueprint.verificationStatus,
+        ratingAggregate: blueprint.ratingAggregate,
+        responseTimeMinutes: blueprint.responseTimeMinutes,
         onboardingCompletedAt: now,
         publishedAt: blueprint.profileStatus === "PUBLISHED" ? now : null
       }

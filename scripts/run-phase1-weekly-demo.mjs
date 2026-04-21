@@ -38,7 +38,10 @@ async function main() {
     { RUN_DB_TESTS: "true" }
   );
 
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3012";
+  const baseUrl =
+    process.env.PLAYWRIGHT_BASE_URL ??
+    process.env.AUTH_URL ??
+    "http://localhost:3012";
   const webServerCommand = process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ?? buildDevCommand(baseUrl);
 
   runStep(

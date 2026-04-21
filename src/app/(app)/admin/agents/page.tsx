@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { assertCan } from "@/lib/auth/rbac";
 import {
-  getAgentOnboardingFunnelCounts,
+  getAgentActivationMetrics,
   listAgentProfilesForVerification,
   setAgentVerificationStatus
 } from "@/server/agent-profile/service";
 
 const verificationUpdateSchema = z.object({
   agentUserId: z.string().min(1),
-  status: z.enum(["UNVERIFIED", "PENDING", "VERIFIED"])
+  status: z.enum(["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"])
 });
 
 interface PageProps {
@@ -58,36 +58,80 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
     redirect("/sign-in?error=AccessDenied&next=/admin/agents");
   }
 
-  const [profiles, funnel] = await Promise.all([listAgentProfilesForVerification(), getAgentOnboardingFunnelCounts()]);
+  const [profiles, activationMetrics] = await Promise.all([
+    listAgentProfilesForVerification(),
+    getAgentActivationMetrics()
+  ]);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const success = resolvedSearchParams?.success;
   const error = resolvedSearchParams?.error;
 
   return (
-    <AppShell role="ADMIN" title="Real Estate Agent Verification">
+    <AppShell role="ADMIN" title="Estate Agent Verification">
       <div className="space-y-6">
         <Card className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-text-strong">Onboarding readiness counters</h2>
-            <p className="text-sm text-text-muted">Phase 1 pilot monitoring for the first 100 real estate agents.</p>
+            <h2 className="text-lg font-semibold text-text-strong">Activation metrics</h2>
+            <p className="text-sm text-text-muted">
+              Track profile progress from onboarding through verification.
+            </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Started</p>
-              <p className="text-2xl font-semibold text-text-strong">{funnel.started}</p>
-            </div>
-            <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Completed</p>
-              <p className="text-2xl font-semibold text-text-strong">{funnel.completed}</p>
-            </div>
-            <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Published</p>
-              <p className="text-2xl font-semibold text-text-strong">{funnel.published}</p>
-            </div>
-            <div className="rounded-md border border-line bg-surface-1 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Verified</p>
-              <p className="text-2xl font-semibold text-text-strong">{funnel.verified}</p>
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                label: "Started",
+                value: activationMetrics.started,
+                hint: "Profiles created"
+              },
+              {
+                label: "Work email verified",
+                value: activationMetrics.workEmailVerified,
+                hint: "Email confirmed"
+              },
+              {
+                label: "Completed",
+                value: activationMetrics.completed,
+                hint: "Onboarding submitted"
+              },
+              {
+                label: "Publish ready",
+                value: activationMetrics.publishReady,
+                hint: "70%+ completeness"
+              },
+              {
+                label: "Published",
+                value: activationMetrics.published,
+                hint: "Eligible for public visibility"
+              },
+              {
+                label: "Pending verification",
+                value: activationMetrics.pendingVerification,
+                hint: "Awaiting admin review"
+              },
+              {
+                label: "Verified",
+                value: activationMetrics.verified,
+                hint: "Public trust unlocked"
+              },
+              {
+                label: "Denied",
+                value: activationMetrics.denied,
+                hint: "Access restricted"
+              }
+            ].map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-md border border-line bg-surface-1 px-4 py-3"
+              >
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                  {metric.label}
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-text-strong">
+                  {metric.value}
+                </p>
+                <p className="mt-1 text-xs text-text-muted">{metric.hint}</p>
+              </div>
+            ))}
           </div>
         </Card>
 
@@ -116,13 +160,24 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
               <li key={profile.userId} className="rounded-md border border-line bg-surface-1 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="space-y-1">
-                    <p className="font-medium text-text-strong">{profile.user.name ?? "Real estate agent"}</p>
+                    <p className="font-medium text-text-strong">{profile.user.name ?? "Estate agent"}</p>
                     <p className="text-sm text-text-muted">
                       {profile.agencyName ?? "Agency pending"} · {profile.jobTitle ?? "Role pending"}
                     </p>
-                    <p className="text-xs text-text-muted">Areas: {profile.serviceAreas.join(", ") || "Not listed"}</p>
+                    <p className="text-xs text-text-muted">
+                      Areas: {profile.serviceAreas.join(", ") || "Not listed"}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      Completeness: {profile.profileCompleteness}% · Work email{" "}
+                      {profile.workEmailVerifiedAt ? "verified" : "unverified"} ·{" "}
+                      {profile.profileStatus === "PUBLISHED"
+                        ? "published"
+                        : profile.onboardingCompletedAt
+                          ? "draft ready"
+                          : "onboarding in progress"}
+                    </p>
                   </div>
-                  <Badge variant={profile.verificationStatus === "VERIFIED" ? "success" : profile.verificationStatus === "PENDING" ? "warning" : "default"}>
+                  <Badge variant={profile.verificationStatus === "VERIFIED" ? "success" : profile.verificationStatus === "PENDING" ? "warning" : profile.verificationStatus === "REJECTED" ? "danger" : "default"}>
                     {profile.verificationStatus}
                   </Badge>
                 </div>
@@ -137,6 +192,9 @@ export default async function AdminAgentsPage({ searchParams }: PageProps): Prom
                   </Button>
                   <Button type="submit" name="status" value="UNVERIFIED" size="sm" variant="tertiary">
                     Mark unverified
+                  </Button>
+                  <Button type="submit" name="status" value="REJECTED" size="sm" variant="danger">
+                    Mark denied
                   </Button>
                 </form>
               </li>

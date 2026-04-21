@@ -1,287 +1,616 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  FileCheck2,
-  Handshake,
-  MapPinned,
-  Receipt,
-  ShieldCheck,
-  Timer
-} from "lucide-react";
+import type { Route } from "next";
+import { ArrowRight } from "lucide-react";
 
-import { Logo } from "@/components/brand/logo";
 import { PublicFooter } from "@/components/layout/public-footer";
-import { Card } from "@/components/ui/card";
+import { PublicHeader } from "@/components/layout/public-header";
 import { buttonVariants } from "@/components/ui/button";
+import { getHomepageFaqPreview } from "@/lib/faqs";
+import {
+  getPublicSiteConfig,
+  getSupportMailto,
+  PUBLIC_AGENT_CTA_HREF,
+  PUBLIC_AGENT_DIRECTORY_HREF,
+  PUBLIC_COLLABORATION_PILOT_HREF,
+  PUBLIC_FAQS_HREF
+} from "@/lib/public-site";
+import {
+  PUBLIC_AGENT_PROOF_LOOP,
+  PUBLIC_COLLABORATION_FLOW,
+  PUBLIC_EXAMPLE_AGENT_PROFILES,
+  PUBLIC_EXAMPLE_TRANSACTION_HISTORIES,
+  PUBLIC_PHASE_SEQUENCE,
+  PUBLIC_PROOF_MODULES,
+  PUBLIC_SAMPLE_COMPARISON,
+  PUBLIC_SAMPLE_PROFILE_VIEW,
+  PUBLIC_WHY_AGENTS_JOIN
+} from "@/lib/public-proof";
 import { cn } from "@/lib/utils";
+import { listPublicAgentProfiles } from "@/server/agent-profile/service";
+import {
+  getLiveInstructionCards,
+  getLiveInstructionLocationSummaries
+} from "@/server/marketplace/queries";
+import { getPhase1ValidationSnapshot } from "@/server/phase1-validation";
 
-const howItWorksSteps = [
-  {
-    title: "Post one brief",
-    description: "Share your property details and selling goals once, then open a 24-48h bid window.",
-    icon: Timer
-  },
-  {
-    title: "Receive structured offers",
-    description: "Real estate agents send standardised proposals so you can compare fees, scope and timelines like-for-like.",
-    icon: FileCheck2
-  },
-  {
-    title: "Choose with confidence",
-    description: "Shortlist, award the instruction, and only then unlock chat to move the deal forward.",
-    icon: ShieldCheck
+export const dynamic = "force-dynamic";
+
+export default async function LandingPage(): Promise<JSX.Element> {
+  const site = getPublicSiteConfig();
+
+  let publicAgents = [] as Awaited<ReturnType<typeof listPublicAgentProfiles>>;
+  let liveInstructions = [] as Awaited<
+    ReturnType<typeof getLiveInstructionCards>
+  >;
+  const phase1Dashboard = await getPhase1ValidationSnapshot();
+
+  if (process.env.DATABASE_URL) {
+    [publicAgents, liveInstructions] = await Promise.all([
+      listPublicAgentProfiles({ limit: 100 }),
+      getLiveInstructionCards()
+    ]);
   }
-] as const;
 
-const trustBullets = [
-  "No obligation to award",
-  "Comparable proposals (standardised)",
-  "Chat gated until shortlist/award"
-] as const;
+  const featuredAgent = publicAgents[0] ?? null;
+  const isLiveFeaturedProfile = Boolean(featuredAgent);
+  const locationSummaries =
+    getLiveInstructionLocationSummaries(liveInstructions);
 
-const comparisonCards = [
-  {
-    title: "Fee model",
-    description: "Fixed fee, %, hybrid or success bands.",
-    icon: Receipt
-  },
-  {
-    title: "Inclusions",
-    description: "Photography, floorplan, viewings, progression support.",
-    icon: CheckCircle2
-  },
-  {
-    title: "Timeline estimate",
-    description: "Expected timeline and delivery cadence.",
-    icon: Clock3
-  },
-  {
-    title: "Cancellation terms",
-    description: "Notice periods and withdrawal terms upfront.",
-    icon: Handshake
-  },
-  {
-    title: "Local experience",
-    description: "Service areas and fit for your postcode district.",
-    icon: MapPinned
-  },
-  {
-    title: "Verification status",
-    description: "Trust badge shown where available.",
-    icon: ShieldCheck
-  }
-] as const;
+  const featuredProof = featuredAgent
+    ? {
+        name: featuredAgent.user.name ?? "Estate agent",
+        role: featuredAgent.jobTitle ?? "Independent estate agent",
+        agency: featuredAgent.agencyName ?? "Independent",
+        serviceAreas: featuredAgent.serviceAreas,
+        specialties: featuredAgent.specialties,
+        profileCompleteness: featuredAgent.profileCompleteness,
+        yearsExperience: featuredAgent.yearsExperience,
+        publishedAt: featuredAgent.publishedAt,
+        image: featuredAgent.user.image ?? null,
+        href: featuredAgent.profileSlug
+          ? (`/agents/${featuredAgent.profileSlug}` as Route)
+          : PUBLIC_AGENT_DIRECTORY_HREF
+      }
+    : {
+        name: "A. Morgan",
+        role: "Independent estate agent",
+        agency: "North Row Estates",
+        serviceAreas: ["London", "SW1A", "SE1"],
+        specialties: ["Chain progression", "Family homes", "Viewings"],
+        profileCompleteness: 92,
+        yearsExperience: 11,
+        publishedAt: null,
+        image: null,
+        href: PUBLIC_AGENT_CTA_HREF as Route
+      };
 
-const roleSplit = {
-  homeowners: [
-    "Create one brief instead of repeating the same conversation to multiple agents.",
-    "Compare offers side-by-side on price, scope and terms before speaking to anyone.",
-    "Award only when you are ready, with no obligation to accept a proposal."
-  ],
-  agents: [
-    "Build a personal professional identity beyond just your agency logo.",
-    "Show your expertise through a structured profile and directory visibility.",
-    "Compete on service and pricing with structured proposals to qualified sellers."
-  ]
-} as const;
+  const sellerAccessNote =
+    locationSummaries.length > 0
+      ? `Seller access is currently visible in ${locationSummaries.length} ${
+          locationSummaries.length === 1 ? "area" : "areas"
+        }.`
+      : "Seller access opens carefully as matching supply and moderation come into place.";
+  const homepageFaqPreview = getHomepageFaqPreview();
+  const phase1AsOf = new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/London"
+  }).format(phase1Dashboard.generatedAt);
+  const qualifiedAgentDensityValue =
+    phase1Dashboard.objectives.find(
+      (objective) => objective.key === "qualifiedAgentDensity"
+    )?.current ?? 0;
 
-export default function LandingPage(): JSX.Element {
+  const featuredProfileFacts = [
+    {
+      label: "Service areas",
+      value: featuredProof.serviceAreas.slice(0, 3).join(", ")
+    },
+    {
+      label: "Specialties",
+      value: featuredProof.specialties.slice(0, 3).join(", ")
+    },
+    {
+      label: "Verification",
+      value: isLiveFeaturedProfile ? "Verified by WHOMA" : "Sample completed profile"
+    },
+    {
+      label: "Experience",
+      value:
+        featuredProof.yearsExperience !== null &&
+        featuredProof.yearsExperience !== undefined
+          ? `${featuredProof.yearsExperience} years`
+          : "Self-reported"
+    },
+    {
+      label: "Profile readiness",
+      value: `${featuredProof.profileCompleteness}% complete`
+    }
+  ] as const;
+
   return (
     <div className="min-h-screen bg-surface-1">
-      <header className="border-b border-line bg-surface-0">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Logo subtitle="Where Home Owners Meet Real Estate Agents" />
-          <div className="flex items-center gap-2">
-            <Link href="/agents" className={cn(buttonVariants({ variant: "tertiary", size: "sm" }))}>
-              Agent directory
-            </Link>
-            <Link href="/sign-in" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
-              Sign in
-            </Link>
-            <Link href="/sign-up" className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
-              Create account
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main>
-        <section className="border-b border-line bg-surface-0">
-          <div className="motif-grid mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
-            <div className="space-y-6">
-              <p className="animate-enter-up text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                UK home-selling marketplace
-              </p>
-              <h1 className="animate-enter-up animate-delay-1 max-w-2xl text-4xl sm:text-5xl">
-                Sell your home with confidence: compare real estate agent offers side-by-side.
-              </h1>
-              <p className="animate-enter-up animate-delay-2 max-w-2xl text-base text-text-muted sm:text-lg">
-                Post your property brief once. Receive structured proposals in 24-48 hours. Compare fees,
-                inclusions and timelines, then award the real estate agent you trust.
-              </p>
-              <div className="animate-enter-up animate-delay-2 flex flex-wrap gap-3">
-                <Link href="/sign-up?role=HOMEOWNER" className={cn(buttonVariants({ variant: "primary", size: "lg" }))}>
-                  Create a homeowner brief
+        <section className="public-section border-b border-line bg-surface-1">
+          <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_0.92fr] lg:px-8">
+            <div className="max-w-2xl space-y-6">
+              <p className="public-kicker">For independent estate agents</p>
+              <div className="space-y-4">
+                <h1 className="max-w-3xl">
+                  Where Home Owners Meet Agents.
+                </h1>
+                <p className="max-w-xl text-base text-text-muted sm:text-lg">
+                  {site.pilotSummary}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href={PUBLIC_AGENT_CTA_HREF}
+                  className={cn(
+                    buttonVariants({ variant: "primary", size: "lg" })
+                  )}
+                >
+                  Create your profile
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/sign-up?role=AGENT" className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}>
-                  Join as a real estate agent
+                <Link
+                  href={PUBLIC_AGENT_DIRECTORY_HREF}
+                  className={cn(
+                    buttonVariants({ variant: "secondary", size: "lg" })
+                  )}
+                >
+                  Browse verified agents
+                </Link>
+                <Link
+                  href="/sign-in"
+                  className={cn(
+                    buttonVariants({ variant: "tertiary", size: "lg" })
+                  )}
+                >
+                  Sign in
                 </Link>
               </div>
-              <ul className="animate-enter-up animate-delay-3 grid gap-2 text-sm text-text-muted sm:grid-cols-3" aria-label="Trust highlights">
-                {trustBullets.map((bullet) => (
-                  <li key={bullet} className="rounded-md border border-line bg-surface-0 px-3 py-2 shadow-soft">
-                    {bullet}
-                  </li>
-                ))}
-              </ul>
             </div>
 
-            <Card className="animate-enter-card animate-delay-2 interactive-lift relative border-line bg-surface-0 shadow-lift">
-              <div className="infinity-watermark relative space-y-5">
+            <div className="public-record space-y-6">
+              <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">How Whoma works</p>
-                  <h2 className="text-xl">Instruction → Bid Window → Proposals → Shortlist → Award</h2>
+                  <p className="public-kicker">Featured profile</p>
+                  <h2 className="text-2xl">
+                    {featuredProof.name}
+                  </h2>
                   <p className="text-sm text-text-muted">
-                    Keep control of the process while real estate agents compete on a clear, comparable proposal format.
+                    {featuredProof.role} · {featuredProof.agency}
                   </p>
                 </div>
-                <ol className="space-y-3 text-sm">
-                  <li className="rounded-md border border-line bg-surface-1 px-4 py-3">
-                    1. Create your brief once and open a 24-48h bid window.
-                  </li>
-                  <li className="rounded-md border border-line bg-surface-1 px-4 py-3">
-                    2. Receive structured proposals covering fees, inclusions, timelines and terms.
-                  </li>
-                  <li className="rounded-md border border-line bg-surface-1 px-4 py-3">
-                    3. Shortlist and award the instruction before chat opens.
-                  </li>
-                </ol>
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-line bg-surface-1 text-sm font-semibold text-text-strong">
+                  {featuredProof.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={featuredProof.image}
+                      alt={featuredProof.name}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  ) : (
+                    featuredProof.name
+                      .split(" ")
+                      .map((part) => part[0])
+                      .join("")
+                      .slice(0, 2)
+                  )}
+                </div>
               </div>
-            </Card>
-          </div>
-        </section>
 
-        <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">How it works</p>
-              <h2 className="mt-2">A calmer way to choose the right real estate agent and the right deal</h2>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {howItWorksSteps.map((step) => {
-              const Icon = step.icon;
-              return (
-                <Card key={step.title} className="interactive-lift space-y-4">
-                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand-accent/10 text-brand-accent">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                {featuredProfileFacts.map((item) => (
+                  <div key={item.label} className="space-y-1">
+                    <p className="public-kicker">{item.label}</p>
+                    <p className="text-sm text-text-strong">{item.value}</p>
                   </div>
-                  <div className="space-y-2">
-                    <h3>{step.title}</h3>
-                    <p className="text-sm text-text-muted">{step.description}</p>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
+                ))}
+              </div>
 
-        <section className="border-y border-line bg-surface-0">
-          <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <div className="mb-8 max-w-3xl space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">What you compare</p>
-              <h2>Compare like-for-like before you commit</h2>
-              <p className="text-sm text-text-muted sm:text-base">
-                Whoma standardises the important parts of a real estate agent proposal so you can make a decision quickly
-                without digging through mismatched pitches.
+              <p className="max-w-xl text-sm text-text-muted">
+                {isLiveFeaturedProfile
+                  ? "This is a live production-verified public profile."
+                  : `No live verified profile is public yet. This illustrative profile stays visible while the first verified profile clears publication checks (current verified count: ${qualifiedAgentDensityValue}).`}
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {comparisonCards.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Card key={item.title} className="interactive-lift space-y-3">
-                    <div className="flex items-start gap-3">
-                      <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-accent/10 text-brand-accent">
-                        <Icon className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <div>
-                        <h3 className="text-base">{item.title}</h3>
-                        <p className="mt-1 text-sm text-text-muted">{item.description}</p>
-                      </div>
+          </div>
+        </section>
+
+        <section className="border-b border-line bg-surface-0 py-10">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-2">
+              <p className="public-kicker">Roadmap and positioning</p>
+              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                WHOMA sequence: verified identity first, collaboration
+                liquidity second, and structured tendering after proof.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {PUBLIC_PHASE_SEQUENCE.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-md border border-line bg-surface-1 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold text-text-strong">
+                    {step.title}
+                  </p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-line bg-surface-1 py-10">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-2">
+              <p className="public-kicker">Phase 1 validation dashboard</p>
+              <h2>Evidence is judged by behaviour, not profile copy.</h2>
+              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                WHOMA tracks explicit Phase 1 signals: qualified density,
+                transaction logging, collaboration participation, and activity
+                cadence. This keeps the public narrative anchored to measurable
+                execution.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {phase1Dashboard.objectives.map((objective) => (
+                <div
+                  key={objective.key}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                      {objective.windowLabel}
+                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                      {objective.status}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-text-strong">
+                    {objective.title}
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    {objective.description}
+                  </p>
+                  <p className="mt-3 text-sm font-medium text-text-strong">
+                    {objective.current} / {objective.target} target
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-xs text-text-muted">
+              Derived from production profile state and durable product events.
+              Metrics are behavioural validation signals, not self-declared
+              claims. As of {phase1AsOf}.
+            </p>
+          </div>
+        </section>
+
+        <section className="border-b border-line bg-surface-0 py-10">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-2">
+              <p className="public-kicker">Public proof checklist</p>
+              <h2>How trust is earned from draft to live identity.</h2>
+              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                This is the visible proof loop for agents and partners: upload,
+                logging, evidence checks, engagement thresholds, then a
+                shareable WHOMA identity.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {PUBLIC_AGENT_PROOF_LOOP.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-md border border-line bg-surface-1 px-4 py-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    {step.status}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-text-strong">
+                    {step.title}
+                  </p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="platform" className="public-section bg-surface-0">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl space-y-3">
+              <p className="public-kicker">Platform</p>
+              <h2>WHOMA makes professional standing easier to understand.</h2>
+            </div>
+
+            <div className="mt-10 grid gap-8 md:grid-cols-3">
+              {PUBLIC_WHY_AGENTS_JOIN.map((item) => (
+                <div key={item.title} className="space-y-3 border-t border-line pt-4">
+                  <h3>{item.title}</h3>
+                  <p className="text-sm text-text-muted sm:text-base">
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="public-section border-y border-line bg-surface-1">
+          <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <p className="public-kicker">Featured profile</p>
+                <h2>A public profile should make professional standing easy to read.</h2>
+                <p className="max-w-2xl text-sm text-text-muted sm:text-base">
+                  WHOMA brings identity, profile depth, and collaboration
+                  readiness into one page that can be shared with confidence.
+                </p>
+              </div>
+
+              <div className="public-record space-y-4">
+                <div className="public-divider" />
+                <p className="text-sm leading-7 text-text-base">
+                {isLiveFeaturedProfile
+                  ? "This live profile is public because it has been published and verified by WHOMA."
+                  : "This sample switches to a live profile once the first production-verified agent is public."}
+              </p>
+                <Link
+                  href={featuredProof.href}
+                  className={cn(buttonVariants({ variant: "secondary" }))}
+                >
+                  {isLiveFeaturedProfile ? "View this profile" : "Build your verified profile"}
+                </Link>
+              </div>
+            </div>
+
+            <div className="public-record space-y-5" id="featured-profile">
+              <div className="space-y-2">
+                <p className="public-kicker">{PUBLIC_SAMPLE_PROFILE_VIEW.eyebrow}</p>
+                <h3 className="text-2xl">{PUBLIC_SAMPLE_PROFILE_VIEW.title}</h3>
+                <p className="text-sm text-text-muted sm:text-base">
+                  {PUBLIC_SAMPLE_PROFILE_VIEW.summary}
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {PUBLIC_SAMPLE_PROFILE_VIEW.fields.map((field) => (
+                  <div
+                    key={field.label}
+                    className="border-t border-line pt-3"
+                  >
+                    <p className="public-kicker">{field.label}</p>
+                    <p className="mt-1 text-sm text-text-strong">
+                      {field.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="public-section border-y border-line bg-surface-1">
+          <div className="mx-auto w-full max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-3">
+              <p className="public-kicker">Seeded proof</p>
+              <h2>Example profile quality and transaction proof.</h2>
+              <p className="max-w-3xl text-sm text-text-muted sm:text-base">
+                These examples show the quality bar we expect as we onboard the
+                first independent agent cohort.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {PUBLIC_EXAMPLE_AGENT_PROFILES.map((profile) => (
+                <div
+                  key={`${profile.name}-${profile.agency}`}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold text-text-strong">
+                    {profile.name}
+                  </p>
+                  <p className="text-sm text-text-muted">{profile.agency}</p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    Areas: {profile.areas}
+                  </p>
+                  <p className="text-sm text-text-muted">
+                    Specialties: {profile.specialties}
+                  </p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.12em] text-text-muted">
+                    {profile.verification} · {profile.readiness} readiness
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {PUBLIC_EXAMPLE_TRANSACTION_HISTORIES.map((item) => (
+                <div
+                  key={item.agent}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold text-text-strong">
+                    {item.agent}
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">{item.summary}</p>
+                  <ul className="mt-3 space-y-1 text-sm text-text-muted">
+                    {item.highlights.map((highlight) => (
+                      <li key={highlight}>{highlight}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="public-section bg-surface-0">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl space-y-3">
+              <p className="public-kicker">How it works</p>
+              <h2>Professional detail becomes more useful when it is structured.</h2>
+            </div>
+
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
+              {PUBLIC_PROOF_MODULES.map((item) => (
+                <div key={item.title} className="public-record space-y-3">
+                  <h3>{item.title}</h3>
+                  <p className="text-sm text-text-muted sm:text-base">
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {site.showPhase2Preview ? (
+        <section className="public-section border-y border-line bg-surface-1">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-3">
+              <p className="public-kicker">{PUBLIC_COLLABORATION_FLOW.eyebrow}</p>
+              <h2>{PUBLIC_COLLABORATION_FLOW.title}</h2>
+              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                {PUBLIC_COLLABORATION_FLOW.summary}
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {PUBLIC_COLLABORATION_FLOW.steps.map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold text-text-strong">
+                    {step.title}
+                  </p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <details className="rounded-md border border-dashed border-line bg-surface-0 px-4 py-4">
+              <summary className="cursor-pointer text-sm font-semibold text-text-strong">
+                View illustrative shortlist preview
+              </summary>
+              <div className="mt-3">
+                <p className="public-kicker">{PUBLIC_SAMPLE_COMPARISON.eyebrow}</p>
+                <p className="mt-1 text-sm font-semibold text-text-strong">
+                  {PUBLIC_SAMPLE_COMPARISON.title}
+                </p>
+                <p className="mt-1 text-sm text-text-muted">
+                  {PUBLIC_SAMPLE_COMPARISON.summary}
+                </p>
+                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                  {PUBLIC_SAMPLE_COMPARISON.offers.map((offer) => (
+                    <div
+                      key={offer.agent}
+                      className="rounded-md border border-line bg-surface-1 px-3 py-3"
+                    >
+                      <p className="text-sm font-semibold text-text-strong">
+                        {offer.agent}
+                      </p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {offer.summary} · {offer.timeline}
+                      </p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.12em] text-text-muted">
+                        {offer.badge}
+                      </p>
                     </div>
-                  </Card>
-                );
-              })}
-            </div>
+                  ))}
+                </div>
+              </div>
+            </details>
           </div>
         </section>
+        ) : null}
 
-        <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mb-8 max-w-3xl space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Who Whoma is for</p>
-            <h2>Built for clarity on both sides of the instruction</h2>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="interactive-lift space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3>For Homeowners</h3>
-                <span className="rounded-full bg-brand-accent/10 px-3 py-1 text-xs font-semibold text-brand-ink">
-                  Control + clarity
-                </span>
-              </div>
-              <ul className="space-y-2 text-sm text-text-muted">
-                {roleSplit.homeowners.map((item) => (
-                  <li key={item} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" aria-hidden="true" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-
-            <Card className="interactive-lift space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3>For Real Estate Agents</h3>
-                <span className="rounded-full bg-surface-1 px-3 py-1 text-xs font-semibold text-text-strong">
-                  Qualified opportunities
-                </span>
-              </div>
-              <ul className="space-y-2 text-sm text-text-muted">
-                {roleSplit.agents.map((item) => (
-                  <li key={item} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" aria-hidden="true" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          </div>
-        </section>
-
-        <section className="border-t border-line bg-surface-0">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Early access</p>
-              <h2 className="mt-1 text-xl">Launching in the UK. Join early to shape the marketplace.</h2>
-              <p className="mt-1 text-sm text-text-muted">
-                We are focused on a lean MVP: clear proposals, fair comparison, and a calmer selling decision.
+        <section className="public-section bg-surface-0">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
+            <div className="max-w-2xl space-y-3">
+              <p className="public-kicker">Seller access</p>
+              <h2>Seller access stays selective so quality stays high.</h2>
+              <p className="text-sm text-text-muted sm:text-base">
+                WHOMA stays centred on agent quality, profile depth, and more
+                verified proof infrastructure. {sellerAccessNote}
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/sign-up?role=HOMEOWNER" className={cn(buttonVariants({ variant: "primary" }))}>
-                Create a homeowner brief
-              </Link>
-              <Link href="/sign-up?role=AGENT" className={cn(buttonVariants({ variant: "secondary" }))}>
-                  Join as a real estate agent
-              </Link>
+            <Link
+              href={PUBLIC_COLLABORATION_PILOT_HREF}
+              className={cn(buttonVariants({ variant: "secondary" }))}
+            >
+              Request seller access
+            </Link>
+          </div>
+        </section>
+
+        <section className="border-y border-line bg-surface-1 py-12 sm:py-14">
+          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-3">
+              <p className="public-kicker">FAQs</p>
+              <h2>Quick answers before you start.</h2>
+              <p className="max-w-3xl text-sm text-text-muted sm:text-base">
+                A short overview of what WHOMA is, how profile trust works, and
+                how access is handled.
+              </p>
             </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {homepageFaqPreview.map((item) => (
+                <article
+                  key={item.id}
+                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                >
+                  <h3 className="text-base">{item.question}</h3>
+                  <p className="mt-2 text-sm text-text-muted">{item.answer}</p>
+                </article>
+              ))}
+            </div>
+
+            <Link
+              href={PUBLIC_FAQS_HREF}
+              className={cn(buttonVariants({ variant: "secondary" }))}
+            >
+              View all FAQs
+            </Link>
+          </div>
+        </section>
+
+        <section className="public-section border-t border-line bg-surface-1">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
+            <div className="max-w-2xl space-y-3">
+              <p className="public-kicker">Support</p>
+              <h2>Questions about profiles, access, or collaboration?</h2>
+              <p className="text-sm text-text-muted sm:text-base">
+                Email {site.supportEmail} and we&apos;ll point you in the right
+                direction.
+              </p>
+            </div>
+            <a
+              href={getSupportMailto(site.supportEmail)}
+              className={cn(buttonVariants({ variant: "primary" }))}
+            >
+              Contact support
+            </a>
           </div>
         </section>
       </main>
+
       <PublicFooter />
     </div>
   );

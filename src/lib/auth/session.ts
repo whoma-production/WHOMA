@@ -1,9 +1,11 @@
+import type { Route } from "next";
 import type { UserRole } from "@prisma/client";
 
 const pageRoutePolicies = [
   { prefix: "/homeowner", policy: "HOMEOWNER" as const },
   { prefix: "/agent", policy: "AGENT" as const },
   { prefix: "/admin", policy: "ADMIN" as const },
+  { prefix: "/access", policy: "AUTHENTICATED" as const },
   { prefix: "/messages", policy: "AUTHENTICATED" as const },
   { prefix: "/onboarding/role", policy: "AUTHENTICATED" as const }
 ] as const;
@@ -12,7 +14,10 @@ type PageRoutePolicy = (typeof pageRoutePolicies)[number]["policy"];
 
 export function getPageRoutePolicy(pathname: string): PageRoutePolicy | null {
   for (const routePolicy of pageRoutePolicies) {
-    if (pathname === routePolicy.prefix || pathname.startsWith(`${routePolicy.prefix}/`)) {
+    if (
+      pathname === routePolicy.prefix ||
+      pathname.startsWith(`${routePolicy.prefix}/`)
+    ) {
       return routePolicy.policy;
     }
   }
@@ -30,18 +35,19 @@ export function canAccessPagePath(role: UserRole, pathname: string): boolean {
   return role === policy;
 }
 
-export function defaultRouteForRole(role: UserRole): string {
-  switch (role) {
-    case "HOMEOWNER":
-      return "/homeowner/instructions";
-    case "AGENT":
-      return "/agent/onboarding";
-    case "ADMIN":
-      return "/admin/agents";
-  }
+const defaultRouteByRole: Record<UserRole, Route> = {
+  HOMEOWNER: "/homeowner/instructions",
+  AGENT: "/agent/onboarding",
+  ADMIN: "/admin/agents"
+};
+
+export function defaultRouteForRole(role: UserRole): Route {
+  return defaultRouteByRole[role];
 }
 
-export function normalizeRedirectPath(candidate: string | undefined | null): string | null {
+export function normalizeRedirectPath(
+  candidate: string | undefined | null
+): string | null {
   if (!candidate) {
     return null;
   }
@@ -57,7 +63,9 @@ export function normalizeRedirectPath(candidate: string | undefined | null): str
   return candidate;
 }
 
-export function getAuthErrorMessage(code: string | null | undefined): string | null {
+export function getAuthErrorMessage(
+  code: string | null | undefined
+): string | null {
   switch (code) {
     case undefined:
     case null:
@@ -68,11 +76,17 @@ export function getAuthErrorMessage(code: string | null | undefined): string | n
     case "OAuthAccountNotLinked":
       return "This email is linked to a different sign-in method. Use the original provider.";
     case "AccessDenied":
-      return "Sign-in was denied. Please try again or use a different Google account.";
+      return "Sign-in was denied. Please try again or use a different account.";
+    case "CredentialsSignin":
+      return "Sign-in failed. Try again or use another sign-in method.";
+    case "EmailSignin":
+      return "We could not send a sign-in link right now. Please try again.";
     case "Configuration":
-      return "Google sign-in is not configured yet. Add OAuth credentials to continue.";
+      return "That sign-in method is unavailable right now. Try another method or contact support.";
     case "Callback":
-      return "Google sign-in failed during callback. Please try again.";
+      return "The sign-in provider did not complete correctly. Please try again.";
+    case "Verification":
+      return "That sign-in link is invalid or has expired. Request a new one and try again.";
     default:
       return "Sign-in failed. Please try again.";
   }

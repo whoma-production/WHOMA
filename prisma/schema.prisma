@@ -13,6 +13,13 @@ enum UserRole {
   ADMIN
 }
 
+enum UserDataOrigin {
+  PRODUCTION
+  PREVIEW
+  SEED
+  TEST
+}
+
 enum PreferredContactMethod {
   EMAIL
   PHONE
@@ -22,6 +29,7 @@ enum VerificationStatus {
   UNVERIFIED
   PENDING
   VERIFIED
+  REJECTED
 }
 
 enum AgentProfileStatus {
@@ -88,9 +96,12 @@ enum ThreadStatus {
 model User {
   id               String           @id @default(cuid())
   role             UserRole?
+  dataOrigin       UserDataOrigin   @default(PRODUCTION)
   name             String?
   email            String           @unique
   emailVerified    DateTime?
+  passwordHash     String?
+  passwordSetAt    DateTime?
   image            String?
   createdAt        DateTime         @default(now())
   homeownerProfile HomeownerProfile?
@@ -100,8 +111,13 @@ model User {
   messages         Message[]
   homeownerThreads MessageThread[]  @relation("ThreadHomeowner")
   agentThreads     MessageThread[]  @relation("ThreadAgent")
+  idempotencyKeys  IdempotencyKey[]
   accounts         Account[]
   sessions         Session[]
+  productEventsAsActor   ProductEvent[] @relation("ProductEventActor")
+  productEventsAsSubject ProductEvent[] @relation("ProductEventSubject")
+
+  @@index([dataOrigin])
 }
 
 model Account {
@@ -157,6 +173,12 @@ model AgentProfile {
   jobTitle            String?
   phone               String?
   workEmail           String?
+  workEmailVerifiedAt DateTime?
+  workEmailVerificationCodeHash String?
+  workEmailVerificationCodeExpiresAt DateTime?
+  workEmailVerificationCodeSentAt DateTime?
+  workEmailVerificationAttemptCount Int @default(0)
+  workEmailVerificationLockedUntil DateTime?
   bio                 String?
   yearsExperience     Int?
   serviceAreas        String[]           @default([])
@@ -204,6 +226,7 @@ model Instruction {
   id               String            @id @default(cuid())
   propertyId       String
   sellerGoals      String
+  mustHaves        String[]          @default([])
   targetTimeline   TargetTimeline
   bidWindowStartAt DateTime
   bidWindowEndAt   DateTime
@@ -268,4 +291,57 @@ model Message {
   sender User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([threadId, createdAt])
+}
+
+model IdempotencyKey {
+  id             String   @id @default(cuid())
+  actorId        String
+  route          String
+  key            String
+  requestHash    String
+  responseStatus Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@unique([actorId, route, key])
+  @@index([route, createdAt])
+  @@index([expiresAt])
+}
+
+model ProductEvent {
+  id            String   @id @default(cuid())
+  eventName     String
+  actorRole     UserRole?
+  actorId       String?
+  subjectUserId String?
+  source        String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  actor       User? @relation("ProductEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  subjectUser User? @relation("ProductEventSubject", fields: [subjectUserId], references: [id], onDelete: SetNull)
+
+  @@index([eventName, createdAt])
+  @@index([subjectUserId, eventName, createdAt])
+  @@index([actorId, eventName, createdAt])
+}
+
+model SupportInquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  role      String?
+  category  String
+  message   String
+  pagePath  String?
+  source    String?
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([category, createdAt])
 }

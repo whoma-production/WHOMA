@@ -7,7 +7,7 @@ export function InlineToast({ className, ...props }: HTMLAttributes<HTMLDivEleme
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-lg border border-line bg-surface-0 p-3 shadow-soft",
+        "flex items-start gap-3 rounded-lg border border-line bg-surface-0 p-3",
         className
       )}
       role="status"
