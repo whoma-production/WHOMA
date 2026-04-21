@@ -4952,3 +4952,91 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Switch the Supabase hosted magic-link template to `{{ .Token }}` and then change Railway production to `SUPABASE_EMAIL_AUTH_METHOD=otp`.
 2. Run one real branded-host sign-in round-trip on `https://www.whoma.co.uk/sign-in` using a confirmed inbox after the OTP switch.
 3. Either supply existing Google OAuth credentials or create a fresh Google OAuth client, then enable the provider in Supabase and verify one live Google round-trip before showing the button publicly.
+
+---
+
+## Session: 2026-04-21 / 19:30 (CEST) — Email/password auth rollout + OAuth/session persistence fix
+
+**Author:** Codex  
+**Context:** User requested one coherent pass to resolve three auth issues: replace magic-link with email/password, fix Google OAuth callback, and stop session loss on reload/revisit.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Replace passwordless auth UI with email/password sign-in and sign-up while preserving WHOMA design shell.
+- Ensure Google OAuth launches and returns through a working callback route.
+- Restore Supabase session persistence via cookie-backed SSR helpers and middleware refresh.
+
+### Changes Made
+
+- Reworked `GoogleAuthButton` auth logic:
+  - removed `signInWithOtp()` and OTP verification flows,
+  - sign-in now uses `supabase.auth.signInWithPassword({ email, password })`,
+  - sign-up now uses `supabase.auth.signUp({ email, password })`,
+  - added inline client validation for invalid email, weak password, password mismatch, and mapped credential/provider errors.
+- Updated public auth copy/routes:
+  - `/sign-in` and `/sign-up` now describe email/password auth,
+  - post-auth default redirect now targets `/dashboard` (with `next` override support),
+  - added `/dashboard` route that resolves final role/access-state destination server-side.
+- Fixed Google OAuth launch behavior:
+  - Google button now calls `supabase.auth.signInWithOAuth` directly with `redirectTo=${window.location.origin}/auth/callback?next=...`,
+  - button visibility is now environment-gated by `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=true`.
+- Replaced callback flow in `src/app/auth/callback/route.ts`:
+  - exchanges OAuth `code` for session,
+  - redirects to `next` or `/dashboard`,
+  - falls back to `/auth/error` on failure.
+- Added `/auth/error` page for callback failure handling.
+- Implemented Supabase helper split and middleware refresh:
+  - added `src/lib/supabase/client.ts` browser helper,
+  - refactored `src/lib/supabase/server.ts` to `createClient` + compatibility export,
+  - replaced `src/middleware.ts` with Supabase SSR cookie adapter + request-time `auth.getUser()` refresh while preserving existing role/access gating logic,
+  - removed obsolete `src/lib/supabase/middleware.ts`.
+- Updated current user-menu sign-out in `AppShell` to call `supabase.auth.signOut()` client-side and redirect to `/`.
+- Updated `.env.example` auth envs for the new Google visibility gate (`NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED`).
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/auth/google-auth-button.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/auth/callback/route.ts`
+- `src/app/auth/error/page.tsx`
+- `src/app/dashboard/page.tsx`
+- `src/middleware.ts`
+- `src/lib/supabase/client.ts`
+- `src/lib/supabase/server.ts`
+- `src/components/layout/app-shell.tsx`
+- `src/lib/auth/provider-config.ts`
+- `src/lib/auth/session.ts`
+- `.env.example`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Introduced a dedicated `/dashboard` router entry so all auth completions can share one stable default target while preserving existing role/access routing semantics.
+- Kept provider visibility strict (`NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=true`) to avoid rendering a Google entry point in environments that are not ready.
+- Preserved existing middleware role/access hint logic and canonical-host behavior, but layered Supabase session refresh into the same pipeline to avoid regressions.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+- `npm run test -- src/components/auth/google-auth-button.test.tsx src/lib/auth/session.test.ts src/lib/auth/callback-return.test.ts src/lib/auth/callback-origin.test.ts` -> passed (`17` tests).
+- Repo search confirmed no remaining `signInWithOtp()` calls in `src/`.
+
+### Known Issues / Risks
+
+- Environment/provider readiness still controls live OAuth availability; the app now hides Google unless `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=true`.
+- Supabase project-level email confirmation/security policies remain external dependencies and can still affect production sign-up behavior.
+
+### Next Steps
+
+1. Merge current auth patch to `main` and deploy to Railway production for live browser validation.
+2. Run one full live round-trip on `https://www.whoma.co.uk` for:
+   - email/password sign-up -> confirmation message,
+   - email/password sign-in -> `/dashboard` routing,
+   - Google sign-in (only when env-gated on).
+3. Confirm session persistence across hard refresh and revisit on protected routes (`/agent/onboarding`, `/messages`, `/homeowner/instructions`).

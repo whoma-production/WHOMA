@@ -4,33 +4,30 @@ import { cookies } from "next/headers";
 
 import { requireSupabasePublicConfig } from "@/lib/supabase/config";
 
-export async function createSupabaseServerClient() {
+export const createClient = async () => {
   const cookieStore = await cookies();
   const config = requireSupabasePublicConfig();
 
   return createServerClient(config.url, config.anonKey, {
-    auth: {
-      flowType: "pkce"
-    },
     cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(
+      getAll: () => cookieStore.getAll(),
+      setAll: (
         cookiesToSet: Array<{
           name: string;
           value: string;
           options: CookieOptions;
         }>
-      ) {
-        try {
-          for (const cookie of cookiesToSet) {
-            cookieStore.set(cookie.name, cookie.value, cookie.options);
+      ) => {
+        for (const { name, value, options } of cookiesToSet) {
+          try {
+            cookieStore.set(name, value, options);
+          } catch {
+            // Read-only rendering contexts can block cookie writes.
           }
-        } catch {
-          // In read-only contexts (e.g. RSC), Next.js blocks cookie writes.
         }
       }
     }
   });
-}
+};
+
+export const createSupabaseServerClient = createClient;

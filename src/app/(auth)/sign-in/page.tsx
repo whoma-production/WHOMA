@@ -19,7 +19,6 @@ import {
   hasSupabaseAuthReturnParams
 } from "@/lib/auth/callback-return";
 import {
-  defaultRouteForRole,
   normalizeRedirectPath
 } from "@/lib/auth/session";
 import {
@@ -27,8 +26,7 @@ import {
   PUBLIC_AGENT_CTA_HREF
 } from "@/lib/public-site";
 import {
-  getPublicAuthProviderAvailability,
-  getPublicEmailAuthMethod
+  getPublicAuthProviderAvailability
 } from "@/lib/auth/provider-config";
 import { createSupportInquiry } from "@/server/support/inquiries";
 
@@ -97,39 +95,18 @@ export default async function SignInPage({
   const session = await auth();
 
   if (session?.user) {
-    if (!session.user.role) {
-      redirect("/onboarding/role");
-    }
-
-    if (session.user.role === "AGENT") {
-      if (session.user.accessState === "DENIED") {
-        redirect("/access/denied");
-      }
-
-      if (session.user.accessState === "PENDING") {
-        redirect("/access/pending");
-      }
-    }
-
-    redirect(defaultRouteForRole(session.user.role));
+    redirect("/dashboard");
   }
 
   const nextParam = normalizeRedirectPath(resolvedSearchParams?.next) ?? null;
   const providerAvailability = getPublicAuthProviderAvailability();
-  const emailAuthMethod = getPublicEmailAuthMethod();
   const site = getPublicSiteConfig();
   const signInMethodsDescription =
-    providerAvailability.google && emailAuthMethod === "otp"
-      ? "Continue with Google or email. No password needed. Email sign-in finishes with a one-time code."
-      : providerAvailability.google && emailAuthMethod === "magic-link"
-        ? "Continue with Google or email. No password needed. Email sign-in sends a secure link."
-        : emailAuthMethod === "otp"
-          ? "Continue with email. No password needed. We will send a one-time code to finish sign-in."
-          : emailAuthMethod === "magic-link"
-            ? "Continue with email. No password needed. We will send a secure sign-in link."
-            : providerAvailability.google
-              ? "Continue with Google. Access review happens after sign-in."
-              : "Sign-in is temporarily unavailable. Contact support for help.";
+    providerAvailability.google
+      ? "Sign in with your email and password, or continue with Google."
+      : providerAvailability.email
+        ? "Sign in with your email and password."
+        : "Sign-in is temporarily unavailable. Contact support for help.";
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -146,7 +123,6 @@ export default async function SignInPage({
             <CardContent className="space-y-4">
               <GoogleAuthButton
                 providerAvailability={providerAvailability}
-                emailAuthMethod={emailAuthMethod}
                 authMode="sign-in"
                 uxMode="public"
                 supportEmail={site.supportEmail}

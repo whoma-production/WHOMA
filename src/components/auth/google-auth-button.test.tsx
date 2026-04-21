@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 
 describe("GoogleAuthButton", () => {
-  it("shows Google and email sign-in methods", () => {
+  it("shows Google plus email/password sign-in controls", () => {
     render(
       <GoogleAuthButton
         providerAvailability={{
@@ -13,24 +13,20 @@ describe("GoogleAuthButton", () => {
           email: true,
           any: true
         }}
-        emailAuthMethod="magic-link"
+        authMode="sign-in"
         uxMode="public"
-        supportEmail="support@whoma.co.uk"
       />
     );
 
     expect(
       screen.getByRole("button", { name: /continue with google/i })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /continue with email/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(/apple/i)
-    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
   });
 
-  it("hides Google and shows the email unavailable state when providers are disabled", () => {
+  it("hides Google and disables email sign-in when providers are unavailable", () => {
     render(
       <GoogleAuthButton
         providerAvailability={{
@@ -38,7 +34,7 @@ describe("GoogleAuthButton", () => {
           email: false,
           any: false
         }}
-        emailAuthMethod="none"
+        authMode="sign-in"
         uxMode="public"
       />
     );
@@ -46,15 +42,13 @@ describe("GoogleAuthButton", () => {
     expect(
       screen.queryByRole("button", { name: /continue with google/i })
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /continue with email/i })
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^sign in$/i })).toBeDisabled();
     expect(
       screen.getByText(/email sign-in is currently unavailable/i)
     ).toBeInTheDocument();
   });
 
-  it("keeps email flow magic-link only without password fields", () => {
+  it("renders confirm-password flow in sign-up mode", () => {
     render(
       <GoogleAuthButton
         providerAvailability={{
@@ -62,33 +56,16 @@ describe("GoogleAuthButton", () => {
           email: true,
           any: true
         }}
-        emailAuthMethod="magic-link"
         authMode="sign-up"
         uxMode="public"
       />
     );
 
     expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
-  });
-
-  it("renders otp copy when email auth is configured for codes", () => {
-    render(
-      <GoogleAuthButton
-        providerAvailability={{
-          google: false,
-          email: true,
-          any: true
-        }}
-        emailAuthMethod="otp"
-        uxMode="public"
-      />
-    );
-
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /email me a code/i })
+      screen.getByRole("button", { name: /create account/i })
     ).toBeInTheDocument();
-    expect(screen.queryByText(/sign-in link sent/i)).not.toBeInTheDocument();
   });
 });

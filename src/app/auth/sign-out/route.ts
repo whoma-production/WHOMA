@@ -12,7 +12,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       fallbackOrigin: request.nextUrl.origin
     }) ?? request.nextUrl.origin;
   const nextParam = normalizeRedirectPath(requestUrl.searchParams.get("next"));
-  const destination = nextParam ?? "/sign-in";
+  const destination = nextParam ?? "/";
 
   await signOut();
 

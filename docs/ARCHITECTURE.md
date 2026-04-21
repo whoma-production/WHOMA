@@ -58,7 +58,7 @@ Migration + QA evidence:
 - Marketplace write APIs use service-layer domain guards and typed operational error codes.
 - Marketplace write APIs require idempotency keys and apply route-level rate limits.
 - Public agent visibility is trust-gated to `PUBLISHED` + `VERIFIED`; material profile edits after verification return status to `PENDING`.
-- Public auth supports Google OAuth and email magic-link sign-in through Supabase Auth; approval gating remains post-auth and preview auth is no longer part of the public sign-in surface.
+- Public auth supports Google OAuth (env-gated) and email/password sign-in through Supabase Auth; approval gating remains post-auth and preview auth is no longer part of the public sign-in surface.
 - Phase 1 activation metrics track `started`, `workEmailVerified`, `completed`, `publishReady`, `published`, `pendingVerification`, and `verified`.
 - Work-email verification uses one-time code checks in onboarding with server-side resend cooldown, verification-attempt lockout, and onboarding verification rate limits; non-production surfaces `devCode`, while production delivery requires configured Resend credentials.
 - UK-ready defaults: GBP formatting, postcode handling.
@@ -77,7 +77,7 @@ Migration + QA evidence:
 
 ## Data Flow (Phase 1 Real Estate Agent Identity)
 
-1. User signs in with Google OAuth or email magic link and selects `AGENT`.
+1. User signs in with Google OAuth or email/password and selects `AGENT`.
 2. Agent verifies business work email with a one-time code in onboarding.
 3. Agent completes onboarding (`agency`, `job title`, `work email`, `phone`, `service areas`, `specialties`, `bio`).
 4. Server validates and persists onboarding details to `AgentProfile`, sets verification to `PENDING`.
@@ -91,7 +91,7 @@ Migration + QA evidence:
 ## Key Routes / Surfaces (current scaffold)
 
 - `/` — public Phase 1 landing (verified identity first, tendering secondary)
-- `/sign-in`, `/sign-up` — public auth entry with Google + email magic-link states for estate agents and support-routed homeowner access
+- `/sign-in`, `/sign-up` — public auth entry with Google + email/password states for estate agents and support-routed homeowner access
 - `/onboarding/role` — post-auth role assignment
 - `/agent/onboarding` — guided real estate agent onboarding flow
 - `/agent/profile/edit` — agent CV builder with draft/publish actions (requires completed onboarding)
@@ -121,7 +121,7 @@ Migration + QA evidence:
 - Backend: Next Route Handlers + Server Actions + service layers (`src/server/agent-profile/service.ts`, `src/server/marketplace/service.ts`)
 - API safety: idempotency + rate-limiting helpers (`src/server/http/idempotency.ts`, `src/server/http/rate-limit.ts`) with optional Upstash Redis shared backing and fallback local stores
 - DB: Postgres + Prisma
-- Auth: Supabase Auth (Google OAuth + email magic link) with a WHOMA server compatibility layer for role/access-state checks
+- Auth: Supabase Auth (Google OAuth + email/password) with a WHOMA server compatibility layer for role/access-state checks
 - Public auth pages now present live self-serve account access when any public auth method is configured and never expose preview roles.
 - Dev auth host rule: use one canonical dev origin (from `AUTH_URL`) to avoid callback/cookie mismatches
 - Tests: Vitest + Playwright

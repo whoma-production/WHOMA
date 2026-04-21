@@ -1,22 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { buildAuthCallbackUrl } from "@/lib/auth/callback-origin";
 import { getAuthErrorMessage } from "@/lib/auth/session";
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
-import type {
-  PublicAuthProviderAvailability,
-  PublicEmailAuthMethod
-} from "@/lib/auth/provider-config";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
+import type { PublicAuthProviderAvailability } from "@/lib/auth/provider-config";
 
 interface GoogleAuthButtonProps {
   redirectTo?: string;
   fullWidth?: boolean;
   providerAvailability: PublicAuthProviderAvailability;
-  emailAuthMethod?: PublicEmailAuthMethod;
   authMode?: "sign-in" | "sign-up";
   uxMode?: "public" | "internal";
   allowPreviewAccess?: boolean;
@@ -25,9 +20,7 @@ interface GoogleAuthButtonProps {
   oauthError?: string | null;
 }
 
-type PendingAction = "google" | "email" | "verify-email" | null;
-
-const EMAIL_AUTH_RESEND_COOLDOWN_SECONDS = 60;
+type PendingAction = "google" | "email" | null;
 
 function GoogleMark(): JSX.Element {
   return (
@@ -75,12 +68,16 @@ function isEmailCandidate(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function normalizeOtpCode(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 6);
-}
+function passwordStrengthError(password: string): string | null {
+  if (password.length < 8) {
+    return "Password must be at least 8 characters.";
+  }
 
-function isSupabaseRateLimitMessage(message: string): boolean {
-  return message.toLowerCase().includes("rate limit");
+  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+    return "Password must include at least one letter and one number.";
+  }
+
+  return null;
 }
 
 function mapSupabaseErrorMessage(
@@ -89,40 +86,51 @@ function mapSupabaseErrorMessage(
 ): string {
   const normalized = message.toLowerCase();
 
-  if (normalized.includes("provider") && normalized.includes("not enabled")) {
-    return "That sign-in method is unavailable right now. Try email instead.";
+  if (normalized.includes("invalid login credentials")) {
+    return "Incorrect email or password.";
   }
 
-  if (isSupabaseRateLimitMessage(message)) {
-    return "Too many sign-in attempts right now. Please wait about a minute and try again.";
+  if (normalized.includes("email not confirmed")) {
+    return "Check your email to confirm your account before signing in.";
   }
 
-  if (normalized.includes("signups not allowed")) {
-    return options?.authMode === "sign-in"
-      ? "We couldn't find an account for that email. Create your account first, then sign in."
-      : "We couldn't create your account right now. Please contact support.";
+  if (normalized.includes("already registered") || normalized.includes("user already exists")) {
+    return "An account with this email already exists. Sign in instead.";
+  }
+
+  if (normalized.includes("password should be at least") || normalized.includes("weak password")) {
+    return "Password is too weak. Use at least 8 characters, including letters and numbers.";
   }
 
   if (normalized.includes("invalid email")) {
     return "Enter a valid email address.";
   }
 
-  if (
-    normalized.includes("otp") ||
-    normalized.includes("token") ||
-    normalized.includes("expired")
-  ) {
-    return "That code is invalid or expired. Request a new code and try again.";
+  if (normalized.includes("rate limit")) {
+    return "Too many attempts right now. Please wait a minute and try again.";
   }
 
-  return "We could not complete sign-in right now. Please try again.";
+  if (normalized.includes("provider") && normalized.includes("not enabled")) {
+    return "Google sign-in is not enabled right now.";
+  }
+
+  if (options?.authMode === "sign-up") {
+    return "We could not create your account right now. Please try again.";
+  }
+
+  return "We could not sign you in right now. Please try again.";
+}
+
+function buildOAuthCallbackUrl(target: string): string {
+  const url = new URL("/auth/callback", window.location.origin);
+  url.searchParams.set("next", target);
+  return url.toString();
 }
 
 export function GoogleAuthButton({
-  redirectTo = "/onboarding/role",
+  redirectTo = "/dashboard",
   fullWidth = true,
   providerAvailability,
-  emailAuthMethod = "none",
   authMode = "sign-in",
   supportEmail,
   nextParam = null,
@@ -130,94 +138,32 @@ export function GoogleAuthButton({
 }: GoogleAuthButtonProps): JSX.Element {
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [emailAddress, setEmailAddress] = useState<string>("");
-  const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
-  const [lastEmailRequestTo, setLastEmailRequestTo] = useState<string | null>(null);
-  const [emailCode, setEmailCode] = useState<string>("");
-  const [resendCooldownRemaining, setResendCooldownRemaining] = useState<number>(0);
+  const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [signInError, setSignInError] = useState<string | null>(null);
+  const [signUpSuccess, setSignUpSuccess] = useState<string | null>(null);
 
   const errorMessage = signInError ?? getAuthErrorMessage(oauthError);
   const target = nextParam ?? redirectTo;
-  const isPending = pendingAction !== null;
   const hasPublicAuth = providerAvailability.any;
-  const usesEmailOtp = providerAvailability.email && emailAuthMethod === "otp";
-  const usesMagicLink =
-    providerAvailability.email && emailAuthMethod === "magic-link";
-  const isAwaitingEmailCode = usesEmailOtp && emailSentTo !== null;
-  const emailHint = usesEmailOtp
-    ? "No password needed. We'll email a 6-digit code to this address."
-    : usesMagicLink
-      ? "No password needed. We'll email a secure sign-in link to this address."
-      : null;
-
-  useEffect(() => {
-    if (resendCooldownRemaining <= 0) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setResendCooldownRemaining((current) => Math.max(0, current - 1));
-    }, 1000);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [resendCooldownRemaining]);
-
-  function startResendCooldown(): void {
-    setResendCooldownRemaining(EMAIL_AUTH_RESEND_COOLDOWN_SECONDS);
-  }
+  const isPending = pendingAction !== null;
+  const isSignUp = authMode === "sign-up";
 
   async function handleGoogleSignIn(): Promise<void> {
-    if (isPending) {
-      return;
-    }
-
-    if (!providerAvailability.google) {
-      setSignInError("Google sign-in is temporarily unavailable.");
+    if (isPending || !providerAvailability.google) {
       return;
     }
 
     setPendingAction("google");
     setSignInError(null);
-    setEmailSentTo(null);
-
-    let callbackUrl: string;
+    setSignUpSuccess(null);
 
     try {
-      callbackUrl = buildAuthCallbackUrl(target, {
-        fallbackOrigin: window.location.origin
-      });
-    } catch {
-      setSignInError("Sign-in is currently unavailable due to configuration.");
-      setPendingAction(null);
-      return;
-    }
-
-    try {
-      const availabilityResponse = await fetch(
-        `/api/auth/providers/google?next=${encodeURIComponent(target)}`,
-        {
-          cache: "no-store"
-        }
-      );
-
-      if (!availabilityResponse.ok) {
-        const payload = (await availabilityResponse
-          .json()
-          .catch(() => null)) as { error?: string } | null;
-        setSignInError(
-          payload?.error ??
-            "Google sign-in is temporarily unavailable. Try email instead."
-        );
-        return;
-      }
-
-      const supabase = getSupabaseBrowserClient();
+      const supabase = createSupabaseClient();
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: callbackUrl
+          redirectTo: buildOAuthCallbackUrl(target)
         }
       });
 
@@ -233,100 +179,11 @@ export function GoogleAuthButton({
 
       setSignInError("Google sign-in did not return a redirect URL.");
     } catch (error) {
-      const message =
+      setSignInError(
         error instanceof Error
           ? mapSupabaseErrorMessage(error.message)
-          : "We could not complete sign-in right now. Please try again.";
-      setSignInError(message);
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function sendEmailAuth(email: string): Promise<void> {
-    const trimmedEmail = email.trim().toLowerCase();
-
-    if (!isEmailCandidate(trimmedEmail)) {
-      setSignInError("Enter a valid email address.");
-      return;
-    }
-
-    if (
-      resendCooldownRemaining > 0 &&
-      lastEmailRequestTo &&
-      lastEmailRequestTo === trimmedEmail
-    ) {
-      setSignInError(
-        `Please wait about ${resendCooldownRemaining} seconds before requesting another ${usesEmailOtp ? "code" : "sign-in link"}.`
+          : "We could not complete sign-in right now. Please try again."
       );
-      return;
-    }
-
-    setPendingAction("email");
-    setSignInError(null);
-    setEmailSentTo(null);
-
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const options: {
-        shouldCreateUser: boolean;
-        emailRedirectTo?: string;
-      } = {
-        shouldCreateUser: authMode === "sign-up"
-      };
-
-      if (usesMagicLink) {
-        let callbackUrl: string;
-
-        try {
-          callbackUrl = buildAuthCallbackUrl(target, {
-            fallbackOrigin: window.location.origin
-          });
-        } catch {
-          setSignInError("Sign-in is currently unavailable due to configuration.");
-          setPendingAction(null);
-          return;
-        }
-
-        options.emailRedirectTo = callbackUrl;
-      }
-
-      const { error } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options
-      });
-
-      if (error) {
-        if (isSupabaseRateLimitMessage(error.message)) {
-          setLastEmailRequestTo(trimmedEmail);
-          startResendCooldown();
-        }
-
-        setSignInError(
-          mapSupabaseErrorMessage(error.message, {
-            authMode
-          })
-        );
-        return;
-      }
-
-      startResendCooldown();
-      setEmailAddress(trimmedEmail);
-      setEmailSentTo(trimmedEmail);
-      setLastEmailRequestTo(trimmedEmail);
-      setEmailCode("");
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? mapSupabaseErrorMessage(error.message, {
-              authMode
-            })
-          : "We could not complete sign-in right now. Please try again.";
-      if (error instanceof Error && isSupabaseRateLimitMessage(error.message)) {
-        setLastEmailRequestTo(trimmedEmail);
-        startResendCooldown();
-      }
-      setSignInError(message);
     } finally {
       setPendingAction(null);
     }
@@ -337,56 +194,87 @@ export function GoogleAuthButton({
   ): Promise<void> {
     event.preventDefault();
 
-    if (isPending) {
-      return;
-    }
-
-    if (!usesMagicLink && !usesEmailOtp) {
-      setSignInError("Email sign-in is currently unavailable.");
+    if (isPending || !providerAvailability.email) {
       return;
     }
 
     const trimmedEmail = emailAddress.trim().toLowerCase();
-    await sendEmailAuth(trimmedEmail);
-  }
 
-  async function handleEmailCodeSubmit(
-    event: React.FormEvent<HTMLFormElement>
-  ): Promise<void> {
-    event.preventDefault();
-
-    if (isPending || !emailSentTo) {
+    if (!isEmailCandidate(trimmedEmail)) {
+      setSignInError("Enter a valid email address.");
       return;
     }
 
-    if (emailCode.length !== 6) {
-      setSignInError("Enter the 6-digit code from your email.");
+    if (password.length === 0) {
+      setSignInError("Enter your password.");
       return;
     }
 
-    setPendingAction("verify-email");
+    if (isSignUp) {
+      const weakPasswordMessage = passwordStrengthError(password);
+
+      if (weakPasswordMessage) {
+        setSignInError(weakPasswordMessage);
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setSignInError("Passwords do not match.");
+        return;
+      }
+    }
+
+    setPendingAction("email");
     setSignInError(null);
+    setSignUpSuccess(null);
 
     try {
-      const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.auth.verifyOtp({
-        email: emailSentTo,
-        token: emailCode,
-        type: "email"
+      const supabase = createSupabaseClient();
+
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password
+        });
+
+        if (error) {
+          setSignInError(
+            mapSupabaseErrorMessage(error.message, {
+              authMode
+            })
+          );
+          return;
+        }
+
+        setSignUpSuccess("Check your email to confirm your account.");
+        setPassword("");
+        setConfirmPassword("");
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password
       });
 
       if (error) {
-        setSignInError(mapSupabaseErrorMessage(error.message));
+        setSignInError(
+          mapSupabaseErrorMessage(error.message, {
+            authMode
+          })
+        );
         return;
       }
 
       window.location.assign(target);
     } catch (error) {
-      const message =
+      setSignInError(
         error instanceof Error
-          ? mapSupabaseErrorMessage(error.message)
-          : "We could not complete sign-in right now. Please try again.";
-      setSignInError(message);
+          ? mapSupabaseErrorMessage(error.message, {
+              authMode
+            })
+          : "We could not complete sign-in right now. Please try again."
+      );
     } finally {
       setPendingAction(null);
     }
@@ -417,137 +305,99 @@ export function GoogleAuthButton({
       <div className="rounded-md border border-line bg-surface-1 p-4">
         <div className="mb-3 flex items-center gap-2">
           <MailMark />
-          <p className="text-sm font-medium text-text-strong">Continue with email</p>
+          <p className="text-sm font-medium text-text-strong">
+            {isSignUp ? "Create account with email" : "Sign in with email"}
+          </p>
         </div>
 
-        {!isAwaitingEmailCode ? (
-          <form onSubmit={handleEmailSubmit} className="space-y-3">
+        <form onSubmit={handleEmailSubmit} className="space-y-3">
+          <label className="space-y-1">
+            <span className="text-sm text-text-muted">Email</span>
+            <Input
+              type="email"
+              value={emailAddress}
+              autoComplete="email"
+              onChange={(event) => {
+                setEmailAddress(event.target.value);
+                if (signInError) {
+                  setSignInError(null);
+                }
+              }}
+              placeholder="you@example.com"
+              disabled={isPending || !providerAvailability.email}
+            />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm text-text-muted">Password</span>
+            <Input
+              type="password"
+              value={password}
+              autoComplete={isSignUp ? "new-password" : "current-password"}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                if (signInError) {
+                  setSignInError(null);
+                }
+              }}
+              placeholder={isSignUp ? "Create a password" : "Enter your password"}
+              disabled={isPending || !providerAvailability.email}
+            />
+          </label>
+
+          {isSignUp ? (
             <label className="space-y-1">
-              <span className="text-sm text-text-muted">Email</span>
+              <span className="text-sm text-text-muted">Confirm password</span>
               <Input
-                type="email"
-                value={emailAddress}
-                autoComplete="email"
+                type="password"
+                value={confirmPassword}
+                autoComplete="new-password"
                 onChange={(event) => {
-                  setEmailAddress(event.target.value);
+                  setConfirmPassword(event.target.value);
                   if (signInError) {
                     setSignInError(null);
                   }
                 }}
-                placeholder="you@example.com"
+                placeholder="Re-enter your password"
                 disabled={isPending || !providerAvailability.email}
               />
             </label>
+          ) : null}
 
-            <Button
-              type="submit"
-              fullWidth
-              disabled={
-                isPending ||
-                !providerAvailability.email ||
-                (resendCooldownRemaining > 0 &&
-                  lastEmailRequestTo !== null &&
-                  emailAddress.trim().toLowerCase() === lastEmailRequestTo)
-              }
-              aria-busy={isPending}
-            >
-              {pendingAction === "email"
-                ? usesEmailOtp
-                  ? "Sending sign-in code..."
-                  : "Sending secure sign-in link..."
-                : resendCooldownRemaining > 0 &&
-                    lastEmailRequestTo !== null &&
-                    emailAddress.trim().toLowerCase() === lastEmailRequestTo
-                  ? usesEmailOtp
-                    ? `Wait ${resendCooldownRemaining}s to resend`
-                    : `Wait ${resendCooldownRemaining}s to resend`
-                : usesEmailOtp
-                  ? "Email me a code"
-                  : "Continue with email"}
-            </Button>
-          </form>
-        ) : (
-          <div className="space-y-3">
-            <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-              Code sent to {emailSentTo}. Enter it below to continue.
-            </p>
+          <Button
+            type="submit"
+            fullWidth
+            disabled={isPending || !providerAvailability.email}
+            aria-busy={isPending}
+          >
+            {pendingAction === "email"
+              ? isSignUp
+                ? "Creating account..."
+                : "Signing in..."
+              : isSignUp
+                ? "Create account"
+                : "Sign in"}
+          </Button>
+        </form>
 
-            <form onSubmit={handleEmailCodeSubmit} className="space-y-3">
-              <label className="space-y-1">
-                <span className="text-sm text-text-muted">6-digit code</span>
-                <Input
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="one-time-code"
-                  value={emailCode}
-                  onChange={(event) => {
-                    setEmailCode(normalizeOtpCode(event.target.value));
-                    if (signInError) {
-                      setSignInError(null);
-                    }
-                  }}
-                  placeholder="123456"
-                  disabled={isPending}
-                />
-              </label>
+        <p className="mt-2 text-xs text-text-muted">
+          {isSignUp
+            ? "Use at least 8 characters, including letters and numbers."
+            : "Use the email and password linked to your WHOMA account."}
+        </p>
 
-              <Button
-                type="submit"
-                fullWidth
-                disabled={isPending || emailCode.length !== 6}
-                aria-busy={isPending}
-              >
-                {pendingAction === "verify-email"
-                  ? "Verifying code..."
-                  : "Verify code and continue"}
-              </Button>
-            </form>
-
-            <div className="flex flex-wrap gap-3 text-sm">
-              <button
-                type="button"
-                className="text-brand-ink underline"
-                onClick={() => {
-                  void sendEmailAuth(emailSentTo);
-                }}
-                disabled={isPending || resendCooldownRemaining > 0}
-              >
-                {resendCooldownRemaining > 0
-                  ? `Resend in ${resendCooldownRemaining}s`
-                  : "Resend code"}
-              </button>
-              <button
-                type="button"
-                className="text-text-muted underline"
-                onClick={() => {
-                  setEmailSentTo(null);
-                  setEmailCode("");
-                  setSignInError(null);
-                }}
-                disabled={isPending}
-              >
-                Use a different email
-              </button>
-            </div>
-          </div>
-        )}
-
-        {emailHint ? (
-          <p className="mt-2 text-xs text-text-muted">{emailHint}</p>
-        ) : null}
-
-        {!providerAvailability.email || emailAuthMethod === "none" ? (
+        {!providerAvailability.email ? (
           <p className="mt-2 text-xs text-text-muted">
             Email sign-in is currently unavailable.
           </p>
         ) : null}
-
-        {usesMagicLink && emailSentTo ? (
-          <p className="mt-3 rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-            Sign-in link sent to {emailSentTo}. Open your inbox to continue.
-          </p>
-        ) : null}
       </div>
+
+      {signUpSuccess ? (
+        <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+          {signUpSuccess}
+        </p>
+      ) : null}
 
       {errorMessage ? (
         <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
@@ -556,7 +406,7 @@ export function GoogleAuthButton({
       ) : null}
 
       <p className="text-xs text-text-muted">
-        WHOMA uses passwordless sign-in. Access is reviewed after sign-in.{" "}
+        Access is reviewed after sign-in.{" "}
         {supportEmail ? (
           <>
             Need help?{" "}

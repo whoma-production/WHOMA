@@ -7,7 +7,8 @@ const pageRoutePolicies = [
   { prefix: "/admin", policy: "ADMIN" as const },
   { prefix: "/access", policy: "AUTHENTICATED" as const },
   { prefix: "/messages", policy: "AUTHENTICATED" as const },
-  { prefix: "/onboarding/role", policy: "AUTHENTICATED" as const }
+  { prefix: "/onboarding/role", policy: "AUTHENTICATED" as const },
+  { prefix: "/dashboard", policy: "AUTHENTICATED" as const }
 ] as const;
 
 type PageRoutePolicy = (typeof pageRoutePolicies)[number]["policy"];

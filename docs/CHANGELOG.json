@@ -1990,5 +1990,44 @@
       "Push `main` to `origin` when ready.",
       "Begin `T103` using the updated subagent ownership and handoff protocol from `AGENTS.md`."
     ]
+  },
+  {
+    "session_id": "2026-04-21-1930-email-password-oauth-session-fix",
+    "timestamp": "2026-04-21T19:30:00+02:00",
+    "summary": "Replaced passwordless email auth with email/password flows, fixed Google OAuth callback exchange with dashboard defaults, and restored session persistence through Supabase SSR client helpers plus middleware cookie refresh.",
+    "files_changed": [
+      ".env.example",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/app/api/auth/providers/google/route.ts",
+      "src/app/auth/callback/route.ts",
+      "src/app/auth/error/page.tsx",
+      "src/app/auth/sign-out/route.ts",
+      "src/app/dashboard/page.tsx",
+      "src/components/auth/google-auth-button.tsx",
+      "src/components/auth/google-auth-button.test.tsx",
+      "src/components/layout/app-shell.tsx",
+      "src/lib/auth/provider-config.ts",
+      "src/lib/auth/session.ts",
+      "src/lib/auth/session.test.ts",
+      "src/lib/supabase/browser.ts",
+      "src/lib/supabase/client.ts",
+      "src/lib/supabase/server.ts",
+      "src/middleware.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Introduced `/dashboard` as the default post-auth route so sign-in, sign-up, and OAuth callback paths share one deterministic landing target while preserving role/access-state routing.",
+      "Gated Google button visibility by `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=true` to prevent broken OAuth launches in partially configured environments.",
+      "Kept canonical-host and access-hint guardrails in middleware while adding Supabase `auth.getUser()` refresh so persistence is fixed without dropping existing authorization behavior."
+    ],
+    "next_steps": [
+      "Merge this auth patch to `main` and deploy to Railway production for live validation.",
+      "Run a full live auth round-trip (`sign-up`, `sign-in`, `Google OAuth`) on the branded host with callback/default routing checks.",
+      "Confirm protected-route session persistence across hard refresh and revisit."
+    ]
   }
 ]

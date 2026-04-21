@@ -1,5 +1,5 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
 import {
   ACCESS_HINT_COOKIE_NAME,
@@ -12,7 +12,6 @@ import {
   getPageRoutePolicy,
   normalizeRedirectPath
 } from "@/lib/auth/session";
-import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
 function getCanonicalAppOrigin(): URL | null {
   const candidate =
@@ -49,24 +48,42 @@ export async function middleware(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(canonicalUrl, 307);
   }
 
-  const policy = getPageRoutePolicy(pathname);
-
-  if (!policy) {
-    return NextResponse.next();
-  }
-
-  const response = NextResponse.next();
+  let supabaseResponse = NextResponse.next({ request });
   let authenticatedUserId: string | null = null;
 
-  try {
-    const supabase = createSupabaseMiddlewareClient(request, response);
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (supabaseUrl && supabaseAnonKey) {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll(cookiesToSet) {
+          for (const { name, value } of cookiesToSet) {
+            request.cookies.set(name, value);
+          }
+
+          supabaseResponse = NextResponse.next({ request });
+
+          for (const { name, value, options } of cookiesToSet) {
+            supabaseResponse.cookies.set(name, value, options);
+          }
+        }
+      }
+    });
+
+    // Refresh session — do not remove this.
     const {
       data: { user }
     } = await supabase.auth.getUser();
 
     authenticatedUserId = user?.id ?? null;
-  } catch {
-    authenticatedUserId = null;
+  }
+
+  const policy = getPageRoutePolicy(pathname);
+
+  if (!policy) {
+    return supabaseResponse;
   }
 
   if (!authenticatedUserId) {
@@ -92,7 +109,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
     // Allow the request through so server-rendered pages can rebuild the
     // access hint from the live Supabase session instead of trapping the user
     // on the public sign-in route.
-    return response;
+    return supabaseResponse;
   }
 
   const role = accessHint.role;
@@ -100,7 +117,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
 
   if (!role) {
     if (pathname === "/onboarding/role") {
-      return response;
+      return supabaseResponse;
     }
 
     return NextResponse.redirect(new URL("/onboarding/role", request.url));
@@ -134,20 +151,11 @@ export async function middleware(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(fallbackUrl);
   }
 
-  return response;
+  return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    "/auth/callback",
-    "/auth/sign-out",
-    "/sign-in",
-    "/sign-up",
-    "/access/:path*",
-    "/onboarding/role",
-    "/homeowner/:path*",
-    "/agent/:path*",
-    "/admin/:path*",
-    "/messages/:path*"
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
   ]
 };

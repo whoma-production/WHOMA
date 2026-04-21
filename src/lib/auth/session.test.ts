@@ -14,6 +14,7 @@ describe("page route policy", () => {
     expect(getPageRoutePolicy("/messages")).toBe("AUTHENTICATED");
     expect(getPageRoutePolicy("/access/pending")).toBe("AUTHENTICATED");
     expect(getPageRoutePolicy("/onboarding/role")).toBe("AUTHENTICATED");
+    expect(getPageRoutePolicy("/dashboard")).toBe("AUTHENTICATED");
     expect(getPageRoutePolicy("/")).toBeNull();
   });
 

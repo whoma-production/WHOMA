@@ -475,6 +475,21 @@ Phase 1 delivery focus:
 - `README.md` now includes a `Team workflow` section pointing contributors to the senior-subagent model and recommended execution order.
 - This merge-completion pass introduced no additional runtime architecture changes; it is operational and documentation-focused.
 
+51. Password auth + OAuth callback/session persistence hardening (2026-04-21) (new)
+
+- Public auth now uses email/password end to end:
+  - sign-in: `supabase.auth.signInWithPassword`,
+  - sign-up: `supabase.auth.signUp` with password confirmation and inline validation.
+- Public auth redirects now default to `/dashboard` unless a safe `next` path is supplied.
+- Added `/dashboard` as the post-auth hub route, which routes authenticated users to role/access-state destinations (`/onboarding/role`, `/access/pending`, `/access/denied`, or their role default).
+- Google OAuth launch now calls Supabase directly from the client and is only rendered when `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=true`.
+- `/auth/callback` now exchanges OAuth `code` for a Supabase session and redirects to `next` (or `/dashboard`); failures route to `/auth/error`.
+- Middleware now uses Supabase SSR cookie adapters plus request-time `auth.getUser()` refresh on every matched route to prevent logout-on-reload/session-drop regressions.
+- Added explicit Supabase helper split:
+  - `src/lib/supabase/client.ts` for browser client creation,
+  - `src/lib/supabase/server.ts` for server/route-handler cookie-backed clients.
+- User-menu sign-out now calls `supabase.auth.signOut()` in the client and redirects to `/`.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
@@ -492,8 +507,8 @@ Phase 1 delivery focus:
 
 ## Backend
 
-- Auth/session: Supabase Auth (passwordless email, currently magic-link live; Google OAuth only when configured) + middleware route guards + DB-backed role/access-state authorization in server routes
-- Access-state cookies are now bound to Supabase user ids, and Google OAuth launch is preflighted through `/api/auth/providers/google` before the browser leaves WHOMA.
+- Auth/session: Supabase Auth (email/password plus optional Google OAuth) + middleware route guards + DB-backed role/access-state authorization in server routes
+- Access-state cookies are bound to Supabase user ids, and middleware now refreshes Supabase session cookies on matched requests via `auth.getUser()`.
 - Dev host consistency: middleware redirects sign-in/app route traffic to the canonical `AUTH_URL` host in development
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)

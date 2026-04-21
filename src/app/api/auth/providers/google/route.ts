@@ -23,7 +23,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return NextResponse.json(
       {
         ok: false,
-        error: "Google sign-in is temporarily unavailable. Please use email instead."
+        error: "Google sign-in is not enabled for this environment."
       },
       { status: 503 }
     );
@@ -35,8 +35,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          "Google sign-in is temporarily unavailable due to configuration. Please use email instead."
+        error: "Google sign-in is not configured correctly."
       },
       { status: 503 }
     );
@@ -44,7 +43,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const nextPath =
     normalizeRedirectPath(request.nextUrl.searchParams.get("next")) ??
-    "/onboarding/role";
+    "/dashboard";
 
   let callbackUrl: string;
 
@@ -56,8 +55,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          "Google sign-in is temporarily unavailable due to configuration. Please use email instead."
+        error: "Google sign-in is not configured correctly."
       },
       { status: 503 }
     );
@@ -76,7 +74,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       return NextResponse.json(
         {
           ok: false,
-          error: "Google sign-in is temporarily unavailable. Please use email instead."
+          error: "Google sign-in is not enabled for this environment."
         },
         { status: 503 }
       );
@@ -85,7 +83,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return NextResponse.json(
       {
         ok: false,
-        error: "Google sign-in is temporarily unavailable. Please use email instead."
+        error: "Google sign-in is not enabled for this environment."
       },
       { status: 502 }
     );

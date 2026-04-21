@@ -3,11 +3,13 @@
 import Link from "next/link";
 import type { Route } from "next";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { Logo } from "@/components/brand/logo";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getPublicSiteConfig } from "@/lib/public-site";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type ShellRole = "HOMEOWNER" | "AGENT" | "ADMIN";
@@ -49,6 +51,22 @@ const roleLabel: Record<ShellRole, string> = {
 export function AppShell({ role, title, children }: { role: ShellRole; title: string; children: ReactNode }): JSX.Element {
   const navItems = navByRole[role];
   const site = getPublicSiteConfig();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  async function handleSignOut(): Promise<void> {
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+
+    try {
+      const supabase = createSupabaseClient();
+      await supabase.auth.signOut();
+    } finally {
+      window.location.assign("/");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-surface-1">
@@ -71,10 +89,11 @@ export function AppShell({ role, title, children }: { role: ShellRole; title: st
               variant="secondary"
               size="sm"
               onClick={() => {
-                window.location.assign("/auth/sign-out?next=/sign-in");
+                void handleSignOut();
               }}
+              disabled={isSigningOut}
             >
-              Sign out
+              {isSigningOut ? "Signing out..." : "Sign out"}
             </Button>
           </div>
         </div>
