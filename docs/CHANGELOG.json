@@ -2096,5 +2096,27 @@
       "Generate a fresh signup confirmation email and verify callback host/path resolution on `https://www.whoma.co.uk`.",
       "Confirm post-confirm sign-in continuity on `/dashboard`."
     ]
+  },
+  {
+    "session_id": "2026-04-22-1218-auth-callback-origin-proxy-fix",
+    "timestamp": "2026-04-22T12:18:00+02:00",
+    "summary": "Fixed production callback redirects that were leaking to `localhost:8080` by resolving `/auth/callback` redirect origin through canonical env-backed host logic instead of raw runtime request origin.",
+    "files_changed": [
+      "src/app/auth/callback/route.ts",
+      "src/app/auth/callback/route.test.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Reused shared `resolveAuthOrigin` in callback route to keep host selection logic consistent across auth surfaces.",
+      "Added a production-mode internal-host regression test because live Railway callbacks can surface an internal localhost origin."
+    ],
+    "next_steps": [
+      "Deploy this origin-resolution fix to Railway production.",
+      "Re-check `/auth/callback` headers to confirm redirect host remains on `https://www.whoma.co.uk`.",
+      "Run a fresh signup confirmation round-trip and verify immediate sign-in continuity."
+    ]
   }
 ]

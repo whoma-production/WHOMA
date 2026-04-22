@@ -134,6 +134,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Progress (2026-04-21):** Auth entry is now password-based (`signInWithPassword` / `signUp`) with inline client validation, `/dashboard` post-auth routing, environment-gated Google OAuth launch, and middleware session refresh to prevent logout-on-reload behavior.
       **Progress (2026-04-22):** Auth confirmation-link generation now prefers `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN` (with runtime fallback) so signup/resend callback URLs stay canonical and do not depend on the active browser-origin host.
       **Progress (2026-04-22):** `/auth/callback` now handles both Supabase confirmation token flow (`token_hash` + `type` via `verifyOtp`) and OAuth code flow (`exchangeCodeForSession`) with regression tests, so confirmation links and Google callbacks share one stable session-exchange path.
+      **Progress (2026-04-22):** `/auth/callback` redirect origin now resolves through shared canonical-origin logic (`resolveAuthOrigin`) instead of raw runtime request origin, fixing live Railway proxy cases that previously redirected to `https://localhost:8080/...`.
 
 - [x] T002 — Homeowner create instruction flow (Property + Instruction) with Prisma persistence
       **Acceptance:** Homeowner can create a property and instruction, choose a 24-48h bid window, and saved instruction appears as `LIVE` or `DRAFT` with server-side Zod validation and Prisma write.

@@ -517,6 +517,13 @@ Phase 1 delivery focus:
 - Callback redirect behavior is now consistent across both flows: safe `next` path when present, otherwise `/dashboard`, with `/auth/error` fallback only when exchange/verification fails.
 - Added route-level regression coverage in `src/app/auth/callback/route.test.ts` so token and code callback behavior stays locked through future auth changes.
 
+55. Proxy-safe callback redirect origin resolution (2026-04-22) (new)
+
+- Live production probes showed callback requests can resolve to internal runtime origins (for example `https://localhost:8080`) behind Railway proxying.
+- `src/app/auth/callback/route.ts` now resolves redirect host via `resolveAuthOrigin({ fallbackOrigin })` instead of directly trusting `request.url.origin`.
+- This keeps callback redirects on the canonical public host (`https://www.whoma.co.uk`) for both successful session exchange and `/auth/error` fallback paths.
+- Regression coverage now includes a production-mode internal-host callback request to ensure redirects still resolve to the configured public origin.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

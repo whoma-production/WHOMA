@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
+import { resolveAuthOrigin } from "@/lib/auth/callback-origin";
 import { normalizeRedirectPath } from "@/lib/auth/session";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -19,7 +20,11 @@ function toEmailOtpType(value: string | null): EmailOtpType | null {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const { searchParams, origin } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const { searchParams } = requestUrl;
+  const origin =
+    resolveAuthOrigin({ fallbackOrigin: requestUrl.origin }) ??
+    requestUrl.origin;
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const otpType = toEmailOtpType(searchParams.get("type"));

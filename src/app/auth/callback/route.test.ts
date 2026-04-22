@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { createSupabaseServerClientMock, verifyOtpMock, exchangeCodeForSessionMock } =
   vi.hoisted(() => ({
@@ -27,6 +27,10 @@ beforeEach(() => {
 
   verifyOtpMock.mockResolvedValue({ error: null });
   exchangeCodeForSessionMock.mockResolvedValue({ error: null });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("/auth/callback route", () => {
@@ -68,6 +72,22 @@ describe("/auth/callback route", () => {
     const response = await GET(request);
 
     expect(verifyOtpMock).not.toHaveBeenCalled();
+    expect(exchangeCodeForSessionMock).toHaveBeenCalledWith("oauth-code-123");
+    expect(response.headers.get("location")).toBe(
+      "https://www.whoma.co.uk/dashboard"
+    );
+  });
+
+  it("uses configured callback origin when runtime host resolves to localhost", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN", "https://www.whoma.co.uk");
+
+    const request = new Request(
+      "https://localhost:8080/auth/callback?code=oauth-code-123"
+    );
+
+    const response = await GET(request);
+
     expect(exchangeCodeForSessionMock).toHaveBeenCalledWith("oauth-code-123");
     expect(response.headers.get("location")).toBe(
       "https://www.whoma.co.uk/dashboard"

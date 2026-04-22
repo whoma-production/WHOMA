@@ -5208,3 +5208,54 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Deploy this callback hardening to Railway production.
 2. Trigger a fresh signup email and verify confirmation resolves through `https://www.whoma.co.uk/auth/callback`.
 3. Confirm post-confirm redirect lands on `/dashboard` (or safe `next`) and that sign-in succeeds immediately after confirmation.
+
+---
+
+## Session: 2026-04-22 / 12:18 (CEST) — Production localhost-origin redirect fix in `/auth/callback`
+
+**Author:** Codex  
+**Context:** Live production probe after deploy showed `/auth/callback` returning `Location: https://localhost:8080/auth/error`, confirming runtime `request.url` origin can be internal/proxy-localhost in Railway.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Remove dependency on raw runtime `request.url.origin` for callback redirects in production.
+- Ensure confirmation and OAuth callback redirects always resolve to the canonical public host.
+
+### Changes Made
+
+- Updated `src/app/auth/callback/route.ts` to compute redirect origin using `resolveAuthOrigin({ fallbackOrigin: requestUrl.origin })` from `src/lib/auth/callback-origin.ts`.
+- Kept safe fallback behavior when env origin is unavailable, while preferring configured canonical origin in production.
+- Added regression test in `src/app/auth/callback/route.test.ts` to cover internal-host callback requests:
+  - when request arrives as `https://localhost:8080/...` in production and `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN` is set, redirect now resolves to `https://www.whoma.co.uk/...`.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/auth/callback/route.ts`
+- `src/app/auth/callback/route.test.ts`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Reused the shared callback-origin resolver to keep auth host logic centralized across sign-in, sign-out, and callback routes.
+- Added a runtime regression test for proxy-localhost callback origins because this exact failure occurred in live production.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run test -- src/app/auth/callback/route.test.ts` -> passed (`5` tests).
+- Live probe before fix (post previous deploy): `GET https://www.whoma.co.uk/auth/callback?token_hash=invalid&type=email` returned `307 Location: https://localhost:8080/auth/error`.
+
+### Known Issues / Risks
+
+- Fresh confirmation emails are still required for validating end-to-end signup behavior; previously sent emails retain old callback payloads/hosts.
+- Supabase dashboard URL/template settings remain required external dependencies.
+
+### Next Steps
+
+1. Deploy this localhost-origin redirect fix to Railway production.
+2. Re-run live probe against `/auth/callback` and confirm redirect host stays on `https://www.whoma.co.uk`.
+3. Run a fresh signup -> confirm-email -> sign-in validation cycle on production.
