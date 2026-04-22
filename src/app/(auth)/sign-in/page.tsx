@@ -10,6 +10,7 @@ import {
 interface PageProps {
   searchParams?: Promise<{
     error?: string;
+    reset?: string;
   }>;
 }
 
@@ -36,5 +37,10 @@ export default async function SignInPage({
     redirect("/dashboard");
   }
 
-  return <SignInForm oauthError={resolvedSearchParams?.error ?? null} />;
+  return (
+    <SignInForm
+      oauthError={resolvedSearchParams?.error ?? null}
+      resetStatus={resolvedSearchParams?.reset ?? null}
+    />
+  );
 }

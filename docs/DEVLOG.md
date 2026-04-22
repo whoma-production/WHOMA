@@ -5261,18 +5261,80 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 3. Run a fresh signup -> confirm-email -> sign-in validation cycle on production.
 
 ---
+## Session: 2026-04-22 / 12:36 (CEST) — Forgot-password flow for email/password auth
+
+**Author:** Codex  
+**Context:** User reported sign-in UX lacked a `Forgot password` option after migration to email/password auth.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Add a complete password recovery path without changing existing WHOMA visual style.
+- Keep redirects callback-safe and consistent with canonical auth origin logic.
+
+### Changes Made
+
+- Updated `src/components/auth/google-auth-button.tsx`:
+  - added a sign-in-only `Forgot password?` action,
+  - wired reset email sending through `supabase.auth.resetPasswordForEmail`,
+  - routed recovery links to `/auth/callback?next=/auth/reset-password`,
+  - added inline success/error recovery messaging states.
+- Added `src/app/auth/reset-password/page.tsx` (public auth shell route).
+- Added `src/components/auth/reset-password-form.tsx`:
+  - checks Supabase session presence after recovery callback,
+  - validates password strength and confirmation,
+  - updates password with `supabase.auth.updateUser({ password })`,
+  - redirects to `/sign-in?reset=updated` on success.
+- Updated `src/app/(auth)/sign-in/page.tsx` to show a success banner when reset completes.
+- Extended auth UI tests to assert forgot-password visibility in sign-in mode and absence in sign-up mode.
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/auth/google-auth-button.tsx`
+- `src/components/auth/google-auth-button.test.tsx`
+- `src/app/auth/reset-password/page.tsx`
+- `src/components/auth/reset-password-form.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Kept forgot-password as an in-card action on sign-in to reduce friction and avoid introducing extra menu/navigation complexity.
+- Reused existing callback origin patterns so recovery links remain stable in production and local environments.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+- `npm run test -- src/components/auth/google-auth-button.test.tsx src/app/auth/callback/route.test.ts` -> passed (`8` tests).
+
+### Known Issues / Risks
+
+- Supabase dashboard email-template and URL settings still control final recovery email delivery behavior.
+- Previously sent recovery links will not pick up new callback behavior; fresh reset emails are required for validation.
+
+### Next Steps
+
+1. Deploy this forgot-password patch to Railway production.
+2. Run a live test: `Forgot password?` -> recovery email -> set new password -> sign in with updated password.
+3. Verify `/sign-in?reset=updated` banner appears after successful password update.
+
+---
 
 ## Session: 2026-04-22 / 13:02 (CEST) — Premium progressive auth UX refresh (multi-step sign-up + split-shell sign-in)
 
 **Author:** Codex  
-**Context:** User requested a premium, no-reload, progressive-disclosure sign-up flow inspired by Purplebricks, plus a matching split-shell sign-in redesign using WHOMA styling and Supabase browser auth calls.
+**Context:** User requested a premium, no-reload, progressive-disclosure sign-up flow inspired by Purplebricks, plus a matching split-shell sign-in redesign using WHOMA styling and Supabase browser auth calls.  
 **Branch/PR:** `main` (working tree)
 
 ### Goal
 
 - Replace the existing auth entry UI with a premium split-screen pattern.
 - Ship a 3-step sign-up flow (`role -> credentials -> confirmation`) in one page component with CSS-only transitions and no route hops between steps.
-- Align `/sign-in` to the same shell and inline-validation behavior, then verify with type/lint checks.
+- Align `/sign-in` to the same shell and inline-validation behavior, while preserving account-recovery semantics.
 
 ### Changes Made
 
@@ -5290,7 +5352,7 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
   - Switched step icons to `@phosphor-icons/react` (`House`, `Buildings`, `Eye`, `EyeSlash`, `EnvelopeSimple`) with requested `light`/`thin` weights.
   - CSS-only step transitions using `opacity + translateX` timings/easing as requested.
 - Replaced `/sign-up` page wiring to use the new flow while preserving callback-return interception and signed-in redirect handling.
-- Implemented new sign-in form experience (`src/components/auth/sign-in-form.tsx`) with matching split-shell layout, inline field errors, Supabase error banner, right-aligned `Forgot password?` link, and post-success redirect to `/dashboard`.
+- Implemented new sign-in form experience (`src/components/auth/sign-in-form.tsx`) with matching split-shell layout, inline field errors, Supabase error banner, password-reset email trigger, and post-success redirect to `/dashboard`.
 - Replaced `/sign-in` page wiring to the new sign-in component while preserving callback-return interception and signed-in redirect handling.
 - Added `/auth/login` alias route redirecting to `/sign-in` for the confirmation-step back-link target.
 
@@ -5322,10 +5384,10 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ### Known Issues / Risks
 
-- `Forgot password?` currently routes to `/contact` (support-assisted recovery) rather than a dedicated self-serve password reset form.
+- Supabase dashboard email-template and callback URL settings remain external dependencies for final signup/reset email delivery behavior.
 
 ### Next Steps
 
-1. Add a dedicated `/auth/forgot-password` self-serve reset flow if product wants in-app password recovery instead of support routing.
-2. Run one browser QA pass on mobile + desktop for `/sign-up` transitions and confirmation resend behavior.
-3. If approved, mirror this split-shell system onto any remaining auth-adjacent entry routes for consistency.
+1. Run one browser QA pass on mobile + desktop for `/sign-up` transitions and confirmation resend behavior.
+2. Verify full production auth recovery round-trip on branded host (`forgot -> reset -> sign-in`).
+3. If approved, mirror this split-shell system onto remaining auth-adjacent entry routes for consistency.

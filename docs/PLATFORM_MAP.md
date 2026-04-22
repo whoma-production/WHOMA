@@ -534,6 +534,16 @@ Phase 1 delivery focus:
 - Signup calls now pass role metadata from step selection via `supabase.auth.signUp(... options.data.role ...)`, preserving role intent from the first interaction.
 - Public `/sign-in` now uses the same split-shell layout language (dark fixed left panel + centered right form), with inline field errors and Supabase error banner handling aligned to sign-up.
 - Added `/auth/login` alias routing to `/sign-in` so confirmation-step back-link UX remains stable without changing existing sign-in route ownership.
+57. Password recovery flow for email/password auth (2026-04-22) (new)
+
+- Sign-in email/password UI now includes a `Forgot password?` action in `src/components/auth/google-auth-button.tsx`.
+- Forgot-password now sends Supabase reset emails via `supabase.auth.resetPasswordForEmail(email, { redirectTo })`, with callback origin routed through `/auth/callback?next=/auth/reset-password`.
+- Added `src/app/auth/reset-password/page.tsx` and `src/components/auth/reset-password-form.tsx`:
+  - verifies a recovery-backed session is present,
+  - enforces password strength + confirm-password checks,
+  - updates password via `supabase.auth.updateUser({ password })`,
+  - redirects back to `/sign-in?reset=updated` after success.
+- `/sign-in` now surfaces an inline success banner when a reset is completed (`reset=updated`).
 
 ## Frontend/Backend Map
 

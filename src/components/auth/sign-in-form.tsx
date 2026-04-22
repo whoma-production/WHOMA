@@ -9,6 +9,7 @@ import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 interface SignInFormProps {
   oauthError?: string | null;
+  resetStatus?: string | null;
 }
 
 function isEmailCandidate(value: string): boolean {
@@ -37,7 +38,28 @@ function mapSupabaseSignInError(message: string): string {
   return "We could not sign you in right now. Please try again.";
 }
 
-export function SignInForm({ oauthError = null }: SignInFormProps): JSX.Element {
+function buildRecoveryCallbackUrl(): string {
+  const configuredOrigin = process.env.NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN?.trim();
+
+  if (configuredOrigin) {
+    try {
+      const url = new URL("/auth/callback", configuredOrigin);
+      url.searchParams.set("next", "/auth/reset-password");
+      return url.toString();
+    } catch {
+      // Fallback below.
+    }
+  }
+
+  const url = new URL("/auth/callback", window.location.origin);
+  url.searchParams.set("next", "/auth/reset-password");
+  return url.toString();
+}
+
+export function SignInForm({
+  oauthError = null,
+  resetStatus = null
+}: SignInFormProps): JSX.Element {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [fieldErrors, setFieldErrors] = useState<{
@@ -47,11 +69,18 @@ export function SignInForm({ oauthError = null }: SignInFormProps): JSX.Element 
   const [bannerError, setBannerError] = useState<string | null>(
     getAuthErrorMessage(oauthError)
   );
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(
+    resetStatus === "updated"
+      ? "Password updated successfully. Sign in with your new password."
+      : null
+  );
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSendingReset, setIsSendingReset] = useState<boolean>(false);
 
   function clearErrors(): void {
     setFieldErrors({});
     setBannerError(null);
+    setNoticeMessage(null);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -105,6 +134,43 @@ export function SignInForm({ oauthError = null }: SignInFormProps): JSX.Element 
     }
   }
 
+  async function handleForgotPassword(): Promise<void> {
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!isEmailCandidate(trimmedEmail)) {
+      setBannerError("Enter your email address to reset your password.");
+      return;
+    }
+
+    setIsSendingReset(true);
+    setBannerError(null);
+    setNoticeMessage(null);
+
+    try {
+      const supabase = createSupabaseClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: buildRecoveryCallbackUrl()
+      });
+
+      if (error) {
+        setBannerError(mapSupabaseSignInError(error.message));
+        return;
+      }
+
+      setNoticeMessage(
+        "If an account exists for this email, we sent a password reset link. Check your inbox and spam folder."
+      );
+    } catch (error) {
+      setBannerError(
+        error instanceof Error
+          ? mapSupabaseSignInError(error.message)
+          : "We could not send a password reset email right now. Please try again."
+      );
+    } finally {
+      setIsSendingReset(false);
+    }
+  }
+
   return (
     <AuthSplitShell valueProp="Sign in to WHOMA">
       <section className="space-y-7">
@@ -118,6 +184,11 @@ export function SignInForm({ oauthError = null }: SignInFormProps): JSX.Element 
         {bannerError ? (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {bannerError}
+          </div>
+        ) : null}
+        {noticeMessage ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+            {noticeMessage}
           </div>
         ) : null}
 
@@ -161,9 +232,16 @@ export function SignInForm({ oauthError = null }: SignInFormProps): JSX.Element 
           </label>
 
           <div className="flex justify-end">
-            <Link href="/contact" className="text-sm font-medium text-zinc-500 underline underline-offset-2">
-              Forgot password?
-            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                void handleForgotPassword();
+              }}
+              disabled={isSendingReset || isSubmitting}
+              className="text-sm font-medium text-zinc-500 underline underline-offset-2 disabled:opacity-50"
+            >
+              {isSendingReset ? "Sending reset email..." : "Forgot password?"}
+            </button>
           </div>
 
           <button
