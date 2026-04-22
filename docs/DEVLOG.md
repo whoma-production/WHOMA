@@ -5324,6 +5324,64 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ---
 
+## Session: 2026-04-22 / 12:58 (CEST) — Restored homeowner/agent role selection via switch mode
+
+**Author:** Codex  
+**Context:** User reported they could only continue as homeowner after sign-in and requested role selection between estate agent and homeowner again.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Restore explicit role selection for authenticated users without regressing existing auth/session behavior.
+- Keep role switching intentional and visible in the signed-in app shell.
+
+### Changes Made
+
+- Updated `src/middleware.ts` to allow `/onboarding/role?switch=1` through even when a role is already set.
+- Updated `src/app/onboarding/role/page.tsx`:
+  - added switch-mode handling via query/form signal,
+  - prevented default hard redirect when switch mode is active,
+  - allowed controlled role reassignment for existing users,
+  - short-circuited no-op submissions when selected role matches current role.
+- Updated `src/components/layout/app-shell.tsx`:
+  - added a visible `Switch role` action for `HOMEOWNER` and `AGENT` sessions,
+  - links to `/onboarding/role?switch=1`.
+- Preserved existing role enforcement, access-state handling, and sign-out behavior.
+
+### Files / Modules Touched (high signal only)
+
+- `src/middleware.ts`
+- `src/app/onboarding/role/page.tsx`
+- `src/components/layout/app-shell.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Kept role switching behind an explicit URL/query signal instead of silently changing behavior for normal onboarding.
+- Placed switch access in app-shell header so role choice is discoverable after sign-in and usable during QA/ops validation.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+- `npm run test -- src/lib/auth/session.test.ts` -> passed (`6` tests).
+
+### Known Issues / Risks
+
+- Switching into `AGENT` assumes downstream onboarding/profile surfaces can initialize required profile records; this is expected but still depends on existing onboarding service guardrails.
+- Existing sessions may need one navigation refresh after switching so all role-specific nav/state surfaces reflect updated access hints.
+
+### Next Steps
+
+1. Deploy this role-switch patch to Railway production.
+2. Validate live flow: sign in -> `Switch role` -> choose `ESTATE AGENT` -> land on `/agent/onboarding`.
+3. Re-validate reverse flow: sign in as agent -> `Switch role` -> choose `HOMEOWNER` -> land on `/homeowner/instructions`.
+
+---
+
 ## Session: 2026-04-22 / 13:02 (CEST) — Premium progressive auth UX refresh (multi-step sign-up + split-shell sign-in)
 
 **Author:** Codex  
@@ -5343,18 +5401,9 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
   - 40/60 desktop split,
   - dark persistent left panel,
   - mobile 64px top-bar collapse (logo-only).
-- Implemented new client-side multi-step sign-up flow (`src/components/auth/sign-up-flow.tsx`):
-  - Step 1 role cards (`HOMEOWNER` / `AGENT`), selectable-card interaction and gated Continue CTA.
-  - Step 2 email/password/confirm fields with inline validation and Supabase error banner.
-  - Step 2 password visibility toggles and shimmer loading CTA state.
-  - Supabase `signUp` now includes callback URL + `data: { role }` metadata from selected role.
-  - Step 3 email-confirmation state with resend action (`supabase.auth.resend({ type: "signup" })`) and transient `Sent` feedback.
-  - Switched step icons to `@phosphor-icons/react` (`House`, `Buildings`, `Eye`, `EyeSlash`, `EnvelopeSimple`) with requested `light`/`thin` weights.
-  - CSS-only step transitions using `opacity + translateX` timings/easing as requested.
-- Replaced `/sign-up` page wiring to use the new flow while preserving callback-return interception and signed-in redirect handling.
-- Implemented new sign-in form experience (`src/components/auth/sign-in-form.tsx`) with matching split-shell layout, inline field errors, Supabase error banner, password-reset email trigger, and post-success redirect to `/dashboard`.
-- Replaced `/sign-in` page wiring to the new sign-in component while preserving callback-return interception and signed-in redirect handling.
-- Added `/auth/login` alias route redirecting to `/sign-in` for the confirmation-step back-link target.
+- Implemented new client-side multi-step sign-up flow (`src/components/auth/sign-up-flow.tsx`) and updated `/sign-up` page wiring.
+- Implemented new sign-in form experience (`src/components/auth/sign-in-form.tsx`) and updated `/sign-in` page wiring.
+- Added `/auth/login` alias route redirecting to `/sign-in` for confirmation-step back-link behavior.
 
 ### Files / Modules Touched (high signal only)
 
@@ -5366,16 +5415,11 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 - `src/app/auth/login/page.tsx`
 - `package.json`
 - `package-lock.json`
-- `docs/DEVLOG.md`
-- `docs/TASKS.md`
-- `docs/PLATFORM_MAP.md`
-- `docs/CHANGELOG.json`
 
 ### Decisions
 
-- Implemented transitions with CSS-only class state (`out -> pre-in -> in`) because no animation package is installed and user asked for no new flow-level route transitions.
+- Implemented transitions with CSS-only class state (`out -> pre-in -> in`) because no animation package is installed and route hops were intentionally minimized.
 - Kept Supabase callback/session guard behavior in server pages untouched, limiting scope to auth UX and client form behavior.
-- Added `/auth/login` alias rather than renaming existing public sign-in route, so existing links remain stable while new confirmation CTA requirement is satisfied.
 
 ### Verification
 

@@ -14,7 +14,7 @@ const onboardingRoleSchema = z.object({
 });
 
 interface RoleOnboardingPageProps {
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{ error?: string; switch?: string }>;
 }
 
 async function setRoleAction(formData: FormData): Promise<void> {
@@ -29,6 +29,7 @@ async function setRoleAction(formData: FormData): Promise<void> {
   const parsed = onboardingRoleSchema.safeParse({
     role: formData.get("role")
   });
+  const allowRoleSwitch = formData.get("switchMode") === "1";
 
   if (!parsed.success) {
     redirect("/onboarding/role?error=invalid_role");
@@ -43,8 +44,12 @@ async function setRoleAction(formData: FormData): Promise<void> {
     redirect("/sign-in?error=AccessDenied&next=/onboarding/role");
   }
 
-  if (currentUser.role) {
+  if (currentUser.role && !allowRoleSwitch) {
     redirect(defaultRouteForRole(currentUser.role));
+  }
+
+  if (currentUser.role === parsed.data.role) {
+    redirect(defaultRouteForRole(parsed.data.role));
   }
 
   const updatedUser = await prisma.user.update({
@@ -70,17 +75,24 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
     redirect("/sign-in?next=/onboarding/role");
   }
 
-  const sessionRole = session.user.role;
-  if (sessionRole) {
-    redirect(defaultRouteForRole(sessionRole));
-  }
-
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const allowRoleSwitch = resolvedSearchParams?.switch === "1";
   const errorCode = resolvedSearchParams?.error;
   const errorMessage =
     errorCode === "invalid_role"
       ? "Choose either Homeowner or Agent to continue."
       : getAuthErrorMessage(errorCode);
+  const title = allowRoleSwitch
+    ? "Switch your account role"
+    : "What brings you to Whoma?";
+  const description = allowRoleSwitch
+    ? "Choose the role you want to use right now. You can switch again later."
+    : "You only do this once. We use it to route you into the right part of WHOMA.";
+
+  const sessionRole = session.user.role;
+  if (sessionRole && !allowRoleSwitch) {
+    redirect(defaultRouteForRole(sessionRole));
+  }
 
   return (
     <main className="grid min-h-screen place-items-center bg-surface-1 px-4 py-10">
@@ -91,13 +103,18 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
 
         <Card>
           <CardHeader>
-            <CardTitle>What brings you to Whoma?</CardTitle>
-            <CardDescription>
-              You only do this once. We use it to route you into the right part
-              of WHOMA.
-            </CardDescription>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {allowRoleSwitch && session.user.role ? (
+              <p className="rounded-md border border-line bg-surface-1 px-3 py-2 text-sm text-text-muted">
+                Current role:{" "}
+                <span className="font-medium text-text-strong">
+                  {session.user.role === "AGENT" ? "ESTATE AGENT" : session.user.role}
+                </span>
+              </p>
+            ) : null}
             {errorMessage ? (
               <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
                 {errorMessage}
@@ -107,6 +124,9 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
             <div className="grid gap-4 md:grid-cols-2">
               <form action={setRoleAction} className="contents">
                 <input type="hidden" name="role" value="HOMEOWNER" />
+                {allowRoleSwitch ? (
+                  <input type="hidden" name="switchMode" value="1" />
+                ) : null}
                 <Card className="interactive-lift flex h-full flex-col justify-between gap-4 p-5">
                   <div>
                     <h2 className="text-lg">I&apos;m selling my home</h2>
@@ -123,6 +143,9 @@ export default async function RoleOnboardingPage({ searchParams }: RoleOnboardin
 
               <form action={setRoleAction} className="contents">
                 <input type="hidden" name="role" value="AGENT" />
+                {allowRoleSwitch ? (
+                  <input type="hidden" name="switchMode" value="1" />
+                ) : null}
                 <Card className="interactive-lift flex h-full flex-col justify-between gap-4 p-5">
                   <div>
                     <h2 className="text-lg">I&apos;m an estate agent</h2>

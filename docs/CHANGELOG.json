@@ -2146,6 +2146,29 @@
     ]
   },
   {
+    "session_id": "2026-04-22-1258-role-switch-restoration",
+    "timestamp": "2026-04-22T12:58:00+02:00",
+    "summary": "Restored homeowner/estate-agent role selection for authenticated users by enabling explicit switch-mode role onboarding and adding a signed-in `Switch role` header action.",
+    "files_changed": [
+      "src/middleware.ts",
+      "src/app/onboarding/role/page.tsx",
+      "src/components/layout/app-shell.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Introduced explicit switch mode (`/onboarding/role?switch=1`) instead of changing default onboarding behavior for all users with existing roles.",
+      "Added role-switch entry directly in app shell for homeowner/agent sessions so role selection remains discoverable post-auth without exposing extra public-auth complexity."
+    ],
+    "next_steps": [
+      "Deploy this role-switch patch to Railway production.",
+      "Validate live switch flow from homeowner to estate agent and back.",
+      "Confirm role-specific nav and route gating update correctly after each switch."
+    ]
+  },
+  {
     "session_id": "2026-04-22-1302-premium-auth-progressive-flow-refresh",
     "timestamp": "2026-04-22T13:02:00+02:00",
     "summary": "Redesigned public auth UX with a premium split-shell system: multi-step no-reload sign-up with CSS transitions, role-aware Supabase signup metadata, in-flow confirmation resend, and matching sign-in layout with integrated reset-email recovery handling.",

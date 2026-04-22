@@ -545,6 +545,15 @@ Phase 1 delivery focus:
   - redirects back to `/sign-in?reset=updated` after success.
 - `/sign-in` now surfaces an inline success banner when a reset is completed (`reset=updated`).
 
+57. Role switching restored for authenticated users (2026-04-22) (new)
+
+- Middleware now allows `/onboarding/role?switch=1` requests to bypass the default-role auto-redirect so signed-in users can reopen role selection intentionally.
+- `src/app/onboarding/role/page.tsx` now supports switch mode:
+  - existing-role users are no longer hard-blocked when switch mode is active,
+  - role updates can reassign between `HOMEOWNER` and `AGENT`,
+  - same-role submissions short-circuit safely to the current default route.
+- `src/components/layout/app-shell.tsx` now shows a `Switch role` action for homeowner and estate-agent sessions, linking directly to `/onboarding/role?switch=1`.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

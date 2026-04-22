@@ -32,6 +32,9 @@ function getCanonicalAppOrigin(): URL | null {
 
 export async function middleware(request: NextRequest): Promise<Response> {
   const { pathname, search } = request.nextUrl;
+  const isRoleSwitchRequest =
+    pathname === "/onboarding/role" &&
+    request.nextUrl.searchParams.get("switch") === "1";
 
   if (pathname === "/api/health") {
     return NextResponse.next({ request });
@@ -146,7 +149,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(new URL("/agent/onboarding", request.url));
   }
 
-  if (pathname === "/onboarding/role") {
+  if (pathname === "/onboarding/role" && !isRoleSwitchRequest) {
     return NextResponse.redirect(new URL(defaultRouteForRole(role), request.url));
   }
 

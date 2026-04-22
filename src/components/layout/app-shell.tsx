@@ -52,6 +52,7 @@ export function AppShell({ role, title, children }: { role: ShellRole; title: st
   const navItems = navByRole[role];
   const site = getPublicSiteConfig();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const canSwitchRole = role === "HOMEOWNER" || role === "AGENT";
 
   async function handleSignOut(): Promise<void> {
     if (isSigningOut) {
@@ -84,6 +85,14 @@ export function AppShell({ role, title, children }: { role: ShellRole; title: st
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            {canSwitchRole ? (
+              <Link
+                href={{ pathname: "/onboarding/role", query: { switch: "1" } }}
+                className={cn(buttonVariants({ variant: "tertiary", size: "sm" }))}
+              >
+                Switch role
+              </Link>
+            ) : null}
             <Button
               type="button"
               variant="secondary"
