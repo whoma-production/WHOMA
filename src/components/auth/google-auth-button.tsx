@@ -20,7 +20,7 @@ interface GoogleAuthButtonProps {
   oauthError?: string | null;
 }
 
-type PendingAction = "google" | "email" | "resend" | null;
+type PendingAction = "google" | "email" | "resend" | "reset" | null;
 type SignUpNoticeTone = "success" | "warning";
 
 interface SignUpNotice {
@@ -159,6 +159,9 @@ export function GoogleAuthButton({
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [signInError, setSignInError] = useState<string | null>(null);
   const [signUpNotice, setSignUpNotice] = useState<SignUpNotice | null>(null);
+  const [passwordResetNotice, setPasswordResetNotice] = useState<string | null>(
+    null
+  );
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(
     null
   );
@@ -177,6 +180,7 @@ export function GoogleAuthButton({
     setPendingAction("google");
     setSignInError(null);
     setSignUpNotice(null);
+    setPasswordResetNotice(null);
 
     try {
       const supabase = createSupabaseClient();
@@ -247,6 +251,7 @@ export function GoogleAuthButton({
     setPendingAction("email");
     setSignInError(null);
     setSignUpNotice(null);
+    setPasswordResetNotice(null);
 
     try {
       const supabase = createSupabaseClient();
@@ -340,6 +345,7 @@ export function GoogleAuthButton({
     setPendingAction("resend");
     setSignInError(null);
     setSignUpNotice(null);
+    setPasswordResetNotice(null);
 
     try {
       const supabase = createSupabaseClient();
@@ -373,6 +379,54 @@ export function GoogleAuthButton({
               authMode: "sign-up"
             })
           : "We could not resend the confirmation email right now. Please try again."
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleForgotPassword(): Promise<void> {
+    if (isPending || !providerAvailability.email || isSignUp) {
+      return;
+    }
+
+    const targetEmail = emailAddress.trim().toLowerCase();
+
+    if (!isEmailCandidate(targetEmail)) {
+      setSignInError("Enter your email address to reset your password.");
+      return;
+    }
+
+    setPendingAction("reset");
+    setSignInError(null);
+    setSignUpNotice(null);
+    setPasswordResetNotice(null);
+
+    try {
+      const supabase = createSupabaseClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+        redirectTo: buildOAuthCallbackUrl("/auth/reset-password")
+      });
+
+      if (error) {
+        setSignInError(
+          mapSupabaseErrorMessage(error.message, {
+            authMode: "sign-in"
+          })
+        );
+        return;
+      }
+
+      setPasswordResetNotice(
+        "If an account exists for this email, we sent a password reset link. Check your inbox and spam folder."
+      );
+    } catch (error) {
+      setSignInError(
+        error instanceof Error
+          ? mapSupabaseErrorMessage(error.message, {
+              authMode: "sign-in"
+            })
+          : "We could not send a password reset email right now. Please try again."
       );
     } finally {
       setPendingAction(null);
@@ -499,6 +553,19 @@ export function GoogleAuthButton({
             Email sign-in is currently unavailable.
           </p>
         ) : null}
+
+        {!isSignUp && providerAvailability.email ? (
+          <button
+            type="button"
+            className="mt-2 text-xs font-medium text-brand-ink underline"
+            onClick={() => {
+              void handleForgotPassword();
+            }}
+            disabled={isPending}
+          >
+            {pendingAction === "reset" ? "Sending reset email..." : "Forgot password?"}
+          </button>
+        ) : null}
       </div>
 
       {signUpNotice ? (
@@ -526,6 +593,12 @@ export function GoogleAuthButton({
             </Button>
           ) : null}
         </div>
+      ) : null}
+
+      {passwordResetNotice ? (
+        <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+          {passwordResetNotice}
+        </p>
       ) : null}
 
       {errorMessage ? (

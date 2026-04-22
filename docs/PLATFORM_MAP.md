@@ -524,6 +524,17 @@ Phase 1 delivery focus:
 - This keeps callback redirects on the canonical public host (`https://www.whoma.co.uk`) for both successful session exchange and `/auth/error` fallback paths.
 - Regression coverage now includes a production-mode internal-host callback request to ensure redirects still resolve to the configured public origin.
 
+56. Password recovery flow for email/password auth (2026-04-22) (new)
+
+- Sign-in email/password UI now includes a `Forgot password?` action in `src/components/auth/google-auth-button.tsx`.
+- Forgot-password now sends Supabase reset emails via `supabase.auth.resetPasswordForEmail(email, { redirectTo })`, with callback origin routed through `/auth/callback?next=/auth/reset-password`.
+- Added `src/app/auth/reset-password/page.tsx` and `src/components/auth/reset-password-form.tsx`:
+  - verifies a recovery-backed session is present,
+  - enforces password strength + confirm-password checks,
+  - updates password via `supabase.auth.updateUser({ password })`,
+  - redirects back to `/sign-in?reset=updated` after success.
+- `/sign-in` now surfaces an inline success banner when a reset is completed (`reset=updated`).
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

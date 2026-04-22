@@ -36,6 +36,7 @@ interface PageProps {
     next?: string;
     error?: string;
     waitlist?: string;
+    reset?: string;
   }>;
 }
 
@@ -122,6 +123,11 @@ export default async function SignInPage({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {resolvedSearchParams?.reset === "updated" ? (
+                <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
+                  Password updated successfully. Sign in with your new password.
+                </p>
+              ) : null}
               <div className="grid grid-cols-2 gap-2">
                 <Link
                   href="/sign-in"

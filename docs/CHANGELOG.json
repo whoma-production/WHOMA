@@ -2118,5 +2118,31 @@
       "Re-check `/auth/callback` headers to confirm redirect host remains on `https://www.whoma.co.uk`.",
       "Run a fresh signup confirmation round-trip and verify immediate sign-in continuity."
     ]
+  },
+  {
+    "session_id": "2026-04-22-1236-forgot-password-flow",
+    "timestamp": "2026-04-22T12:36:00+02:00",
+    "summary": "Added a full forgot-password flow for email/password auth: sign-in reset-email trigger, callback-safe recovery redirect, and a dedicated reset-password page to set a new password.",
+    "files_changed": [
+      "src/components/auth/google-auth-button.tsx",
+      "src/components/auth/google-auth-button.test.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/auth/reset-password/page.tsx",
+      "src/components/auth/reset-password-form.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Placed the forgot-password action directly in the sign-in card so account recovery is discoverable without leaving the auth surface.",
+      "Routed recovery emails through `/auth/callback?next=/auth/reset-password` to preserve canonical-origin callback guarantees.",
+      "Kept password reset validation strict and inline (strength + confirm match) before `supabase.auth.updateUser`."
+    ],
+    "next_steps": [
+      "Deploy this forgot-password patch to Railway production.",
+      "Run a live reset round-trip from sign-in through password update and re-authentication.",
+      "Confirm the sign-in success banner appears after reset completion (`/sign-in?reset=updated`)."
+    ]
   }
 ]

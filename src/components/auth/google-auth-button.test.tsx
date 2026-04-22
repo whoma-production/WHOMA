@@ -24,6 +24,9 @@ describe("GoogleAuthButton", () => {
     expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /forgot password\\?/i })
+    ).toBeInTheDocument();
   });
 
   it("hides Google and disables email sign-in when providers are unavailable", () => {
@@ -64,6 +67,9 @@ describe("GoogleAuthButton", () => {
     expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /forgot password\\?/i })
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /create account/i })
     ).toBeInTheDocument();
