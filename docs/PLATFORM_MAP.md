@@ -524,6 +524,17 @@ Phase 1 delivery focus:
 - This keeps callback redirects on the canonical public host (`https://www.whoma.co.uk`) for both successful session exchange and `/auth/error` fallback paths.
 - Regression coverage now includes a production-mode internal-host callback request to ensure redirects still resolve to the configured public origin.
 
+56. Premium progressive auth flow refresh (2026-04-22) (new)
+
+- Public `/sign-up` now runs as a single-page, no-full-reload, 3-step flow inside one client component:
+  - Step 1: role selection cards (`HOMEOWNER` / `AGENT`)
+  - Step 2: credentials creation with inline validation + Supabase error banner
+  - Step 3: confirmation state with in-flow resend action.
+- Step transitions now use CSS-only timing/state choreography (`opacity` + `translateX`) with explicit out/in durations and bezier easing; no animation library was added.
+- Signup calls now pass role metadata from step selection via `supabase.auth.signUp(... options.data.role ...)`, preserving role intent from the first interaction.
+- Public `/sign-in` now uses the same split-shell layout language (dark fixed left panel + centered right form), with inline field errors and Supabase error banner handling aligned to sign-up.
+- Added `/auth/login` alias routing to `/sign-in` so confirmation-step back-link UX remains stable without changing existing sign-in route ownership.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

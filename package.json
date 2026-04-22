@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@phosphor-icons/react": "^2.1.10",
     "@prisma/client": "^6.0.0",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.102.1",

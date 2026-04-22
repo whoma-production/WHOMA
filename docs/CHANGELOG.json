@@ -2118,5 +2118,34 @@
       "Re-check `/auth/callback` headers to confirm redirect host remains on `https://www.whoma.co.uk`.",
       "Run a fresh signup confirmation round-trip and verify immediate sign-in continuity."
     ]
+  },
+  {
+    "session_id": "2026-04-22-1302-premium-auth-progressive-flow-refresh",
+    "timestamp": "2026-04-22T13:02:00+02:00",
+    "summary": "Redesigned public auth UX with a premium split-shell system: multi-step no-reload sign-up with CSS transitions, role-aware Supabase signup metadata, in-flow confirmation resend, and matching sign-in layout/refined inline validation.",
+    "files_changed": [
+      "src/components/auth/auth-split-shell.tsx",
+      "src/components/auth/sign-up-flow.tsx",
+      "src/components/auth/sign-in-form.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/auth/login/page.tsx",
+      "package.json",
+      "package-lock.json",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Used CSS-only stateful transitions for step choreography to satisfy the no-new-animation-library constraint.",
+      "Kept server-side callback/session guards intact while replacing only auth presentation + client submit flows.",
+      "Added /auth/login alias instead of route replacement to satisfy confirmation UX path requirements without breaking existing /sign-in links."
+    ],
+    "next_steps": [
+      "Add a dedicated self-serve forgot-password flow if product wants reset links inside auth instead of support routing.",
+      "Run browser QA for desktop/mobile on /sign-up transition timing and resend confirmation behavior.",
+      "Optionally converge remaining auth-adjacent pages onto the same split-shell layout for consistency."
+    ]
   }
 ]

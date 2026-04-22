@@ -5259,3 +5259,73 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Deploy this localhost-origin redirect fix to Railway production.
 2. Re-run live probe against `/auth/callback` and confirm redirect host stays on `https://www.whoma.co.uk`.
 3. Run a fresh signup -> confirm-email -> sign-in validation cycle on production.
+
+---
+
+## Session: 2026-04-22 / 13:02 (CEST) — Premium progressive auth UX refresh (multi-step sign-up + split-shell sign-in)
+
+**Author:** Codex  
+**Context:** User requested a premium, no-reload, progressive-disclosure sign-up flow inspired by Purplebricks, plus a matching split-shell sign-in redesign using WHOMA styling and Supabase browser auth calls.
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Replace the existing auth entry UI with a premium split-screen pattern.
+- Ship a 3-step sign-up flow (`role -> credentials -> confirmation`) in one page component with CSS-only transitions and no route hops between steps.
+- Align `/sign-in` to the same shell and inline-validation behavior, then verify with type/lint checks.
+
+### Changes Made
+
+- Added shared split-shell auth layout component (`src/components/auth/auth-split-shell.tsx`) with:
+  - `min-h-[100dvh]` structure,
+  - 40/60 desktop split,
+  - dark persistent left panel,
+  - mobile 64px top-bar collapse (logo-only).
+- Implemented new client-side multi-step sign-up flow (`src/components/auth/sign-up-flow.tsx`):
+  - Step 1 role cards (`HOMEOWNER` / `AGENT`), selectable-card interaction and gated Continue CTA.
+  - Step 2 email/password/confirm fields with inline validation and Supabase error banner.
+  - Step 2 password visibility toggles and shimmer loading CTA state.
+  - Supabase `signUp` now includes callback URL + `data: { role }` metadata from selected role.
+  - Step 3 email-confirmation state with resend action (`supabase.auth.resend({ type: "signup" })`) and transient `Sent` feedback.
+  - Switched step icons to `@phosphor-icons/react` (`House`, `Buildings`, `Eye`, `EyeSlash`, `EnvelopeSimple`) with requested `light`/`thin` weights.
+  - CSS-only step transitions using `opacity + translateX` timings/easing as requested.
+- Replaced `/sign-up` page wiring to use the new flow while preserving callback-return interception and signed-in redirect handling.
+- Implemented new sign-in form experience (`src/components/auth/sign-in-form.tsx`) with matching split-shell layout, inline field errors, Supabase error banner, right-aligned `Forgot password?` link, and post-success redirect to `/dashboard`.
+- Replaced `/sign-in` page wiring to the new sign-in component while preserving callback-return interception and signed-in redirect handling.
+- Added `/auth/login` alias route redirecting to `/sign-in` for the confirmation-step back-link target.
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/auth/auth-split-shell.tsx`
+- `src/components/auth/sign-up-flow.tsx`
+- `src/components/auth/sign-in-form.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/auth/login/page.tsx`
+- `package.json`
+- `package-lock.json`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Implemented transitions with CSS-only class state (`out -> pre-in -> in`) because no animation package is installed and user asked for no new flow-level route transitions.
+- Kept Supabase callback/session guard behavior in server pages untouched, limiting scope to auth UX and client form behavior.
+- Added `/auth/login` alias rather than renaming existing public sign-in route, so existing links remain stable while new confirmation CTA requirement is satisfied.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed (`No ESLint warnings or errors`).
+
+### Known Issues / Risks
+
+- `Forgot password?` currently routes to `/contact` (support-assisted recovery) rather than a dedicated self-serve password reset form.
+
+### Next Steps
+
+1. Add a dedicated `/auth/forgot-password` self-serve reset flow if product wants in-app password recovery instead of support routing.
+2. Run one browser QA pass on mobile + desktop for `/sign-up` transitions and confirmation resend behavior.
+3. If approved, mirror this split-shell system onto any remaining auth-adjacent entry routes for consistency.
