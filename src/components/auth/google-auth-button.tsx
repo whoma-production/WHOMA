@@ -20,7 +20,13 @@ interface GoogleAuthButtonProps {
   oauthError?: string | null;
 }
 
-type PendingAction = "google" | "email" | null;
+type PendingAction = "google" | "email" | "resend" | null;
+type SignUpNoticeTone = "success" | "warning";
+
+interface SignUpNotice {
+  tone: SignUpNoticeTone;
+  message: string;
+}
 
 function GoogleMark(): JSX.Element {
   return (
@@ -141,7 +147,10 @@ export function GoogleAuthButton({
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [signInError, setSignInError] = useState<string | null>(null);
-  const [signUpSuccess, setSignUpSuccess] = useState<string | null>(null);
+  const [signUpNotice, setSignUpNotice] = useState<SignUpNotice | null>(null);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(
+    null
+  );
 
   const errorMessage = signInError ?? getAuthErrorMessage(oauthError);
   const target = nextParam ?? redirectTo;
@@ -156,7 +165,7 @@ export function GoogleAuthButton({
 
     setPendingAction("google");
     setSignInError(null);
-    setSignUpSuccess(null);
+    setSignUpNotice(null);
 
     try {
       const supabase = createSupabaseClient();
@@ -226,15 +235,18 @@ export function GoogleAuthButton({
 
     setPendingAction("email");
     setSignInError(null);
-    setSignUpSuccess(null);
+    setSignUpNotice(null);
 
     try {
       const supabase = createSupabaseClient();
 
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: trimmedEmail,
-          password
+          password,
+          options: {
+            emailRedirectTo: buildOAuthCallbackUrl(target)
+          }
         });
 
         if (error) {
@@ -246,7 +258,29 @@ export function GoogleAuthButton({
           return;
         }
 
-        setSignUpSuccess("Check your email to confirm your account.");
+        if (data.session) {
+          window.location.assign(target);
+          return;
+        }
+
+        const identityCount = data.user?.identities?.length ?? 0;
+
+        if (!data.user || identityCount === 0) {
+          setConfirmationEmail(trimmedEmail);
+          setSignUpNotice({
+            tone: "warning",
+            message:
+              "This email may already be registered. Try signing in, or resend confirmation below if this account is still pending."
+          });
+          return;
+        }
+
+        setConfirmationEmail(trimmedEmail);
+        setSignUpNotice({
+          tone: "success",
+          message:
+            "Check your email to confirm your account. If you do not see it in a minute, check spam or resend below."
+        });
         setPassword("");
         setConfirmPassword("");
         return;
@@ -274,6 +308,60 @@ export function GoogleAuthButton({
               authMode
             })
           : "We could not complete sign-in right now. Please try again."
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleResendConfirmation(): Promise<void> {
+    if (isPending || !providerAvailability.email) {
+      return;
+    }
+
+    const targetEmail = confirmationEmail ?? emailAddress.trim().toLowerCase();
+
+    if (!isEmailCandidate(targetEmail)) {
+      setSignInError("Enter a valid email address.");
+      return;
+    }
+
+    setPendingAction("resend");
+    setSignInError(null);
+    setSignUpNotice(null);
+
+    try {
+      const supabase = createSupabaseClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: targetEmail,
+        options: {
+          emailRedirectTo: buildOAuthCallbackUrl(target)
+        }
+      });
+
+      if (error) {
+        setSignInError(
+          mapSupabaseErrorMessage(error.message, {
+            authMode: "sign-up"
+          })
+        );
+        return;
+      }
+
+      setConfirmationEmail(targetEmail);
+      setSignUpNotice({
+        tone: "success",
+        message:
+          "Confirmation email resent. Check your inbox and spam folder."
+      });
+    } catch (error) {
+      setSignInError(
+        error instanceof Error
+          ? mapSupabaseErrorMessage(error.message, {
+              authMode: "sign-up"
+            })
+          : "We could not resend the confirmation email right now. Please try again."
       );
     } finally {
       setPendingAction(null);
@@ -322,6 +410,9 @@ export function GoogleAuthButton({
                 if (signInError) {
                   setSignInError(null);
                 }
+                if (signUpNotice) {
+                  setSignUpNotice(null);
+                }
               }}
               placeholder="you@example.com"
               disabled={isPending || !providerAvailability.email}
@@ -338,6 +429,9 @@ export function GoogleAuthButton({
                 setPassword(event.target.value);
                 if (signInError) {
                   setSignInError(null);
+                }
+                if (signUpNotice) {
+                  setSignUpNotice(null);
                 }
               }}
               placeholder={isSignUp ? "Create a password" : "Enter your password"}
@@ -356,6 +450,9 @@ export function GoogleAuthButton({
                   setConfirmPassword(event.target.value);
                   if (signInError) {
                     setSignInError(null);
+                  }
+                  if (signUpNotice) {
+                    setSignUpNotice(null);
                   }
                 }}
                 placeholder="Re-enter your password"
@@ -393,10 +490,31 @@ export function GoogleAuthButton({
         ) : null}
       </div>
 
-      {signUpSuccess ? (
-        <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-          {signUpSuccess}
-        </p>
+      {signUpNotice ? (
+        <div
+          className={
+            signUpNotice.tone === "success"
+              ? "space-y-2 rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success"
+              : "space-y-2 rounded-md border border-state-warning/20 bg-state-warning/10 px-3 py-2 text-sm text-state-warning"
+          }
+        >
+          <p>{signUpNotice.message}</p>
+          {isSignUp && confirmationEmail ? (
+            <Button
+              type="button"
+              variant="tertiary"
+              size="sm"
+              onClick={() => {
+                void handleResendConfirmation();
+              }}
+              disabled={isPending || !providerAvailability.email}
+            >
+              {pendingAction === "resend"
+                ? "Resending..."
+                : "Resend confirmation email"}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {errorMessage ? (

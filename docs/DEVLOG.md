@@ -5040,3 +5040,64 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
    - email/password sign-in -> `/dashboard` routing,
    - Google sign-in (only when env-gated on).
 3. Confirm session persistence across hard refresh and revisit on protected routes (`/agent/onboarding`, `/messages`, `/homeowner/instructions`).
+
+---
+
+## Session: 2026-04-22 / 11:19 (CEST) — Sign-up confirmation outcome hardening + dual-entry sign-in UI
+
+**Author:** Codex  
+**Context:** User reported that account creation always shows "Check your email to confirm your account" but no confirmation emails arrived; requested immediate signup-flow reliability plus clearer sign-in/sign-up entry options.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Stop false-positive "check your email" success states in email/password sign-up.
+- Add a direct confirmation resend path without breaking WHOMA auth styling.
+- Make the sign-in page present both sign-in and sign-up actions clearly in one view.
+
+### Changes Made
+
+- Updated `GoogleAuthButton` sign-up logic to evaluate Supabase `signUp` outcomes explicitly:
+  - if `data.session` exists, route directly to post-auth destination,
+  - if user identity payload is obfuscated/empty, show inline "account already exists" guidance instead of a confirmation-success message,
+  - if confirmation is required, show a confirmation notice tied to the signup email.
+- Added `emailRedirectTo` for both sign-up and resend flows so confirmation links consistently return through `/auth/callback` with `next` support.
+- Added `supabase.auth.resend({ type: "signup" })` fallback via an inline `Resend confirmation email` action under the signup success notice.
+- Kept existing inline validation (email format, weak password, mismatch password, invalid credentials) and existing WHOMA card/button styling.
+- Updated `/sign-in` card to include side-by-side CTA controls (`Sign in` and `Create account`) above the auth form.
+- Refined `/sign-up` entry title copy to align with the profile-first language (`Build your verified profile`).
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/auth/google-auth-button.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Treated Supabase signup response shape as the source of truth for UI messaging, rather than assuming every non-error signup means a confirmation email was sent.
+- Added resend from the same UI component to reduce support loops for delayed or missed confirmation emails.
+- Preserved all existing auth route structure and design tokens; changes are logic rewires and small surface copy/layout improvements only.
+
+### Verification
+
+- `npm run test -- src/components/auth/google-auth-button.test.tsx` -> passed (`3` tests).
+- `npm run typecheck` -> passed.
+- Manual diff review confirmed:
+  - no `signInWithOtp()` paths reintroduced,
+  - sign-in page now includes explicit `Sign in` and `Create account` controls in-card.
+
+### Known Issues / Risks
+
+- Confirmation email delivery itself is still dependent on external Supabase project settings (email-confirm toggle, SMTP/provider posture, rate limits), which app code cannot override.
+- If production has email confirmations disabled, signup now redirects into session immediately (correct behavior) instead of asking users to wait for an email.
+
+### Next Steps
+
+1. Deploy this patch to Railway and verify live behavior on `https://www.whoma.co.uk/sign-up?role=AGENT`.
+2. In Supabase dashboard, confirm Email provider settings and whether "Confirm email" is enabled for the production project.
+3. Run one real signup -> resend -> confirmation click flow with a monitored inbox and capture evidence for `A010`.

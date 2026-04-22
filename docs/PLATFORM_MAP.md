@@ -490,6 +490,18 @@ Phase 1 delivery focus:
   - `src/lib/supabase/server.ts` for server/route-handler cookie-backed clients.
 - User-menu sign-out now calls `supabase.auth.signOut()` in the client and redirects to `/`.
 
+52. Sign-up confirmation outcome hardening + dual-entry sign-in UI (2026-04-22) (new)
+
+- `src/components/auth/google-auth-button.tsx` now branches sign-up outcomes by actual Supabase response shape instead of assuming every successful `signUp` means a confirmation email was sent.
+- Sign-up behavior now resolves into three explicit paths:
+  - immediate session returned -> redirect to `/dashboard` (or safe `next`),
+  - confirmation required -> show confirmation notice tied to the submitted email,
+  - obfuscated existing-account response (`identities` empty) -> show inline `account already exists` guidance.
+- Added inline `Resend confirmation email` support using `supabase.auth.resend({ type: "signup" })`.
+- Both sign-up and resend now pass callback-aware `emailRedirectTo` so confirmation links route through `/auth/callback` with `next` support.
+- `/sign-in` now includes explicit in-card dual entry actions (`Sign in` and `Create account`) rather than relying on a low-prominence footer-only account-creation link.
+- `/sign-up` entry language now aligns to profile-first framing (`Build your verified profile`) while keeping existing WHOMA visual tokens and shell structure.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

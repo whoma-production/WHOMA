@@ -103,7 +103,7 @@ export default async function SignUpPage({
     role === "HOMEOWNER"
       ? "Request seller access"
       : providerAvailability.any
-        ? "Create your account"
+        ? "Build your verified profile"
         : "Access support";
   const entryDescription =
     role === "HOMEOWNER"

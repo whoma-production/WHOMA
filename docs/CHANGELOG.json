@@ -2029,5 +2029,29 @@
       "Run a full live auth round-trip (`sign-up`, `sign-in`, `Google OAuth`) on the branded host with callback/default routing checks.",
       "Confirm protected-route session persistence across hard refresh and revisit."
     ]
+  },
+  {
+    "session_id": "2026-04-22-1119-signup-confirmation-outcome-hardening",
+    "timestamp": "2026-04-22T11:19:00+02:00",
+    "summary": "Hardened email/password signup outcome handling to stop false confirmation-success states, added inline resend-confirmation support, and updated sign-in UX to show explicit sign-in and create-account entry actions.",
+    "files_changed": [
+      "src/components/auth/google-auth-button.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Used Supabase signup response semantics (`session`, `user`, `identities`) to determine post-submit UX instead of always showing a confirmation-email success message.",
+      "Added `supabase.auth.resend({ type: 'signup' })` in the same auth card to reduce support dependence when inbox delivery is delayed.",
+      "Kept existing route shells and design tokens unchanged, limiting scope to auth-flow logic and minimal copy/layout updates."
+    ],
+    "next_steps": [
+      "Deploy this patch to Railway production and validate `/sign-up?role=AGENT` live.",
+      "Confirm Supabase production email-provider settings and email-confirmation posture for the active project.",
+      "Run one monitored inbox test for signup, resend, and confirmation callback routing."
+    ]
   }
 ]

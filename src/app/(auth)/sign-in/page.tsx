@@ -5,7 +5,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { PublicHeader } from "@/components/layout/public-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -28,6 +28,7 @@ import {
 import {
   getPublicAuthProviderAvailability
 } from "@/lib/auth/provider-config";
+import { cn } from "@/lib/utils";
 import { createSupportInquiry } from "@/server/support/inquiries";
 
 interface PageProps {
@@ -121,6 +122,27 @@ export default async function SignInPage({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/sign-in"
+                  aria-current="page"
+                  className={cn(
+                    buttonVariants({ variant: "primary", size: "sm" }),
+                    "justify-center"
+                  )}
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href={PUBLIC_AGENT_CTA_HREF}
+                  className={cn(
+                    buttonVariants({ variant: "secondary", size: "sm" }),
+                    "justify-center"
+                  )}
+                >
+                  Create account
+                </Link>
+              </div>
               <GoogleAuthButton
                 providerAvailability={providerAvailability}
                 authMode="sign-in"
@@ -178,16 +200,6 @@ export default async function SignInPage({
               </form>
             </CardContent>
           </Card>
-
-          <p className="text-center text-sm text-text-muted">
-            Need a fresh account?{" "}
-            <Link
-              href={PUBLIC_AGENT_CTA_HREF}
-              className="font-medium text-brand-ink underline"
-            >
-              Create your account
-            </Link>
-          </p>
         </div>
       </main>
     </div>
