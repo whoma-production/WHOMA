@@ -509,6 +509,14 @@ Phase 1 delivery focus:
 - Runtime `window.location.origin` is now only a fallback when env origin is missing or invalid.
 - This prevents non-canonical browser hosts (for example local/dev origins) from leaking into Supabase confirmation-link redirects during production account creation.
 
+54. Unified callback token handling for email confirmation + OAuth (2026-04-22) (new)
+
+- `src/app/auth/callback/route.ts` now handles both Supabase callback contracts:
+  - email confirmation tokens (`token_hash` + `type`) through `supabase.auth.verifyOtp`,
+  - OAuth returns (`code`) through `supabase.auth.exchangeCodeForSession`.
+- Callback redirect behavior is now consistent across both flows: safe `next` path when present, otherwise `/dashboard`, with `/auth/error` fallback only when exchange/verification fails.
+- Added route-level regression coverage in `src/app/auth/callback/route.test.ts` so token and code callback behavior stays locked through future auth changes.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

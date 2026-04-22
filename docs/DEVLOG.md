@@ -5148,3 +5148,63 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Deploy this patch to Railway production.
 2. Trigger a brand-new signup confirmation email on `https://www.whoma.co.uk/sign-up?role=AGENT`.
 3. Verify the fresh email link resolves through `https://www.whoma.co.uk/auth/callback` and lands on `/dashboard` (or the supplied safe `next` path).
+
+---
+
+## Session: 2026-04-22 / 12:12 (CEST) — Auth callback dual-flow hardening (`token_hash` + OAuth code)
+
+**Author:** Codex  
+**Context:** User reported that confirmed-account links were still breaking sign-in because callback handling did not consistently process Supabase email-confirmation payloads.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Ensure `/auth/callback` handles both Supabase confirmation-link token flow and Google OAuth code flow.
+- Keep redirect behavior deterministic (`/dashboard` default, safe `next` override) without changing non-auth domains.
+
+### Changes Made
+
+- Updated `src/app/auth/callback/route.ts` to support:
+  - `token_hash` + supported `type` values via `supabase.auth.verifyOtp(...)`,
+  - `code` via `supabase.auth.exchangeCodeForSession(...)`,
+  - fallback redirect to `/auth/error` only when neither flow succeeds.
+- Added strict OTP type narrowing in the route (no `any`) for supported Supabase email OTP types.
+- Added route-level regression tests in `src/app/auth/callback/route.test.ts` covering:
+  - successful token-hash confirmation flow,
+  - successful OAuth code flow,
+  - invalid OTP type fallback to code flow,
+  - error-path redirect to `/auth/error`.
+- Re-ran callback-origin and callback-return tests to confirm no regression in callback URL construction and auth-return parsing.
+- Re-validated no active NextAuth runtime usage in source and package dependencies.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/auth/callback/route.ts`
+- `src/app/auth/callback/route.test.ts`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Kept one unified callback route for both email confirmation and OAuth return to reduce branching and environment drift.
+- Prioritized framework-safe type narrowing over permissive casts so callback parsing remains strict and maintainable.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run test -- src/app/auth/callback/route.test.ts src/lib/auth/callback-origin.test.ts src/lib/auth/callback-return.test.ts` -> passed (`12` tests).
+- `rg -n "signInWithOtp\\(" src` -> no matches.
+- `rg -n "next-auth|SessionProvider|useSession|\\[\\.\\.\\.nextauth\\]" src package.json` -> no matches.
+
+### Known Issues / Risks
+
+- Already-sent confirmation emails will keep their old URLs; only newly generated emails use current callback logic and origin.
+- Supabase dashboard template/URL config still must stay aligned with production host settings.
+
+### Next Steps
+
+1. Deploy this callback hardening to Railway production.
+2. Trigger a fresh signup email and verify confirmation resolves through `https://www.whoma.co.uk/auth/callback`.
+3. Confirm post-confirm redirect lands on `/dashboard` (or safe `next`) and that sign-in succeeds immediately after confirmation.

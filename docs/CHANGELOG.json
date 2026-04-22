@@ -2074,5 +2074,27 @@
       "Trigger a fresh signup confirmation email and verify callback host is `https://www.whoma.co.uk`.",
       "Validate confirmation lands through `/auth/callback` and resolves to `/dashboard`."
     ]
+  },
+  {
+    "session_id": "2026-04-22-1212-auth-callback-dual-flow-hardening",
+    "timestamp": "2026-04-22T12:12:00+02:00",
+    "summary": "Hardened `/auth/callback` to process both Supabase email-confirmation token returns and OAuth code returns, and added regression tests for success/failure redirect behavior.",
+    "files_changed": [
+      "src/app/auth/callback/route.ts",
+      "src/app/auth/callback/route.test.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Unified email confirmation and OAuth callback session exchange in one route to reduce auth drift across environments.",
+      "Added strict supported OTP-type narrowing in the callback handler instead of using permissive casts."
+    ],
+    "next_steps": [
+      "Deploy this callback hardening to Railway production.",
+      "Generate a fresh signup confirmation email and verify callback host/path resolution on `https://www.whoma.co.uk`.",
+      "Confirm post-confirm sign-in continuity on `/dashboard`."
+    ]
   }
 ]
