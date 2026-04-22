@@ -128,7 +128,18 @@ function mapSupabaseErrorMessage(
 }
 
 function buildOAuthCallbackUrl(target: string): string {
-  const url = new URL("/auth/callback", window.location.origin);
+  const configuredOrigin = process.env.NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN?.trim();
+  let callbackOrigin = window.location.origin;
+
+  if (configuredOrigin) {
+    try {
+      callbackOrigin = new URL(configuredOrigin).origin;
+    } catch {
+      // Ignore invalid env values and keep the runtime origin fallback.
+    }
+  }
+
+  const url = new URL("/auth/callback", callbackOrigin);
   url.searchParams.set("next", target);
   return url.toString();
 }

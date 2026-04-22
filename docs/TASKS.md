@@ -132,6 +132,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Acceptance:** Unauthenticated users are redirected from protected app routes; authenticated users can only access routes/actions allowed by role; Supabase-backed session auth is enforced server-side for `POST /api/instructions` and `POST /api/proposals`.
       **Progress (2026-03-22):** Sign-in/sign-up preview fallback now supports personal email entry + role selection with stable button layout, so staging users can continue onboarding/demo flows when Google OAuth is not configured and `ENABLE_PREVIEW_AUTH=true`.
       **Progress (2026-04-21):** Auth entry is now password-based (`signInWithPassword` / `signUp`) with inline client validation, `/dashboard` post-auth routing, environment-gated Google OAuth launch, and middleware session refresh to prevent logout-on-reload behavior.
+      **Progress (2026-04-22):** Auth confirmation-link generation now prefers `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN` (with runtime fallback) so signup/resend callback URLs stay canonical and do not depend on the active browser-origin host.
 
 - [x] T002 — Homeowner create instruction flow (Property + Instruction) with Prisma persistence
       **Acceptance:** Homeowner can create a property and instruction, choose a 24-48h bid window, and saved instruction appears as `LIVE` or `DRAFT` with server-side Zod validation and Prisma write.

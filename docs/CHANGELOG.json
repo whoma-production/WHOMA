@@ -2053,5 +2053,26 @@
       "Confirm Supabase production email-provider settings and email-confirmation posture for the active project.",
       "Run one monitored inbox test for signup, resend, and confirmation callback routing."
     ]
+  },
+  {
+    "session_id": "2026-04-22-1158-canonical-callback-origin-hardening",
+    "timestamp": "2026-04-22T11:58:00+02:00",
+    "summary": "Hardened signup/resend confirmation redirect generation to use the canonical callback origin env value instead of browser tab origin, eliminating localhost-host leakage in production email confirmation links.",
+    "files_changed": [
+      "src/components/auth/google-auth-button.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Prioritized `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN` for callback URL construction so production redirect links remain stable and host-canonical.",
+      "Retained runtime-origin fallback only for environments with missing or invalid callback-origin env values."
+    ],
+    "next_steps": [
+      "Deploy this patch to Railway production.",
+      "Trigger a fresh signup confirmation email and verify callback host is `https://www.whoma.co.uk`.",
+      "Validate confirmation lands through `/auth/callback` and resolves to `/dashboard`."
+    ]
   }
 ]

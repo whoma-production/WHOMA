@@ -5101,3 +5101,50 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Deploy this patch to Railway and verify live behavior on `https://www.whoma.co.uk/sign-up?role=AGENT`.
 2. In Supabase dashboard, confirm Email provider settings and whether "Confirm email" is enabled for the production project.
 3. Run one real signup -> resend -> confirmation click flow with a monitored inbox and capture evidence for `A010`.
+
+---
+
+## Session: 2026-04-22 / 11:58 (CEST) — Canonical callback-origin hardening for signup confirmation links
+
+**Author:** Codex  
+**Context:** User confirmed Supabase template + URL settings looked correct, but confirmation links still intermittently opened localhost targets in browser testing.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Remove host-origin ambiguity from client-built auth callback links used by signup and resend confirmation.
+- Force production confirmation redirects to respect the configured canonical callback origin.
+
+### Changes Made
+
+- Updated `buildOAuthCallbackUrl` in `src/components/auth/google-auth-button.tsx` to prefer `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN` when present and valid.
+- Added a safe fallback to `window.location.origin` only when the env origin is missing/invalid.
+- Kept the existing `/auth/callback?next=...` behavior intact so post-confirm routing still defaults to `/dashboard` with `next` override support.
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/auth/google-auth-button.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Preferred env-driven callback origin over runtime tab origin to avoid leaking non-canonical hosts into confirmation URLs.
+- Kept compatibility fallback behavior so local/dev environments continue to function if env values are missing.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+
+### Known Issues / Risks
+
+- Existing already-sent confirmation emails keep their old redirect URL; only newly generated signup/resend emails pick up this hardening.
+- Supabase dashboard settings (Site URL, Redirect URLs, template) must still remain consistent with this app-side behavior.
+
+### Next Steps
+
+1. Deploy this patch to Railway production.
+2. Trigger a brand-new signup confirmation email on `https://www.whoma.co.uk/sign-up?role=AGENT`.
+3. Verify the fresh email link resolves through `https://www.whoma.co.uk/auth/callback` and lands on `/dashboard` (or the supplied safe `next` path).

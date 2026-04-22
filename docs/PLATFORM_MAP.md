@@ -502,6 +502,13 @@ Phase 1 delivery focus:
 - `/sign-in` now includes explicit in-card dual entry actions (`Sign in` and `Create account`) rather than relying on a low-prominence footer-only account-creation link.
 - `/sign-up` entry language now aligns to profile-first framing (`Build your verified profile`) while keeping existing WHOMA visual tokens and shell structure.
 
+53. Canonical callback-origin enforcement for signup/resend emails (2026-04-22) (new)
+
+- Client callback URL generation now prefers `NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN` over runtime browser origin for email signup/resend redirects.
+- `src/components/auth/google-auth-button.tsx` now parses and validates the env origin, then builds `https://.../auth/callback?next=...` from that canonical host.
+- Runtime `window.location.origin` is now only a fallback when env origin is missing or invalid.
+- This prevents non-canonical browser hosts (for example local/dev origins) from leaking into Supabase confirmation-link redirects during production account creation.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
