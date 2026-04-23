@@ -5777,3 +5777,55 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Push this unblock fix to `main`.
 2. Trigger/confirm fresh Railway deployment success.
 3. Re-run live `/api/chat` and `/api/chat/escalate` probes until expected `400` validation responses are active.
+
+---
+
+## Session: 2026-04-23 / 12:50 (CEST) — Final production build blockers resolved after Railway retry
+
+**Author:** Codex  
+**Context:** Railway retry deployment still failed after the initial homepage animation fix; additional blockers needed to be cleared for production rollout.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Resolve remaining build-time blockers preventing support-chat routes from shipping live.
+
+### Changes Made
+
+- Investigated latest failed deployment logs (`37f45679-1435-4a7a-b301-c26259e3a467`) and fixed:
+  1. Route handler type contract in `src/app/api/deals/verify/[token]/route.ts`:
+     - changed `context.params` typing to `Promise<{ token: string }>` to match Next.js route expectations.
+  2. Server-runtime icon compatibility in `src/app/page.tsx`:
+     - replaced `@phosphor-icons/react` `MapPin` import with `lucide-react` `MapPin`,
+     - removed phosphor-specific `weight` prop from usage.
+- Re-ran full local production build and confirmed success, including route manifest entries for:
+  - `/api/chat`
+  - `/api/chat/escalate`
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/api/deals/verify/[token]/route.ts`
+- `src/app/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Prioritized minimal, targeted compatibility fixes to unblock release while preserving existing behavior and UI intent.
+
+### Verification
+
+- `npm run build` -> passed.
+- `npm run test` -> passed (`21 passed / 3 skipped`, `77 passed / 8 skipped`).
+
+### Known Issues / Risks
+
+- Production cutover still depends on Railway completing the next deployment after these fixes are pushed.
+
+### Next Steps
+
+1. Push this final unblock patch to `main`.
+2. Confirm Railway deployment succeeds.
+3. Re-run live chat-route probes and capture final `400` validation evidence.

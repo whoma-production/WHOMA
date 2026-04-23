@@ -601,6 +601,9 @@ Phase 1 delivery focus:
   - bounded payloads (`messages.max(60)`),
   - explicit handoff intent phrase matching,
   - idempotent duplicate response (`success=true`, `deduped=true`).
+- Deployment compatibility follow-ups:
+  - `src/app/api/deals/verify/[token]/route.ts` now uses Next.js-compatible async route context typing (`params: Promise<{ token: string }>`).
+  - Homepage `MapPin` icon now uses `lucide-react` (server-safe) instead of `@phosphor-icons/react` to avoid Server Component build/runtime failures.
 
 ## Frontend/Backend Map
 

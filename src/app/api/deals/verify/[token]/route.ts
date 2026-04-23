@@ -3,8 +3,6 @@ import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-type MaybePromise<T> = T | Promise<T>;
-
 type PastDealVerifyRow = {
   verification_status: "unverified" | "pending" | "verified" | "disputed";
 };
@@ -23,7 +21,7 @@ function jsonError(status: number, code: string, message: string): Response {
 
 export async function GET(
   request: Request,
-  context: { params: MaybePromise<{ token: string }> }
+  context: { params: Promise<{ token: string }> }
 ): Promise<Response> {
   const { token } = await context.params;
   const parsedToken = tokenSchema.safeParse(token);

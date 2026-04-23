@@ -1,8 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 import { redirect } from "next/navigation";
-import { MapPin } from "@phosphor-icons/react";
 
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicHeader } from "@/components/layout/public-header";
@@ -295,7 +294,7 @@ export default async function LandingPage({
                           {agent.name}
                         </p>
                         <p className="inline-flex items-center gap-1 text-xs text-zinc-400">
-                          <MapPin size={12} weight="regular" />
+                          <MapPin size={12} />
                           <span>{agent.location}</span>
                         </p>
                       </div>

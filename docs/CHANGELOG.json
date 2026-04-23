@@ -2325,5 +2325,27 @@
       "Re-run live `/api/chat` and `/api/chat/escalate` probes until expected validation responses are active.",
       "Capture final deployment ID and smoke evidence in release notes."
     ]
+  },
+  {
+    "session_id": "2026-04-23-1250-railway-build-unblock-followup",
+    "timestamp": "2026-04-23T12:50:00+02:00",
+    "summary": "Resolved remaining Railway build blockers by fixing a Next.js dynamic route-handler context type and replacing a server-incompatible phosphor icon import on the homepage; local production build now succeeds with chat routes present.",
+    "files_changed": [
+      "src/app/api/deals/verify/[token]/route.ts",
+      "src/app/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Aligned dynamic route handler second-argument typing with Next.js production expectation (`params` as a Promise).",
+      "Standardized homepage icon usage on `lucide-react` to keep the route fully server-compatible during page-data collection."
+    ],
+    "next_steps": [
+      "Push this final unblock patch to main and confirm Railway deployment success.",
+      "Re-run live `/api/chat` and `/api/chat/escalate` probes until expected validation responses appear.",
+      "Document final deployment ID and smoke evidence."
+    ]
   }
 ]
