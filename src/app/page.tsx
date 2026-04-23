@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { ArrowRight } from "lucide-react";
 import { redirect } from "next/navigation";
+import { MapPin } from "@phosphor-icons/react";
 
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicHeader } from "@/components/layout/public-header";
@@ -30,6 +31,10 @@ import {
   PUBLIC_SAMPLE_PROFILE_VIEW,
   PUBLIC_WHY_AGENTS_JOIN
 } from "@/lib/public-proof";
+// Replace mockAgents with a Supabase query once real profiles are live:
+// const agents = await supabase.from('profiles').select('*')
+//   .eq('role', 'agent').eq('is_published', true).limit(4)
+import { mockAgents } from "@/data/mockAgents";
 import { cn } from "@/lib/utils";
 import { listPublicAgentProfiles } from "@/server/agent-profile/service";
 import {
@@ -37,6 +42,7 @@ import {
   getLiveInstructionLocationSummaries
 } from "@/server/marketplace/queries";
 import { getPhase1ValidationSnapshot } from "@/server/phase1-validation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +69,21 @@ export default async function LandingPage({
   let liveInstructions = [] as Awaited<
     ReturnType<typeof getLiveInstructionCards>
   >;
-  const phase1Dashboard = await getPhase1ValidationSnapshot();
+  let hasAuthenticatedSession = false;
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+    hasAuthenticatedSession = Boolean(session);
+  } catch {
+    hasAuthenticatedSession = false;
+  }
+
+  const phase1Dashboard = hasAuthenticatedSession
+    ? await getPhase1ValidationSnapshot()
+    : null;
 
   if (process.env.DATABASE_URL) {
     [publicAgents, liveInstructions] = await Promise.all([
@@ -112,13 +132,15 @@ export default async function LandingPage({
         }.`
       : "Seller access opens carefully as matching supply and moderation come into place.";
   const homepageFaqPreview = getHomepageFaqPreview();
-  const phase1AsOf = new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Europe/London"
-  }).format(phase1Dashboard.generatedAt);
+  const phase1AsOf = phase1Dashboard
+    ? new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Europe/London"
+      }).format(phase1Dashboard.generatedAt)
+    : null;
   const qualifiedAgentDensityValue =
-    phase1Dashboard.objectives.find(
+    phase1Dashboard?.objectives.find(
       (objective) => objective.key === "qualifiedAgentDensity"
     )?.current ?? 0;
 
@@ -242,6 +264,66 @@ export default async function LandingPage({
           </div>
         </section>
 
+        <section className="border-b border-line bg-surface-0 py-12">
+          <div className="mx-auto w-full max-w-7xl space-y-7 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.18em] text-zinc-400">
+                WHOMA AGENTS
+              </p>
+              <h2 className="text-2xl font-semibold text-zinc-900">
+                Independent agents. Verified records.
+              </h2>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {mockAgents.map((agent, index) => (
+                <article
+                  key={agent.name}
+                  className="rounded-2xl border border-slate-100 bg-white p-6 opacity-0 animate-[meet-agent-fade-up_550ms_ease-out_forwards]"
+                  style={{ animationDelay: `${index * 75}ms` }}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={agent.avatar}
+                        alt={agent.name}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-zinc-900">
+                          {agent.name}
+                        </p>
+                        <p className="inline-flex items-center gap-1 text-xs text-zinc-400">
+                          <MapPin size={12} weight="regular" />
+                          <span>{agent.location}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-zinc-600">
+                      {agent.speciality}
+                    </p>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex rounded-full bg-[#2d6a5a]/10 px-2.5 py-1 text-xs font-medium text-[#2d6a5a]">
+                        {agent.dealsVerified} verified deals
+                      </span>
+                      <span className="text-xs text-zinc-400">
+                        {agent.yearsActive} years active
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <p className="text-xs text-zinc-400">
+              Profile examples shown for illustration. Real agent profiles coming soon.
+            </p>
+          </div>
+        </section>
+
         <section className="border-b border-line bg-surface-0 py-10">
           <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
             <div className="space-y-2">
@@ -270,53 +352,70 @@ export default async function LandingPage({
           </div>
         </section>
 
-        <section className="border-b border-line bg-surface-1 py-10">
-          <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-            <div className="space-y-2">
-              <p className="public-kicker">Phase 1 validation dashboard</p>
-              <h2>Live behavioural proof dashboard.</h2>
-              <p className="max-w-4xl text-sm text-text-muted sm:text-base">
-                WHOMA reports production-backed Phase 1 signals: qualified
-                density, transaction logging, collaboration participation, and
-                engagement cadence. Each objective reflects either logged
-                signals or verified milestones from durable event records.
-              </p>
-            </div>
+        <style jsx>{`
+          @keyframes meet-agent-fade-up {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
 
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {phase1Dashboard.objectives.map((objective) => (
-                <div
-                  key={objective.key}
-                  className="rounded-md border border-line bg-surface-0 px-4 py-4"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                      {objective.windowLabel}
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
+
+        {/* Internal only — unhide when metrics are ready for public display */}
+        {phase1Dashboard ? (
+          <section className="border-b border-line bg-surface-1 py-10">
+            <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+              <div className="space-y-2">
+                <p className="public-kicker">Phase 1 validation dashboard</p>
+                <h2>Live behavioural proof dashboard.</h2>
+                <p className="max-w-4xl text-sm text-text-muted sm:text-base">
+                  WHOMA reports production-backed Phase 1 signals: qualified
+                  density, transaction logging, collaboration participation, and
+                  engagement cadence. Each objective reflects either logged
+                  signals or verified milestones from durable event records.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {phase1Dashboard.objectives.map((objective) => (
+                  <div
+                    key={objective.key}
+                    className="rounded-md border border-line bg-surface-0 px-4 py-4"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                        {objective.windowLabel}
+                      </p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                        {objective.status}
+                      </p>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-text-strong">
+                      {objective.title}
                     </p>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                      {objective.status}
+                    <p className="mt-1 text-sm text-text-muted">
+                      {objective.description}
+                    </p>
+                    <p className="mt-3 text-sm font-medium text-text-strong">
+                      {objective.current} / {objective.target} target
                     </p>
                   </div>
-                  <p className="mt-2 text-sm font-semibold text-text-strong">
-                    {objective.title}
-                  </p>
-                  <p className="mt-1 text-sm text-text-muted">
-                    {objective.description}
-                  </p>
-                  <p className="mt-3 text-sm font-medium text-text-strong">
-                    {objective.current} / {objective.target} target
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <p className="text-xs text-text-muted">
-              Derived from production profile state and durable product events.
-              Entries are logged signals unless explicitly marked as verified
-              milestones. As of {phase1AsOf}.
-            </p>
-          </div>
-        </section>
+              <p className="text-xs text-text-muted">
+                Derived from production profile state and durable product
+                events. Entries are logged signals unless explicitly marked as
+                verified milestones. As of {phase1AsOf}.
+              </p>
+            </div>
+          </section>
+        ) : null}
 
         <section className="border-b border-line bg-surface-0 py-10">
           <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">

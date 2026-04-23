@@ -2196,5 +2196,88 @@
       "Validate production auth recovery round-trip on branded host (`forgot -> reset -> sign-in`).",
       "Optionally converge remaining auth-adjacent pages onto the same split-shell layout for consistency."
     ]
+  },
+  {
+    "session_id": "2026-04-23-1143-public-signup-lockdown-metrics-gating",
+    "timestamp": "2026-04-23T11:43:00+02:00",
+    "summary": "Locked public signup to agents only, redirected seller/homeowner public signup routes to sign-in with a coming-soon message, gated homepage metrics behind Supabase session auth, and redirected authenticated non-admin access away from the admin dashboard.",
+    "files_changed": [
+      "src/components/auth/sign-up-flow.tsx",
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/app/signup/page.tsx",
+      "src/app/register/seller/page.tsx",
+      "src/app/auth/login/page.tsx",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/components/auth/sign-in-form.tsx",
+      "src/app/page.tsx",
+      "src/app/(app)/admin/agents/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept seller/homeowner support in data models while enforcing public signup restrictions at UI and route-entry layers.",
+      "Added compatibility redirects for `/signup` and `/register/seller` to catch legacy entrypoints and funnel them through sign-in messaging.",
+      "Used Supabase server session detection in homepage rendering so internal metrics are hidden without deleting analytics/tracking logic."
+    ],
+    "next_steps": [
+      "Install dependencies and run `npm run typecheck` plus `npm run lint` in an environment with Next.js/TypeScript binaries available.",
+      "Browser-verify `/sign-up`, `/signup?role=seller`, and `/register/seller` flows end to end.",
+      "Confirm signed-out homepage hides the metrics section and signed-in homepage renders it."
+    ]
+  },
+  {
+    "session_id": "2026-04-23-1157-past-deals-verification-feature",
+    "timestamp": "2026-04-23T11:57:00+02:00",
+    "summary": "Built the Past Deals verification trust loop: Supabase migration + RLS, agent add-deal flow, seller verification page, verification confirm API, and Resend seller/agent email notifications.",
+    "files_changed": [
+      "supabase/migrations/20260423130000_past_deals.sql",
+      "src/lib/validation/deals.ts",
+      "src/lib/email/verification.ts",
+      "src/app/api/deals/add/route.ts",
+      "src/app/api/deals/verify/[token]/route.ts",
+      "src/app/api/deals/verify/confirm/route.ts",
+      "src/components/deals/AddDealForm.tsx",
+      "src/components/deals/VerifyDealResponseForm.tsx",
+      "src/app/verify/[token]/page.tsx",
+      "src/app/(app)/agent/deals/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept all server-route Supabase data access on the existing SSR server client helper to match platform rules.",
+      "Used token-based public verification flow (`/verify/[token]`) with app-layer filtering and unauthenticated confirm/dispute writes.",
+      "Added `agent_name` and `agent_email` snapshots to `past_deals` so seller verification UX can show agent identity and confirmation outcomes can notify the originating agent without introducing admin-key lookups."
+    ],
+    "next_steps": [
+      "Apply the Supabase migration and validate policies in the Supabase SQL editor.",
+      "Run dependency install and execute `npm run typecheck` plus `npm run lint`.",
+      "QA full flow: add deal -> seller verification email -> confirm/dispute -> agent notification email."
+    ]
+  },
+  {
+    "session_id": "2026-04-23-1201-homepage-featured-agents-placeholder",
+    "timestamp": "2026-04-23T12:01:00+02:00",
+    "summary": "Added a new homepage `WHOMA AGENTS` placeholder section with four mock agent profiles, responsive card grid layout, MapPin location metadata, verified-deals badge, and staggered fade-up animation.",
+    "files_changed": [
+      "src/data/mockAgents.ts",
+      "src/app/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Used a dedicated static data module (`mockAgents`) for clean replacement once live profile data is available.",
+      "Kept avatar rendering on plain `<img>` to avoid changing Next image remote host configuration.",
+      "Added the requested Supabase replacement comment directly above the mock-data import in the homepage module."
+    ],
+    "next_steps": [
+      "Swap `mockAgents` for published-agent Supabase query once production profile visibility is enabled.",
+      "Link cards to live `/agents/[slug]` records when slugs are available."
+    ]
   }
 ]

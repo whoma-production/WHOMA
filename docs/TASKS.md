@@ -138,6 +138,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Progress (2026-04-22):** Public auth UX now uses a premium split-shell experience with a no-reload 3-step sign-up flow (`role -> credentials -> confirmation`) and matching sign-in layout; sign-up now consistently passes selected role metadata in Supabase `signUp` (`options.data.role`) and includes in-flow resend support for confirmation emails.
       **Progress (2026-04-22):** Added password recovery UX for email/password auth: sign-in now includes `Forgot password?`, sends Supabase reset emails via `resetPasswordForEmail` to `/auth/reset-password`, and ships a dedicated password-update page using `supabase.auth.updateUser({ password })` with inline validation and success handoff back to sign-in.
       **Progress (2026-04-22):** Restored explicit role selection after sign-in by enabling `/onboarding/role?switch=1` for already-assigned users, adding a visible in-app `Switch role` control (Homeowner/Agent sessions), and allowing controlled role reassignment through the existing onboarding role action.
+      **Progress (2026-04-23):** Public signup is now agent-only by default (seller/homeowner cards removed from public flow), legacy seller signup entrypoints redirect to `/auth/login?message=coming-soon`, homepage Phase 1 metrics are session-gated behind Supabase server auth, and `/admin/agents` now redirects authenticated non-admin users to `/dashboard`.
 
 - [x] T002 — Homeowner create instruction flow (Property + Instruction) with Prisma persistence
       **Acceptance:** Homeowner can create a property and instruction, choose a 24-48h bid window, and saved instruction appears as `LIVE` or `DRAFT` with server-side Zod validation and Prisma write.
@@ -170,6 +171,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
 
 - [ ] T011 — Agent profile + manual verification workflow (MVP trust badges)
       **Acceptance:** Agent can edit agency/profile/service areas; admin can set verification status; verification badge is displayed on marketplace proposals and comparison views.
+      **Progress (2026-04-23):** Shipped the first Past Deals trust loop slice on Supabase: authenticated agents can add completed deals at `/agent/deals`, optional seller emails trigger Resend verification requests, sellers can confirm/dispute via public token links (`/verify/[token]`), and verification outcomes now persist to `past_deals` (`unverified/pending/verified/disputed`) with seller comment capture and agent notification email.
 
 - [ ] T012 — Loading/empty/error states polish across key flows
       **Acceptance:** All primary MVP screens have non-empty empty states, skeletons for loading, and user-visible error messages with recovery actions.
@@ -180,6 +182,7 @@ Target date for onboarding start: Monday, **2026-03-30**.
       **Progress (2026-04-06):** Sign-in and sign-up now surface real public auth choices and direct failure recovery for agents instead of falling back to request-access copy when Google is unavailable; email/password registration now provides a working self-serve path, while homeowner access stays intentionally support-routed.
       **Progress (2026-04-22):** Public sign-up now surfaces clearer inline confirmation states with resend support, and `/sign-in` now exposes explicit dual-entry controls (`Sign in` and `Create account`) in-card so account-access recovery does not depend on a low-salience footer link.
       **Progress (2026-04-22):** Auth entry UI now follows a premium progressive-disclosure pattern: `/sign-up` is a single-page, state-driven 3-step flow with inline validation/error banners and CSS transitions, while `/sign-in` now shares the same split-shell layout and inline field-level recovery messaging.
+      **Progress (2026-04-23):** Homepage now includes a `WHOMA AGENTS` featured section after hero using mock placeholder profiles (two-column desktop, single-column mobile, verified-deals badge, staggered fade-up) plus a clear “illustration only” disclaimer until live profiles are published.
 
 - [x] T013 — Trust pages + HTML sitemap + browse LIVE Instructions by location (public)
       **Acceptance:** Public routes exist for `/privacy`, `/cookies`, `/terms`, `/complaints`, `/contact`, `/sitemap`, `/locations`, and `/locations/[postcodeDistrict]`; footer links expose trust/support pages; sitemap lists key pages and location routes; location pages list LIVE Instructions (not property listings).

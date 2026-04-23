@@ -27,8 +27,12 @@ async function updateVerificationStatusAction(formData: FormData): Promise<void>
 
   const session = await auth();
 
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!session?.user?.id) {
     redirect("/sign-in?error=AccessDenied&next=/admin/agents");
+  }
+
+  if (session.user.role !== "ADMIN") {
+    redirect("/dashboard");
   }
 
   assertCan(session.user.role, "admin:verify-agent");
@@ -54,8 +58,12 @@ async function updateVerificationStatusAction(formData: FormData): Promise<void>
 export default async function AdminAgentsPage({ searchParams }: PageProps): Promise<JSX.Element> {
   const session = await auth();
 
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!session?.user?.id) {
     redirect("/sign-in?error=AccessDenied&next=/admin/agents");
+  }
+
+  if (session.user.role !== "ADMIN") {
+    redirect("/dashboard");
   }
 
   const [profiles, activationMetrics] = await Promise.all([

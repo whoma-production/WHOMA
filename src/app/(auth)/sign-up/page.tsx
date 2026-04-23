@@ -11,12 +11,16 @@ interface SignUpPageProps {
   searchParams?: Promise<{ role?: string }>;
 }
 
-function normalizeRole(value: string | undefined): "HOMEOWNER" | "AGENT" | null {
+function normalizeRole(value: string | undefined): "SELLER" | "HOMEOWNER" | "AGENT" | null {
   if (!value) {
     return null;
   }
 
   const normalized = value.trim().toUpperCase();
+  if (normalized === "SELLER") {
+    return "SELLER";
+  }
+
   if (normalized === "HOMEOWNER") {
     return "HOMEOWNER";
   }
@@ -51,5 +55,11 @@ export default async function SignUpPage({
     redirect("/dashboard");
   }
 
-  return <SignUpFlow initialRole={normalizeRole(resolvedSearchParams?.role)} />;
+  const requestedRole = normalizeRole(resolvedSearchParams?.role);
+
+  if (requestedRole === "SELLER" || requestedRole === "HOMEOWNER") {
+    redirect("/auth/login?message=coming-soon");
+  }
+
+  return <SignUpFlow initialRole={requestedRole === "AGENT" ? "AGENT" : null} />;
 }

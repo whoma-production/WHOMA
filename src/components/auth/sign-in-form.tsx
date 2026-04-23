@@ -10,6 +10,7 @@ import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 interface SignInFormProps {
   oauthError?: string | null;
   resetStatus?: string | null;
+  message?: string | null;
 }
 
 function isEmailCandidate(value: string): boolean {
@@ -58,7 +59,8 @@ function buildRecoveryCallbackUrl(): string {
 
 export function SignInForm({
   oauthError = null,
-  resetStatus = null
+  resetStatus = null,
+  message = null
 }: SignInFormProps): JSX.Element {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -72,6 +74,8 @@ export function SignInForm({
   const [noticeMessage, setNoticeMessage] = useState<string | null>(
     resetStatus === "updated"
       ? "Password updated successfully. Sign in with your new password."
+      : message === "coming-soon"
+        ? "Seller registration is not publicly available yet."
       : null
   );
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);

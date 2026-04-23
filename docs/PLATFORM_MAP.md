@@ -554,6 +554,32 @@ Phase 1 delivery focus:
   - same-role submissions short-circuit safely to the current default route.
 - `src/components/layout/app-shell.tsx` now shows a `Switch role` action for homeowner and estate-agent sessions, linking directly to `/onboarding/role?switch=1`.
 
+58. Public signup access lockdown + internal metrics gating (2026-04-23) (new)
+
+- Public signup no longer exposes homeowner/seller role selection; `src/components/auth/sign-up-flow.tsx` now starts directly at credentials with role fixed to `AGENT`.
+- Seller/homeowner public signup entrypoints now redirect to sign-in with a coming-soon message:
+  - `/sign-up?role=HOMEOWNER|SELLER` (server redirect in `src/app/(auth)/sign-up/page.tsx`)
+  - `/signup?role=...` compatibility alias (`src/app/signup/page.tsx`)
+  - `/register/seller` compatibility route (`src/app/register/seller/page.tsx`)
+- Homepage Phase 1 metrics/dashboard rendering is now gated by Supabase server session presence in `src/app/page.tsx`; no metrics/event logic was deleted.
+- `/admin/agents` keeps strict admin authorization and now redirects authenticated non-admin users to `/dashboard` instead of sign-in.
+
+59. Past Deals verification trust loop (2026-04-23) (new)
+
+- Added Supabase-backed `past_deals` verification domain (`supabase/migrations/20260423130000_past_deals.sql`) with status lifecycle: `unverified -> pending -> verified/disputed`.
+- New authenticated agent flow at `/agent/deals` allows adding completed deals with structured fields (`address`, `postcode`, `completion date`, `role`, optional sale price + seller contact).
+- New server boundary `POST /api/deals/add` inserts deal records through Supabase server client and sends seller verification email through Resend when seller email is provided.
+- New seller-facing public verification route `/verify/[token]` (no auth) shows agent name + property details and captures confirm/dispute responses via `POST /api/deals/verify/confirm`.
+- New token helper route `GET /api/deals/verify/[token]` redirects into the public verification page with resolved state hints.
+- Verification confirmations now trigger an agent outcome notification email and persist seller comment + verification timestamp.
+
+60. Homepage featured-agent placeholder section (2026-04-23) (new)
+
+- Added `src/data/mockAgents.ts` with four placeholder profiles used as temporary public trust content.
+- Homepage now renders a `WHOMA AGENTS` section immediately after hero, with a responsive 2-column desktop / 1-column mobile card grid.
+- Each card includes avatar, name, location (`MapPin`), speciality, and a `verified deals` badge plus staggered fade-up animation.
+- Section includes an explicit illustration disclaimer and an in-file TODO comment showing the planned Supabase published-profile query replacement.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
@@ -562,12 +588,16 @@ Phase 1 delivery focus:
 - Shared public header now includes a utility strip above the main nav (`Create profile`, `FAQs`, `Support`) so help/access links are discoverable without cluttering primary navigation.
 - Public trust page `/cookies` now includes live consent controls (`#manage-consent`) backed by `/api/consent`.
 - Public landing now includes proof-led modules (featured verified profile, pilot case-study narrative, workflow demo) instead of relying on strategy copy alone.
+- Public landing now also includes a temporary `WHOMA AGENTS` showcase driven by `src/data/mockAgents.ts` until live published profiles are ready.
 - Public homeowner-collaboration browse: `/requests`, `/requests/[postcodeDistrict]` as a secondary noindex pilot surface (with `/locations*` compatibility redirects)
 - Auth: `/sign-in`, `/sign-up`, `/onboarding/role` with server-resolved public auth state and backend-only preview controls reserved for QA/E2E
+- Auth compatibility aliases: `/signup` forwards to `/sign-up` and handles seller/homeowner redirect-to-sign-in guardrails; `/register/seller` redirects to `/auth/login?message=coming-soon`.
 - Auth entry routes now also recover misrouted Supabase callback params and forward already-authenticated users out of the public auth form.
 - Agent app: `/agent/onboarding`, `/agent/profile/edit`, proposals, marketplace
+- Agent trust evidence app: `/agent/deals` (add past sales + trigger seller verification requests)
 - Homeowner app: `/homeowner/instructions/new` client-side instruction form with structured payload assembly and bid-window sync
-- Admin app: `/admin/agents` verification queue + expanded activation counters
+- Admin app: `/admin/agents` verification queue + expanded activation counters (authenticated non-admin users are redirected to `/dashboard`).
+- Public verification page: `/verify/[token]` for seller confirm/dispute responses from email links.
 
 ## Backend
 
@@ -595,6 +625,7 @@ Phase 1 delivery focus:
 - Migration: `prisma/migrations/20260406183000_email_password_auth/migration.sql`
 - Migration: `prisma/migrations/20260407170500_phase1_event_spine_support_inquiries/migration.sql`
 - Migration: `prisma/migrations/20260407183500_agent_verification_rejected_state/migration.sql`
+- Migration: `supabase/migrations/20260423130000_past_deals.sql`
 - DB-backed service test: `src/server/agent-profile/phase1-flow.test.ts`
 - API safety tests: `src/server/http/idempotency.test.ts`, `src/server/http/rate-limit.test.ts`
 - Gate 1 auth contract test: `src/lib/auth/preview-access.test.ts`

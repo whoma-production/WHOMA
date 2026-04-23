@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, EnvelopeSimple, Eye, EyeSlash, House } from "@phosphor-icons/react";
+import { EnvelopeSimple, Eye, EyeSlash } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -8,13 +8,16 @@ import { AuthSplitShell } from "@/components/auth/auth-split-shell";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 const stepValueProps = {
-  1: "Where Home Owners Meet Agents",
   2: "Your verified profile starts here",
   3: "One last thing"
 } as const;
+const stepLabelProps = {
+  2: "Step 1 of 2",
+  3: "Step 2 of 2"
+} as const;
 
-type SignUpStep = 1 | 2 | 3;
-type SignUpRole = "HOMEOWNER" | "AGENT";
+type SignUpStep = 2 | 3;
+type SignUpRole = "AGENT";
 type TransitionState = "idle" | "out" | "pre-in" | "in";
 
 interface SignUpFlowProps {
@@ -78,9 +81,10 @@ function stepTransitionClass(transitionState: TransitionState): string {
 }
 
 export function SignUpFlow({ initialRole = null }: SignUpFlowProps): JSX.Element {
-  const [currentStep, setCurrentStep] = useState<SignUpStep>(1);
+  const [currentStep, setCurrentStep] = useState<SignUpStep>(2);
   const [transitionState, setTransitionState] = useState<TransitionState>("idle");
-  const [selectedRole, setSelectedRole] = useState<SignUpRole | null>(initialRole);
+  // Seller registration hidden from public — re-enable when seller journey is ready
+  const selectedRole: SignUpRole = initialRole ?? "AGENT";
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -171,11 +175,6 @@ export function SignUpFlow({ initialRole = null }: SignUpFlowProps): JSX.Element
       nextFieldErrors.confirmPassword = "Passwords do not match";
     }
 
-    if (!selectedRole) {
-      setBannerError("Select your role before creating an account.");
-      return;
-    }
-
     if (Object.keys(nextFieldErrors).length > 0) {
       setFieldErrors(nextFieldErrors);
       return;
@@ -261,71 +260,9 @@ export function SignUpFlow({ initialRole = null }: SignUpFlowProps): JSX.Element
   return (
     <AuthSplitShell
       valueProp={stepValueProps[currentStep]}
-      stepLabel={`Step ${currentStep} of 3`}
+      stepLabel={stepLabelProps[currentStep]}
     >
       <div className={`will-change-transform ${stepTransitionClass(transitionState)}`}>
-        {currentStep === 1 ? (
-          <section className="space-y-8">
-            <header className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl">
-                How are you using WHOMA?
-              </h1>
-              <p className="text-base text-zinc-500">
-                We&apos;ll set up your account based on your role.
-              </p>
-            </header>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole("HOMEOWNER");
-                }}
-                className={`rounded-2xl border p-6 text-left transition-all duration-200 ${
-                  selectedRole === "HOMEOWNER"
-                    ? "scale-[1.02] border-[#2d6a5a] bg-[#2d6a5a]/5"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
-              >
-                <House className="mb-5 text-zinc-800" size={36} weight="light" />
-                <p className="text-lg font-semibold text-zinc-900">I&apos;m a homeowner</p>
-                <p className="mt-2 text-sm text-zinc-500">
-                  Looking to sell, let, or find an agent I can trust
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole("AGENT");
-                }}
-                className={`rounded-2xl border p-6 text-left transition-all duration-200 ${
-                  selectedRole === "AGENT"
-                    ? "scale-[1.02] border-[#2d6a5a] bg-[#2d6a5a]/5"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
-              >
-                <Buildings className="mb-5 text-zinc-800" size={36} weight="light" />
-                <p className="text-lg font-semibold text-zinc-900">I&apos;m an estate agent</p>
-                <p className="mt-2 text-sm text-zinc-500">
-                  Building my verified professional profile
-                </p>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              disabled={!selectedRole}
-              onClick={() => {
-                animateToStep(2);
-              }}
-              className="w-full rounded-xl bg-[#2d6a5a] px-5 py-3.5 text-base font-semibold text-white transition-transform duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              Continue
-            </button>
-          </section>
-        ) : null}
-
         {currentStep === 2 ? (
           <section className="space-y-7">
             <header className="space-y-2">

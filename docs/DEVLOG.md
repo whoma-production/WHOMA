@@ -5435,3 +5435,217 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Run one browser QA pass on mobile + desktop for `/sign-up` transitions and confirmation resend behavior.
 2. Verify full production auth recovery round-trip on branded host (`forgot -> reset -> sign-in`).
 3. If approved, mirror this split-shell system onto remaining auth-adjacent entry routes for consistency.
+
+---
+
+## Session: 2026-04-23 / 11:43 (CEST) — Public signup access lockdown + metrics/admin visibility gates
+
+**Author:** Codex  
+**Context:** Implemented access-control changes to remove public seller/homeowner registration paths, hide public-facing metrics by default, and tighten admin dashboard redirects for non-admin authenticated users.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Restrict public signup to estate agents only without removing seller/homeowner schema support.
+- Hide the public Phase 1 metrics dashboard unless a Supabase session exists.
+- Ensure internal admin dashboard routes keep explicit admin-role enforcement with `/dashboard` fallback for authenticated non-admin users.
+
+### Changes Made
+
+- Updated `src/components/auth/sign-up-flow.tsx` to skip role-selection step and default public signup role to `AGENT` only.
+- Added explicit in-code note on signup role lock:
+  - `// Seller registration hidden from public — re-enable when seller journey is ready`
+- Updated `src/app/(auth)/sign-up/page.tsx` so `role=SELLER` or `role=HOMEOWNER` requests redirect to `/auth/login?message=coming-soon`.
+- Added compatibility redirects:
+  - `src/app/signup/page.tsx` (`/signup?role=seller` and `/signup?role=homeowner` -> `/auth/login?message=coming-soon`)
+  - `src/app/register/seller/page.tsx` (`/register/seller` -> `/auth/login?message=coming-soon`)
+- Updated `src/app/auth/login/page.tsx` to preserve `message` query params when redirecting to `/sign-in`.
+- Updated `src/app/(auth)/sign-in/page.tsx` and `src/components/auth/sign-in-form.tsx` to pass/display `message=coming-soon` as inline notice.
+- Updated `src/app/page.tsx` to fetch Supabase session via server client and render the Phase 1 metrics section only when authenticated.
+- Added inline metrics note at the section boundary:
+  - `// Internal only — unhide when metrics are ready for public display`
+- Updated `src/app/(app)/admin/agents/page.tsx` to redirect authenticated non-admin users to `/dashboard` (while keeping unauthenticated users on sign-in redirect).
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/auth/sign-up-flow.tsx`
+- `src/app/(auth)/sign-up/page.tsx`
+- `src/app/signup/page.tsx`
+- `src/app/register/seller/page.tsx`
+- `src/app/auth/login/page.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/components/auth/sign-in-form.tsx`
+- `src/app/page.tsx`
+- `src/app/(app)/admin/agents/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Kept seller/homeowner role support at the data/model layer and enforced the restriction in public UI + public route entrypoints only.
+- Added alias-route redirects (`/signup`, `/register/seller`) to catch legacy/public deep links without exposing deprecated signup modes.
+- Used Supabase server session check directly in homepage render to gate metrics without deleting metrics logic or data computation code paths.
+- Preserved existing admin authorization checks while improving user experience for authenticated non-admins via `/dashboard` redirect.
+
+### Verification
+
+- `npm run typecheck` -> failed in this workspace (`tsc: command not found`).
+- `npm run lint` -> failed in this workspace (`next: command not found`).
+- Manual code inspection confirms:
+  - public signup now starts at credentials with role fixed to `AGENT`,
+  - seller/homeowner signup role routes redirect to `/auth/login?message=coming-soon`,
+  - homepage metrics section is wrapped behind Supabase session presence,
+  - admin dashboard route/action now send authenticated non-admin users to `/dashboard`.
+
+### Known Issues / Risks
+
+- Runtime verification commands could not run in this environment because `node_modules` tooling (`tsc`, `next`) is unavailable.
+- `/sign-in` now accepts an optional `message` query param; only `coming-soon` is currently mapped to inline copy.
+
+### Next Steps
+
+1. Install dependencies in the execution environment and run `npm run typecheck` and `npm run lint`.
+2. Browser-verify the access flows:
+   - `/sign-up` shows agent-only signup,
+   - `/signup?role=seller` and `/register/seller` redirect to sign-in with notice,
+   - homepage metrics block is hidden while signed out and visible when signed in.
+3. Confirm non-admin authenticated access to `/admin/agents` redirects to `/dashboard`.
+
+---
+
+## Session: 2026-04-23 / 11:57 (CEST) — Past Deals verification feature (agent trust loop)
+
+**Author:** Codex  
+**Context:** Implemented the new Past Deals flow for agent trust verification: Supabase schema/RLS, add-deal API + UI, seller verification page, and verification confirmation pipeline with Resend notifications.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Ship a production-ready past-deal verification mechanic for agents:
+  - agents add completed deals,
+  - sellers verify/dispute via tokenized public page,
+  - verification status updates are persisted and communicated.
+
+### Changes Made
+
+- Added Supabase migration `supabase/migrations/20260423130000_past_deals.sql`:
+  - created `public.past_deals` with verification lifecycle fields and token,
+  - enabled RLS with owner-management + public verified-read policies,
+  - added token-based select policy and token-based unauthenticated update policy for confirm endpoint.
+- Added deals validation module `src/lib/validation/deals.ts`:
+  - add-deal payload schema (postcode/date/role/seller-email validation),
+  - confirm payload schema (`token`, `confirmed`, optional seller comment with dispute guard).
+- Added verification email delivery module `src/lib/email/verification.ts`:
+  - seller verification request email with branded HTML and dual CTA links,
+  - agent outcome email on seller confirm/dispute.
+- Added API routes:
+  - `POST /api/deals/add` (`src/app/api/deals/add/route.ts`),
+  - `GET /api/deals/verify/[token]` (`src/app/api/deals/verify/[token]/route.ts`),
+  - `POST /api/deals/verify/confirm` (`src/app/api/deals/verify/confirm/route.ts`).
+- Added agent UI:
+  - `src/components/deals/AddDealForm.tsx` with inline validation, shimmer submit, success/error states,
+  - `src/app/(app)/agent/deals/page.tsx` host route inside agent shell.
+- Added seller-facing verification surface:
+  - `src/app/verify/[token]/page.tsx`,
+  - `src/components/deals/VerifyDealResponseForm.tsx`.
+
+### Files / Modules Touched (high signal only)
+
+- `supabase/migrations/20260423130000_past_deals.sql`
+- `src/lib/validation/deals.ts`
+- `src/lib/email/verification.ts`
+- `src/app/api/deals/add/route.ts`
+- `src/app/api/deals/verify/[token]/route.ts`
+- `src/app/api/deals/verify/confirm/route.ts`
+- `src/components/deals/AddDealForm.tsx`
+- `src/components/deals/VerifyDealResponseForm.tsx`
+- `src/app/verify/[token]/page.tsx`
+- `src/app/(app)/agent/deals/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Added a dedicated authenticated agent route (`/agent/deals`) so the new add-deal flow is immediately usable without modifying existing profile/auth pages.
+- Kept all server-route Supabase access on `createSupabaseServerClient` (`@supabase/ssr`) per repo rule.
+- Used token-based public verification with app-layer filtering for unauthenticated seller responses.
+- Kept verification UX split-shell aligned with auth page visual language while avoiding exposure of sale price.
+
+### Verification
+
+- `npm run typecheck` -> not runnable in this workspace (`tsc: command not found`; dependencies not installed).
+- `npm run lint` -> not runnable in this workspace (`next: command not found`; dependencies not installed).
+- Manual code verification confirms:
+  - add-deal form field coverage + validation + API submit flow,
+  - pending verification transition when seller email exists,
+  - seller confirm/dispute flow updates status + timestamp and records comment,
+  - branded verification/outcome emails are generated with required CTA links.
+
+### Known Issues / Risks
+
+- Migration includes extra `agent_name` and `agent_email` columns to support seller-facing identity context and post-confirmation email notification to the originating agent without introducing service-role lookups.
+- Toolchain commands cannot execute in this environment until dependencies are installed.
+
+### Next Steps
+
+1. Run migration on Supabase and verify RLS policies in dashboard SQL editor.
+2. Install dependencies locally and run `npm run typecheck` + `npm run lint`.
+3. Perform one end-to-end QA pass:
+   - add deal as agent,
+   - verify seller email delivery links,
+   - confirm/dispute flow updates status and sends agent notification.
+
+---
+
+## Session: 2026-04-23 / 12:01 (CEST) — Homepage “Meet our agents” placeholder section
+
+**Author:** Codex  
+**Context:** Added a public-facing featured-agents showcase on the homepage using mock data until live agent profiles are available.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Add a trust-oriented “Featured agents / Meet our agents” section directly after hero content with placeholder profiles, preserving layout quality on desktop/mobile.
+
+### Changes Made
+
+- Created `src/data/mockAgents.ts` with four placeholder agent profiles:
+  - `Marcus Okafor`,
+  - `Priya Ranasinghe`,
+  - `Tom Callister`,
+  - `Yemi Adeyemi`.
+- Updated homepage `src/app/page.tsx`:
+  - added requested future-proofing Supabase comment above mock-data import,
+  - inserted new section after hero and before downstream CTA/footer sections,
+  - implemented two-column desktop / single-column mobile card grid,
+  - added card styling and copy exactly as requested (`verified deals` badge, location line with `MapPin`, disclaimer),
+  - added staggered fade-up animation with delays `0/75/150/225ms`.
+- Kept avatar rendering with plain `<img>` so no `next.config.ts` image remote pattern updates were required.
+
+### Files / Modules Touched (high signal only)
+
+- `src/data/mockAgents.ts`
+- `src/app/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Used local static mock data module for immediate section shipping and simple future replacement.
+- Used section-local keyframes + per-card `animationDelay` style for predictable stagger behavior without new dependencies.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed (`No ESLint warnings or errors`).
+
+### Next Steps
+
+1. Replace `mockAgents` with published-agent Supabase query once live profiles are enabled.
+2. Optionally link each card to a real `/agents/[slug]` profile when those records are available.
