@@ -22,9 +22,9 @@ export class WorkEmailDeliveryError extends Error {
 
 function getResendConfig(): { apiKey: string; fromEmail: string } {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim();
+  const fromEmail = "WHOMA <support@whoma.co.uk>";
 
-  if (!apiKey || !fromEmail) {
+  if (!apiKey) {
     throw new WorkEmailDeliveryError(
       "DELIVERY_NOT_CONFIGURED",
       "Email verification delivery is not configured."

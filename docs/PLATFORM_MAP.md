@@ -580,6 +580,27 @@ Phase 1 delivery focus:
 - Each card includes avatar, name, location (`MapPin`), speciality, and a `verified deals` badge plus staggered fade-up animation.
 - Section includes an explicit illustration disclaimer and an in-file TODO comment showing the planned Supabase published-profile query replacement.
 
+61. Global support chat + escalation hardening (2026-04-23) (new)
+
+- Added fixed global support widget:
+  - `src/components/SupportChat.tsx`
+  - mounted in `src/app/layout.tsx` so chat access is route-agnostic and layout-safe (`position: fixed` only).
+- Added chat APIs:
+  - `POST /api/chat` (`src/app/api/chat/route.ts`) for Anthropic streaming support answers with escalation tool support.
+  - `POST /api/chat/escalate` (`src/app/api/chat/escalate/route.ts`) for Resend transcript handoff to support inbox.
+- Added shared support delivery boundary:
+  - `src/lib/email/support.ts`
+  - branded sender `WHOMA <support@whoma.co.uk>`,
+  - destination `support@whoma.co.uk`,
+  - bounded transcript normalization.
+- Added escalation dedupe utility:
+  - `src/server/support/escalation-dedupe.ts`
+  - 15-minute conversation/transcript dedupe window to suppress duplicate tickets.
+- Hardened escalation behavior:
+  - bounded payloads (`messages.max(60)`),
+  - explicit handoff intent phrase matching,
+  - idempotent duplicate response (`success=true`, `deduped=true`).
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
@@ -607,6 +628,7 @@ Phase 1 delivery focus:
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)
 - Service layer: `src/server/marketplace/service.ts` for instruction/proposal persistence, bid-window domain guards, duplicate handling, and event emission
+- Support chat APIs: `src/app/api/chat/route.ts` and `src/app/api/chat/escalate/route.ts` with rate-limit guardrails and conversation-scoped dedupe support
 - Consent layer: `src/server/consent/cookie-consent.ts` for signed preference cookies + `/api/consent` route for user-managed non-essential cookie consent
 - Security helpers: `src/server/http/idempotency.ts` and `src/server/http/rate-limit.ts` for replay-safe writes and request throttling, now backed by optional Upstash Redis shared storage with fallback to Prisma/in-memory when unconfigured; the Prisma idempotency path now reserves a pending record before executing the write so fallback mode stays concurrency-safe.
 - Persistence: Prisma + Postgres

@@ -32,11 +32,11 @@ async function sendSupportInquiryNotification(
   inquiryId: string
 ): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim();
+  const fromEmail = "WHOMA <support@whoma.co.uk>";
   const supportEmail =
     process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || "support@whoma.co.uk";
 
-  if (!apiKey || !fromEmail) {
+  if (!apiKey) {
     return;
   }
 

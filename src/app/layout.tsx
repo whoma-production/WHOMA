@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 
 import { Providers } from "@/app/providers";
+import SupportChat from "@/components/SupportChat";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
 import { getPublicSiteConfig } from "@/lib/public-site";
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {children}
           <CookieConsentBanner />
         </Providers>
+        <SupportChat />
       </body>
     </html>
   );

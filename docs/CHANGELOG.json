@@ -2279,5 +2279,30 @@
       "Swap `mockAgents` for published-agent Supabase query once production profile visibility is enabled.",
       "Link cards to live `/agents/[slug]` records when slugs are available."
     ]
+  },
+  {
+    "session_id": "2026-04-23-1255-support-chat-release-hardening",
+    "timestamp": "2026-04-23T12:55:00+02:00",
+    "summary": "Shipped support chat escalation hardening with conversation-scoped dedupe, bounded escalation payloads, tighter handoff intent detection, and runtime smoke evidence for idempotent duplicate suppression.",
+    "files_changed": [
+      "src/server/support/escalation-dedupe.ts",
+      "src/app/api/chat/route.ts",
+      "src/app/api/chat/escalate/route.ts",
+      "src/components/SupportChat.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Used stable `conversationId` forwarding from widget to APIs to make dedupe deterministic across manual and automatic escalation paths.",
+      "Returned duplicate escalation attempts as successful idempotent responses (`success=true`, `deduped=true`) instead of errors.",
+      "Kept immediate escalation on `Talk to a person` and prevented optional email-capture confirmation from re-sending transcript content."
+    ],
+    "next_steps": [
+      "Deploy rebased main and confirm live chat/escalation endpoint behavior.",
+      "Add focused route/component regression tests for escalation trigger matching and dedupe response contracts.",
+      "Rotate Anthropic and Resend keys after deployment verification."
+    ]
   }
 ]

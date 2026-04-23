@@ -445,7 +445,7 @@ export function SignUpFlow({ initialRole = null }: SignUpFlowProps): JSX.Element
               {resendError ? <p className="text-red-500">{resendError}</p> : null}
 
               <p>
-                <Link href="/auth/login" className="font-medium text-zinc-600 underline underline-offset-2">
+                <Link href="/sign-in" className="font-medium text-zinc-600 underline underline-offset-2">
                   Back to sign in
                 </Link>
               </p>

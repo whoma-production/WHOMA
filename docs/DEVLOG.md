@@ -5649,3 +5649,80 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 1. Replace `mockAgents` with published-agent Supabase query once live profiles are enabled.
 2. Optionally link each card to a real `/agents/[slug]` profile when those records are available.
+
+---
+
+## Session: 2026-04-23 / 12:55 (CEST) — Support chat release hardening + deployment readiness validation
+
+**Author:** Codex  
+**Context:** User requested shipping the WHOMA support chat stack live on `main` with deep testing and sub-agent verification, plus hardening to avoid escalation-related tech debt.  
+**Branch/PR:** `main` (working tree, rebase-in-progress integration)
+
+### Goal
+
+- Finalize chat/escalation behavior so support requests route correctly without duplicate tickets.
+- Validate release readiness with parallel sub-agent checks and runtime smoke evidence.
+- Keep docs/changelog truthful before pushing to production.
+
+### Changes Made
+
+- Sub-agent QA run completed:
+  - static verification (`typecheck`, `lint`, `test`) all green,
+  - runtime probe flagged sandbox bind limits and duplicate-escalation risk,
+  - architecture review flagged broad handoff phrase matching and dedupe gaps.
+- Added `src/server/support/escalation-dedupe.ts`:
+  - conversation/transcript keyed dedupe helper,
+  - 15-minute best-effort duplicate suppression window.
+- Updated `src/app/api/chat/route.ts`:
+  - accepts optional `conversationId`,
+  - narrows explicit handoff phrase matching to reduce false positives,
+  - gates auto-escalation through dedupe check before sending support email.
+- Updated `src/app/api/chat/escalate/route.ts`:
+  - enforces `messages.max(60)` payload bound,
+  - accepts optional `conversationId`,
+  - returns `success=true` + `deduped=true` on duplicate requests.
+- Updated `src/components/SupportChat.tsx`:
+  - generates stable conversation IDs client-side,
+  - includes `conversationId` + resolved user email in chat transport body,
+  - keeps immediate `Talk to a person` escalation,
+  - avoids re-sending transcript during optional email-capture confirm.
+- Updated project docs (`TASKS`, `PLATFORM_MAP`, `CHANGELOG`) with hardening and smoke-test outcomes.
+
+### Files / Modules Touched (high signal only)
+
+- `src/server/support/escalation-dedupe.ts`
+- `src/app/api/chat/route.ts`
+- `src/app/api/chat/escalate/route.ts`
+- `src/components/SupportChat.tsx`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Treated duplicate escalation as idempotent success instead of hard failure, keeping UX stable on repeated clicks/retries.
+- Used conversation-scoped dedupe to stop duplicate support inbox noise while preserving auto + manual escalation paths.
+- Kept email-capture confirm as a local confirmation step after initial escalation to avoid duplicate transcript sends.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+- `npm run test` -> passed (`21 passed / 3 skipped`, `77 passed / 8 skipped`).
+- Runtime smoke (localhost unsandboxed dev run):
+  - `POST /api/chat` invalid payload -> `400`
+  - `POST /api/chat/escalate` invalid payload -> `400`
+  - `POST /api/chat/escalate` valid payload -> `200`
+  - repeated same conversation escalation -> `200` with `{"deduped":true}`
+
+### Known Issues / Risks
+
+- Dedupe storage is in-memory best effort; distributed dedupe should move to shared storage if ticket volume grows.
+- Provider keys were shared in-thread during setup and should be rotated after release for hygiene.
+
+### Next Steps
+
+1. Push rebased `main` and confirm production deployment health.
+2. Run one live production smoke on chat + escalation paths.
+3. Add focused regression tests for escalation trigger matching and dedupe response contract.
