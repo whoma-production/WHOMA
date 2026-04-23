@@ -5726,3 +5726,54 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Push rebased `main` and confirm production deployment health.
 2. Run one live production smoke on chat + escalation paths.
 3. Add focused regression tests for escalation trigger matching and dedupe response contract.
+
+---
+
+## Session: 2026-04-23 / 12:45 (CEST) — Railway production build failure fix (homepage Server Component)
+
+**Author:** Codex  
+**Context:** After pushing `main`, Railway production deployments failed and blocked the new support-chat routes from going live.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Resolve the production build failure immediately and unblock deployment rollout.
+
+### Changes Made
+
+- Inspected latest failed Railway deployment logs and identified compile error:
+  - `src/app/page.tsx` used `<style jsx>` inside a Server Component,
+  - Next build rejected this as client-only behavior in server-rendered module.
+- Updated homepage agent-card animation implementation:
+  - replaced custom `styled-jsx` keyframes usage with existing global utility class `animate-enter-up`,
+  - retained stagger effect via existing inline `animationDelay` style.
+- Removed the `style jsx` block from `src/app/page.tsx` to restore Server Component compatibility.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Reused existing global animation utility instead of introducing new component-level styling primitives, minimizing blast radius for a production unblock fix.
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+- `npm run test` -> passed (`21 passed / 3 skipped`, `77 passed / 8 skipped`).
+- Railway build-log evidence confirmed root cause before patch (`styled-jsx` import in Server Component path).
+
+### Known Issues / Risks
+
+- Live deployment cutover still depends on Railway completing a new successful build after this fix.
+
+### Next Steps
+
+1. Push this unblock fix to `main`.
+2. Trigger/confirm fresh Railway deployment success.
+3. Re-run live `/api/chat` and `/api/chat/escalate` probes until expected `400` validation responses are active.

@@ -279,7 +279,7 @@ export default async function LandingPage({
               {mockAgents.map((agent, index) => (
                 <article
                   key={agent.name}
-                  className="rounded-2xl border border-slate-100 bg-white p-6 opacity-0 animate-[meet-agent-fade-up_550ms_ease-out_forwards]"
+                  className="animate-enter-up rounded-2xl border border-slate-100 bg-white p-6"
                   style={{ animationDelay: `${index * 75}ms` }}
                 >
                   <div className="space-y-4">
@@ -351,20 +351,6 @@ export default async function LandingPage({
             </div>
           </div>
         </section>
-
-        <style jsx>{`
-          @keyframes meet-agent-fade-up {
-            from {
-              opacity: 0;
-              transform: translateY(10px);
-            }
-
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}</style>
 
         {/* Internal only — unhide when metrics are ready for public display */}
         {phase1Dashboard ? (

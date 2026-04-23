@@ -2304,5 +2304,26 @@
       "Add focused route/component regression tests for escalation trigger matching and dedupe response contracts.",
       "Rotate Anthropic and Resend keys after deployment verification."
     ]
+  },
+  {
+    "session_id": "2026-04-23-1245-railway-build-unblock-homepage",
+    "timestamp": "2026-04-23T12:45:00+02:00",
+    "summary": "Unblocked Railway production deployment failures by removing Server Component-incompatible `styled-jsx` usage from homepage and switching the placeholder-agent animation to existing global utility classes.",
+    "files_changed": [
+      "src/app/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Resolved deployment blocker with the smallest safe patch by reusing existing global animation utility (`animate-enter-up`) instead of introducing new client-only styling paths.",
+      "Preserved staggered card reveal behavior via `animationDelay` while keeping the page as a valid Server Component."
+    ],
+    "next_steps": [
+      "Push the build-unblock patch to main and monitor Railway deployment status.",
+      "Re-run live `/api/chat` and `/api/chat/escalate` probes until expected validation responses are active.",
+      "Capture final deployment ID and smoke evidence in release notes."
+    ]
   }
 ]

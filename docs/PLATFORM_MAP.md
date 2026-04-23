@@ -579,6 +579,7 @@ Phase 1 delivery focus:
 - Homepage now renders a `WHOMA AGENTS` section immediately after hero, with a responsive 2-column desktop / 1-column mobile card grid.
 - Each card includes avatar, name, location (`MapPin`), speciality, and a `verified deals` badge plus staggered fade-up animation.
 - Section includes an explicit illustration disclaimer and an in-file TODO comment showing the planned Supabase published-profile query replacement.
+- Production build compatibility note: animation now uses global utility classes (`animate-enter-up`) instead of `styled-jsx` so the homepage remains a valid Server Component in Next.js production builds.
 
 61. Global support chat + escalation hardening (2026-04-23) (new)
 
