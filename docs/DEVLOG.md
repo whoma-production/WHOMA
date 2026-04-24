@@ -5829,3 +5829,78 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Push this final unblock patch to `main`.
 2. Confirm Railway deployment succeeds.
 3. Re-run live chat-route probes and capture final `400` validation evidence.
+
+---
+
+## Session: 2026-04-24 / 11:35 (CEST) — Production sync, deploy recovery, and live verification evidence
+
+**Author:** Codex  
+**Context:** User asked to continue from the unfinished prior session, verify that yesterday's access-control/deals/homepage work is truly live, and test production behavior end to end.  
+**Branch/PR:** `codex/production-sync-verify` (tracking `origin/main`)
+
+### Goal
+
+- Ensure the requested changes are actually live on production and functionally verified with browser evidence.
+- Remove deployment blockers that prevented new `main` behavior from reaching users.
+
+### Changes Made
+
+- Re-audited `origin/main` and confirmed target features were present in source, then identified deploy/runtime drift as the likely reason production still showed old behavior.
+- Restored local release validation and fixed a production build blocker in support escalation email delivery:
+  - updated `src/lib/email/support.ts` to lazily create the Resend client at send-time instead of module-load time.
+  - this prevents build-time failures when `RESEND_API_KEY` is unavailable during route evaluation.
+- Linked Railway project/service and deployed current branch to production service `WHOMA`:
+  - deployment id: `d7aeddbc-6940-438d-9886-b23097ce28cb`
+  - status: `SUCCESS`
+- Re-ran live production probes and browser-level checks with screenshots for:
+  - `/sign-up`
+  - `/sign-up?role=seller`
+  - `/signup?role=seller`
+  - `/register/seller`
+  - `/agent/deals`
+  - homepage featured-agents/metrics visibility
+
+### Files / Modules Touched (high signal only)
+
+- `src/lib/email/support.ts`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Prioritized deployability first: production cannot reflect application fixes while build/start paths are brittle.
+- Used browser-level verification (final rendered URL + screenshot evidence) in addition to header probes, because app-router redirects can be client-resolved.
+- Kept access-control behavior verification focused on explicit requested outcomes (agent-only signup, seller alias routing, public metrics hidden, auth-gated internal routes).
+
+### Verification
+
+- Local checks:
+  - `npm run typecheck` -> passed
+  - `npm run lint` -> passed
+  - `npm run build` -> passed
+  - `npm run test -- src/app/auth/callback/route.test.ts src/lib/auth/preview-access.test.ts` -> passed
+- Railway deploy:
+  - `npx -y @railway/cli up --service WHOMA --environment production --ci ...` -> success
+  - `npx -y @railway/cli service status --service WHOMA --environment production` -> `Status: SUCCESS`
+- Live production behavior (`https://www.whoma.co.uk`):
+  - `/sign-up` now opens directly on credentials (no homeowner/seller public role card)
+  - `/sign-up?role=seller` resolves to `/sign-in?message=coming-soon`
+  - `/signup?role=seller` resolves to `/sign-in?message=coming-soon`
+  - `/register/seller` resolves to `/sign-in?message=coming-soon`
+  - homepage shows featured placeholder agents section and no public Phase 1 metrics block while signed out
+  - `/agent/deals` remains auth-gated and redirects to sign-in when signed out
+- Screenshot evidence captured under:
+  - `artifacts/live-check-2026-04-24/`
+
+### Known Issues / Risks
+
+- HTTP `HEAD` probes can report `200` for routes that eventually resolve in-browser via app-router redirect handling; browser verification remains the source of truth for user-visible outcomes.
+- A full authenticated deal-add + seller-email verification round-trip still requires a valid test account/inbox pair and explicit live email test approval.
+
+### Next Steps
+
+1. Run one authenticated production sanity pass for `/agent/deals` add-flow with a controlled test agent account.
+2. Run one end-to-end seller verification loop (`pending -> verified/disputed`) against a non-production test inbox.
+3. If desired, add a lightweight automated post-deploy smoke script for these access-control routes to prevent regressions.

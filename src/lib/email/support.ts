@@ -1,7 +1,5 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const SUPPORT_FROM = "WHOMA <support@whoma.co.uk>";
 const SUPPORT_TO = "support@whoma.co.uk";
 const MAX_TRANSCRIPT_MESSAGES = 60;
@@ -31,6 +29,15 @@ function toTranscript(messages: SupportTranscriptMessage[]): string {
     .join("\n\n");
 }
 
+function createResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not configured.");
+  }
+
+  return new Resend(apiKey);
+}
+
 export async function sendSupportEmail({
   userEmail,
   messages,
@@ -40,13 +47,9 @@ export async function sendSupportEmail({
   messages: SupportTranscriptMessage[];
   triggeredBy: SupportTrigger;
 }): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not configured.");
-  }
-
   const timestamp = new Date().toLocaleString("en-GB");
 
-  await resend.emails.send({
+  await createResendClient().emails.send({
     from: SUPPORT_FROM,
     to: SUPPORT_TO,
     subject: `Support request — ${triggeredBy} — ${timestamp}`,

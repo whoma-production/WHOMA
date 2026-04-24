@@ -2347,5 +2347,26 @@
       "Re-run live `/api/chat` and `/api/chat/escalate` probes until expected validation responses appear.",
       "Document final deployment ID and smoke evidence."
     ]
+  },
+  {
+    "session_id": "2026-04-24-1135-production-sync-live-verification",
+    "timestamp": "2026-04-24T11:35:00+02:00",
+    "summary": "Recovered deployability, shipped Railway production deployment d7aeddbc-6940-438d-9886-b23097ce28cb, and verified live access-control behavior with browser evidence (agent-only signup, seller-route coming-soon redirect, signed-out metrics hidden, featured agents visible, /agent/deals auth-gated).",
+    "files_changed": [
+      "src/lib/email/support.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Fixed the production build blocker by deferring Resend client creation in support-email delivery to request/send time rather than module initialization time.",
+      "Used browser-level verification for redirect outcomes because app-router behavior can differ from raw HEAD probe interpretation."
+    ],
+    "next_steps": [
+      "Run one authenticated production add-deal sanity flow on /agent/deals with a controlled test account.",
+      "Run one end-to-end seller verification response cycle and confirm pending -> verified/disputed state transitions plus agent notification.",
+      "Optionally add a lightweight post-deploy smoke script for these access-control routes to prevent regressions."
+    ]
   }
 ]

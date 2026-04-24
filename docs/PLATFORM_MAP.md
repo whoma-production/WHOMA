@@ -605,6 +605,16 @@ Phase 1 delivery focus:
   - `src/app/api/deals/verify/[token]/route.ts` now uses Next.js-compatible async route context typing (`params: Promise<{ token: string }>`).
   - Homepage `MapPin` icon now uses `lucide-react` (server-safe) instead of `@phosphor-icons/react` to avoid Server Component build/runtime failures.
 
+62. Production sync + live access-control verification pass (2026-04-24) (new)
+
+- Railway production deployment `d7aeddbc-6940-438d-9886-b23097ce28cb` is live on service `WHOMA`.
+- `src/lib/email/support.ts` now lazily initializes the Resend client at send-time; this removed a build-time route-evaluation failure path when `RESEND_API_KEY` is unavailable during build/page-data collection.
+- Live browser verification on `https://www.whoma.co.uk` now confirms the April 23 access-control and homepage changes are active in production:
+  - `/sign-up` starts directly at credentials with public signup role fixed to `AGENT`.
+  - seller legacy entrypoints (`/sign-up?role=seller`, `/signup?role=seller`, `/register/seller`) resolve to `/sign-in?message=coming-soon`.
+  - signed-out homepage hides the internal Phase 1 metrics dashboard and shows the `WHOMA AGENTS` placeholder section.
+  - `/agent/deals` remains protected and redirects signed-out users to sign-in.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
