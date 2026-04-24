@@ -5866,6 +5866,7 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 - `docs/DEVLOG.md`
 - `docs/TASKS.md`
 - `docs/PLATFORM_MAP.md`
+
 - `docs/CHANGELOG.json`
 
 ### Decisions
@@ -5904,3 +5905,126 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Run one authenticated production sanity pass for `/agent/deals` add-flow with a controlled test agent account.
 2. Run one end-to-end seller verification loop (`pending -> verified/disputed`) against a non-production test inbox.
 3. If desired, add a lightweight automated post-deploy smoke script for these access-control routes to prevent regressions.
+
+---
+
+## Session: 2026-04-24 / 11:24 (CEST) — Support chat backend verification + route hardening
+
+**Author:** Codex  
+**Context:** Senior Backend Reliability task brief to verify support chat escalation behavior/security end-to-end and patch only backend chat/escalation modules for concrete defects.  
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Validate escalation trigger correctness and safety controls in `POST /api/chat` + `POST /api/chat/escalate`, then patch only scoped backend modules/tests where defects are concrete.
+
+### Changes Made
+
+- Added backend regression tests:
+  - `src/app/api/chat/route.test.ts`
+  - `src/app/api/chat/escalate/route.test.ts`
+- Added route-level coverage for:
+  - explicit handoff phrase escalation,
+  - low-confidence tool-triggered escalation,
+  - unresolved threshold escalation after 4 completed exchanges,
+  - dedupe idempotent response behavior,
+  - malformed payload rejection and rate-limit responses.
+- Hardened `src/app/api/chat/route.ts` input-shape validation:
+  - validates each incoming UI message has `role` and `parts[]` with typed parts,
+  - prevents malformed payloads from reaching transcript parsing and causing runtime exceptions.
+
+### Files / Modules Touched (high signal only)
+
+- `src/app/api/chat/route.ts`
+- `src/app/api/chat/route.test.ts`
+- `src/app/api/chat/escalate/route.test.ts`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Decisions
+
+- Kept scope backend-only and did not modify UI/auth/domain workflows.
+- Added route tests first-class instead of relying on ad hoc runtime probing so escalation contracts stay protected in CI.
+- Tightened message-shape validation at the route boundary as the smallest concrete fix for malformed-payload crash risk.
+
+### Verification
+
+- `npm run test -- src/app/api/chat/route.test.ts src/app/api/chat/escalate/route.test.ts` -> passed (`9/9`).
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+
+### Known Issues / Risks
+
+- Escalation dedupe remains in-memory best effort; horizontally scaled environments may still produce duplicates without shared dedupe storage.
+- `src/components/SupportChat.tsx` contains pre-existing unrelated local modifications and was left untouched in this backend-scoped pass.
+
+### Next Steps
+
+1. Run one live production chat/escalate smoke after deployment (`400` invalid payload checks + manual handoff click path).
+2. If duplicate escalations appear in production, migrate dedupe state to shared storage (Redis/DB).
+
+---
+
+## Session: 2026-04-24 / 11:45 (CEST) — Support widget E2E stabilization + live rollout verification
+
+**Author:** Codex  
+**Context:** User requested full continuation from yesterday with deep testing, sub-agent validation, and live deployment confidence for support chat.
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Complete support chat rollout by hardening widget behavior, validating backend escalation contracts, and confirming live production behavior end-to-end.
+
+### Changes Made
+
+- Updated `SupportChat` escalation UX:
+  - unauthenticated `Talk to a person` now opens optional email capture first and sends escalation on `Confirm`,
+  - escalation trigger button remains disabled once escalation flow starts,
+  - floating trigger remains strictly `position: fixed` in closed state (removed class override that changed it to `relative`).
+- Extended support route coverage and guardrails (already added in this branch):
+  - explicit escalation keyword coverage includes generic `email`,
+  - unresolved-conversation escalation now keys off 4 completed exchanges,
+  - `/api/chat` safely rejects malformed model-message payload conversion (`400`),
+  - backend route regression tests for `/api/chat` and `/api/chat/escalate`.
+- Added E2E coverage:
+  - `tests/e2e/support-widget.spec.ts` now validates widget open/close, fixed-position rendering, header handoff link, unauthenticated email-capture escalation path, and confirmation state.
+- Deployed to Railway production service `WHOMA`:
+  - deployment id: `1e6b9dde-0ba9-4666-9990-b38b9dbaa6b3`
+  - status: `SUCCESS`
+
+### Files / Modules Touched (high signal only)
+
+- `src/components/SupportChat.tsx`
+- `src/app/api/chat/route.ts`
+- `src/app/api/chat/route.test.ts`
+- `src/app/api/chat/escalate/route.test.ts`
+- `tests/e2e/support-widget.spec.ts`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- Local:
+  - `npm run typecheck` -> passed
+  - `npm run lint` -> passed
+  - `npm run test` -> passed (`86 passed / 8 skipped`)
+  - `npm run test -- src/app/api/chat/route.test.ts src/app/api/chat/escalate/route.test.ts` -> passed (`9/9`)
+  - `PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=http://localhost:3012 npx playwright test tests/e2e/support-widget.spec.ts --project=chromium` -> passed
+- Live production (`https://www.whoma.co.uk`):
+  - `GET /api/health` -> `200`, `database=up`
+  - `POST /api/chat/escalate` -> `200`, `{ "success": true }`
+  - Browser automation confirms widget trigger/panel fixed positioning, header handoff link visibility, unauthenticated email capture, escalate API success, and confirmation state.
+
+### Known Issues / Risks
+
+- `POST /api/chat` currently returns streamed model error due Anthropic account credit exhaustion (`"Your credit balance is too low..."`) even though route status is `200`; human escalation remains functional.
+- Escalation dedupe remains in-memory best effort and is not shared across instances.
+
+### Next Steps
+
+1. Add Anthropic credits (or switch model/provider) to restore AI response streaming quality in production.
+2. If duplicate escalation tickets appear across replicas, move dedupe state to shared storage (Redis/DB).

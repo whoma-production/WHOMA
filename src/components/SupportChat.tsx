@@ -168,26 +168,25 @@ export default function SupportChat(): JSX.Element {
   }
 
   async function handleTalkToPersonClick(): Promise<void> {
-    if (isEscalating || escalationState === "confirmed") {
+    if (isEscalating || escalationState !== "idle") {
       return;
     }
 
     setEscalationError(null);
     setEmailFieldError(null);
-    setIsEscalating(true);
-
     const userEmail = await resolveUserEmail();
+
+    if (!userEmail) {
+      setEscalationState("email_needed");
+      return;
+    }
+
+    setIsEscalating(true);
 
     try {
       await postEscalation(userEmail, "user_request");
-
-      if (userEmail) {
-        setEscalatedEmail(userEmail);
-        setEscalationState("confirmed");
-        return;
-      }
-
-      setEscalationState("email_needed");
+      setEscalatedEmail(userEmail);
+      setEscalationState("confirmed");
     } catch {
       setEscalationError("We could not send this to our support team right now. Please try again.");
     } finally {
@@ -203,11 +202,14 @@ export default function SupportChat(): JSX.Element {
     setIsEscalating(true);
 
     try {
+      let userEmail: string | null = null;
+
       if (trimmedEmail.length > 0) {
         if (!isEmailCandidate(trimmedEmail)) {
           setEmailFieldError("Enter a valid email address.");
           return;
         }
+        userEmail = trimmedEmail;
         setResolvedUserEmail(trimmedEmail);
         setHasResolvedUserEmail(true);
         setEscalatedEmail(trimmedEmail);
@@ -215,9 +217,10 @@ export default function SupportChat(): JSX.Element {
         setEscalatedEmail(null);
       }
 
+      await postEscalation(userEmail, "user_request");
       setEscalationState("confirmed");
     } catch {
-      setEscalationError("We could not confirm your email right now. Please try again.");
+      setEscalationError("We could not send this to our support team right now. Please try again.");
     } finally {
       setIsEscalating(false);
     }
@@ -266,7 +269,7 @@ export default function SupportChat(): JSX.Element {
               onClick={() => {
                 void handleTalkToPersonClick();
               }}
-              disabled={isEscalating || escalationState === "confirmed"}
+              disabled={isEscalating || escalationState !== "idle"}
               className="inline-flex items-center gap-1 text-xs text-white/70 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span>{isEscalating ? "Sending..." : "Talk to a person →"}</span>
@@ -332,7 +335,7 @@ export default function SupportChat(): JSX.Element {
             <div className="border-t border-slate-100 p-4 text-center text-sm text-zinc-500">
               {escalationState === "email_needed" ? (
                 <div className="space-y-3">
-                  <p>Your conversation has been sent to our support team.</p>
+                  <p>Add your email (optional), then confirm and we&apos;ll send this to our support team.</p>
                   <div className="mx-auto flex max-w-[280px] flex-col gap-2">
                     <input
                       type="email"
@@ -387,7 +390,7 @@ export default function SupportChat(): JSX.Element {
         }}
         className={`fixed bottom-6 right-6 z-50 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#2d6a5a] text-white shadow-lg transition-transform active:scale-[0.96] ${
           !isOpen
-            ? "relative after:absolute after:inset-0 after:animate-ping after:rounded-full after:border-2 after:border-[#2d6a5a]/40 after:content-['']"
+            ? "after:absolute after:inset-0 after:animate-ping after:rounded-full after:border-2 after:border-[#2d6a5a]/40 after:content-['']"
             : ""
         }`}
         aria-label={isOpen ? "Close support chat" : "Open support chat"}

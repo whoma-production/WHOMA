@@ -615,6 +615,28 @@ Phase 1 delivery focus:
   - signed-out homepage hides the internal Phase 1 metrics dashboard and shows the `WHOMA AGENTS` placeholder section.
   - `/agent/deals` remains protected and redirects signed-out users to sign-in.
 
+63. Support escalation backend verification + payload hardening (2026-04-24) (new)
+
+- Added dedicated backend route tests:
+  - `src/app/api/chat/route.test.ts`
+  - `src/app/api/chat/escalate/route.test.ts`
+- Route-level verification now explicitly covers:
+  - explicit human-handoff phrase escalation path,
+  - low-confidence tool-triggered escalation path,
+  - unresolved-conversation auto-escalation threshold after 4 back-and-forth exchanges,
+  - malformed payload rejection and rate-limit contracts.
+- Hardened `src/app/api/chat/route.ts` request-shape guardrails so malformed `messages` entries are rejected with `400` before transcript processing, preventing parser crashes from untrusted payload shapes.
+
+64. Support widget E2E + live rollout verification (2026-04-24) (new)
+
+- `src/components/SupportChat.tsx` escalation UX now keeps the trigger/panel strictly fixed-position and requires explicit confirm for unauthenticated optional-email escalation submission.
+- Added `tests/e2e/support-widget.spec.ts` to validate open/close behavior, fixed-position rendering, header handoff link visibility, unauthenticated email-capture path, escalation network success, and confirmation state.
+- Production deployment `1e6b9dde-0ba9-4666-9990-b38b9dbaa6b3` is verified live with:
+  - `GET /api/health` -> `database=up`
+  - `POST /api/chat/escalate` -> success
+  - browser-driven widget interaction checks on `https://www.whoma.co.uk`.
+- Operational caveat: AI streaming on `/api/chat` currently returns Anthropic credit-balance errors until provider credits are restored.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)

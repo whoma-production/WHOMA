@@ -2368,5 +2368,53 @@
       "Run one end-to-end seller verification response cycle and confirm pending -> verified/disputed state transitions plus agent notification.",
       "Optionally add a lightweight post-deploy smoke script for these access-control routes to prevent regressions."
     ]
+  },
+  {
+    "session_id": "2026-04-24-1124-support-chat-backend-verification",
+    "timestamp": "2026-04-24T11:24:00+02:00",
+    "summary": "Added backend regression coverage for support chat escalation and hardened /api/chat payload shape validation to prevent malformed-message parser faults while preserving escalation trigger behavior.",
+    "files_changed": [
+      "src/app/api/chat/route.ts",
+      "src/app/api/chat/route.test.ts",
+      "src/app/api/chat/escalate/route.test.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept scope backend-only and did not modify UI/auth/domain modules in this pass.",
+      "Added explicit route-level tests for escalation triggers, dedupe, payload validation, and rate-limit behavior.",
+      "Tightened /api/chat message-shape validation to fail malformed payloads with 400 before transcript processing."
+    ],
+    "next_steps": [
+      "Run live production smoke checks for /api/chat and /api/chat/escalate after deployment.",
+      "Move escalation dedupe state to shared storage if duplicate escalations appear across instances."
+    ]
+  },
+  {
+    "session_id": "2026-04-24-1145-support-widget-live-verification",
+    "timestamp": "2026-04-24T11:45:00+02:00",
+    "summary": "Hardened support widget escalation UX, added E2E coverage, deployed Railway production release 1e6b9dde-0ba9-4666-9990-b38b9dbaa6b3, and verified live health/escalation behavior while identifying Anthropic credit exhaustion as the remaining chat-response blocker.",
+    "files_changed": [
+      "src/components/SupportChat.tsx",
+      "src/app/api/chat/route.ts",
+      "src/app/api/chat/route.test.ts",
+      "src/app/api/chat/escalate/route.test.ts",
+      "tests/e2e/support-widget.spec.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Moved unauthenticated escalation submission to the explicit confirm step so optional email capture can be included in the ticket context.",
+      "Removed the closed-state trigger class override that changed positioning from fixed to relative, preserving fixed-only widget behavior.",
+      "Used browser automation plus direct API probes to validate production widget and escalation behavior end-to-end."
+    ],
+    "next_steps": [
+      "Restore Anthropic credits (or swap provider/model) so /api/chat returns assistant responses instead of provider credit errors.",
+      "Move escalation dedupe state to shared storage if duplicate tickets appear across instances."
+    ]
   }
 ]

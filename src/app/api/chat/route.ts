@@ -50,6 +50,7 @@ const chatPayloadSchema = z
 const ESCALATE_PATTERNS = [
   /\b(?:human|real person|real human)\b/i,
   /\bcontact support\b/i,
+  /\bemail\b/i,
   /\bsupport email\b/i,
   /\bemail support\b/i,
   /\bcan i email\b/i,
@@ -71,13 +72,51 @@ const RESOLVED_PATTERNS = [
 const MAX_TRANSCRIPT_MESSAGES = 60;
 const MAX_CHAT_MESSAGE_CHARS = 3000;
 
+function isUiMessagePart(value: unknown): value is { type: string; text?: string } {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const maybePart = value as { type?: unknown; text?: unknown };
+  if (typeof maybePart.type !== "string") {
+    return false;
+  }
+
+  if (typeof maybePart.text !== "undefined" && typeof maybePart.text !== "string") {
+    return false;
+  }
+
+  return true;
+}
+
 function isUiMessages(value: unknown): value is UIMessage[] {
-  return Array.isArray(value);
+  return (
+    Array.isArray(value) &&
+    value.every((message) => {
+      if (typeof message !== "object" || message === null) {
+        return false;
+      }
+
+      const maybeMessage = message as { role?: unknown; parts?: unknown };
+      if (typeof maybeMessage.role !== "string") {
+        return false;
+      }
+
+      if (!Array.isArray(maybeMessage.parts)) {
+        return false;
+      }
+
+      return maybeMessage.parts.every((part) => isUiMessagePart(part));
+    })
+  );
 }
 
 function getMessageText(message: UIMessage): string {
   return message.parts
-    .filter((part): part is { type: "text"; text: string } => part.type === "text")
+    .filter(
+      (part): part is { type: "text"; text: string } =>
+        part.type === "text" && typeof part.text === "string"
+    )
     .map((part) => part.text)
     .join("\n")
     .replace(/\s+/g, " ")
@@ -108,23 +147,20 @@ function indicatesResolved(text: string): boolean {
 }
 
 function shouldEscalateAfterUnresolvedExchange(
-  transcriptMessages: SupportTranscriptMessage[],
-  latestUserMessage: string
+  transcriptMessages: SupportTranscriptMessage[]
 ): boolean {
   const userTurns = transcriptMessages.filter((message) => message.role === "user").length;
   const assistantTurns = transcriptMessages.filter(
     (message) => message.role === "assistant"
   ).length;
+  const completedExchangeCount = Math.min(userTurns, assistantTurns);
 
-  if (userTurns < 4 || assistantTurns < 3) {
+  if (completedExchangeCount < 4) {
     return false;
   }
 
-  if (userTurns > 4) {
-    return false;
-  }
-
-  return !indicatesResolved(latestUserMessage);
+  const recentMessages = transcriptMessages.slice(-12);
+  return !recentMessages.some((message) => indicatesResolved(message.content));
 }
 
 function rateLimitHeaders(limitResult: {
@@ -229,12 +265,20 @@ export async function POST(req: Request): Promise<Response> {
 
   if (
     includesEscalationSignal(latestUserMessage) ||
-    shouldEscalateAfterUnresolvedExchange(transcriptMessages, latestUserMessage)
+    shouldEscalateAfterUnresolvedExchange(transcriptMessages)
   ) {
     await escalateOnce();
   }
 
-  const modelMessages = await convertToModelMessages(messages);
+  let modelMessages;
+  try {
+    modelMessages = await convertToModelMessages(messages);
+  } catch {
+    return Response.json(
+      { error: "Invalid message format." },
+      { status: 400, headers: rateLimitHeaders(rateLimitResult) }
+    );
+  }
 
   const result = streamText({
     model: anthropic("claude-haiku-4-5-20251001"),
