@@ -33,13 +33,17 @@ function buildSignupCallbackUrl(): string {
 
   if (configuredOrigin) {
     try {
-      return new URL("/auth/callback", configuredOrigin).toString();
+      const url = new URL("/auth/callback", configuredOrigin);
+      url.searchParams.set("next", "/agent/profile");
+      return url.toString();
     } catch {
       // Fall back to runtime origin below.
     }
   }
 
-  return new URL("/auth/callback", window.location.origin).toString();
+  const url = new URL("/auth/callback", window.location.origin);
+  url.searchParams.set("next", "/agent/profile");
+  return url.toString();
 }
 
 function mapSupabaseSignUpError(message: string): string {
@@ -200,6 +204,11 @@ export function SignUpFlow({ initialRole = null }: SignUpFlowProps): JSX.Element
 
       if (!data.user || (data.user.identities?.length ?? 0) === 0) {
         setBannerError("An account with this email may already exist. Try signing in instead.");
+        return;
+      }
+
+      if (data.session) {
+        window.location.assign("/agent/profile");
         return;
       }
 

@@ -12,6 +12,7 @@ import {
   sendSupportEmail,
   type SupportTranscriptMessage
 } from "@/lib/email/support";
+import { retrieveRelevantKnowledge } from "@/lib/knowledge/retrieve";
 import {
   checkRateLimit,
   clientIpFromRequestHeaders
@@ -38,6 +39,8 @@ When confidence is low, context is missing, or the request should be handled by 
 call the "escalate_to_support" tool.
 Never invent specific agent names, property data, or prices.
 Never give legal or financial advice — suggest a qualified professional.`;
+
+export const runtime = "nodejs";
 
 const chatPayloadSchema = z
   .object({
@@ -175,6 +178,20 @@ function rateLimitHeaders(limitResult: {
   };
 }
 
+function buildSystemPromptWithKnowledge(knowledge: string): string {
+  if (!knowledge) {
+    return SYSTEM_PROMPT;
+  }
+
+  return `${SYSTEM_PROMPT}
+
+---
+RELEVANT KNOWLEDGE BASE CONTEXT:
+${knowledge}
+---
+Use the above context to answer accurately. If the context does not cover the question, use your general WHOMA knowledge.`;
+}
+
 export async function POST(req: Request): Promise<Response> {
   const clientIp = clientIpFromRequestHeaders(req.headers);
   const rateLimitResult = await checkRateLimit({
@@ -233,6 +250,7 @@ export async function POST(req: Request): Promise<Response> {
   const latestUserMessage =
     [...transcriptMessages].reverse().find((message) => message.role === "user")
       ?.content ?? "";
+  const relevantKnowledge = retrieveRelevantKnowledge(latestUserMessage);
 
   let escalated = false;
   const escalationDedupeKey = buildEscalationDedupeKey({
@@ -282,7 +300,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const result = streamText({
     model: anthropic("claude-haiku-4-5-20251001"),
-    system: SYSTEM_PROMPT,
+    system: buildSystemPromptWithKnowledge(relevantKnowledge),
     messages: modelMessages,
     maxOutputTokens: 500,
     stopWhen: stepCountIs(3),

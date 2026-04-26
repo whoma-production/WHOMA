@@ -146,7 +146,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
     accessState === "APPROVED" &&
     (pathname === "/access/pending" || pathname === "/access/denied")
   ) {
-    return NextResponse.redirect(new URL("/agent/onboarding", request.url));
+    return NextResponse.redirect(new URL(defaultRouteForRole(role), request.url));
   }
 
   if (pathname === "/onboarding/role" && !isRoleSwitchRequest) {

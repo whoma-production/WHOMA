@@ -48,7 +48,15 @@ const roleLabel: Record<ShellRole, string> = {
   ADMIN: "ADMIN"
 };
 
-export function AppShell({ role, title, children }: { role: ShellRole; title: string; children: ReactNode }): JSX.Element {
+export function AppShell({
+  role,
+  title,
+  children
+}: {
+  role: ShellRole;
+  title: string;
+  children: ReactNode;
+}): JSX.Element {
   const navItems = navByRole[role];
   const site = getPublicSiteConfig();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -70,16 +78,30 @@ export function AppShell({ role, title, children }: { role: ShellRole; title: st
   }
 
   return (
-    <div className="min-h-screen bg-surface-1">
+    <div className="min-h-[100dvh] bg-surface-1">
       <header className="border-b border-line bg-surface-0">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
+          <div className="min-w-0 flex-1 md:flex-none">
             <Logo subtitle={site.logoSubtitle} />
-            <Badge variant="accent">{roleLabel[role]}</Badge>
+            <div className="mt-2 md:hidden">
+              <Badge variant="accent">{roleLabel[role]}</Badge>
+            </div>
           </div>
-          <nav aria-label="Primary" className="hidden items-center gap-2 md:flex">
+          <Badge variant="accent" className="hidden md:inline-flex">
+            {roleLabel[role]}
+          </Badge>
+          <nav
+            aria-label="Primary"
+            className="hidden items-center gap-2 md:flex"
+          >
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href} className={cn(buttonVariants({ variant: "tertiary", size: "sm" }))}>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  buttonVariants({ variant: "tertiary", size: "sm" })
+                )}
+              >
                 {item.label}
               </Link>
             ))}
@@ -88,7 +110,9 @@ export function AppShell({ role, title, children }: { role: ShellRole; title: st
             {canSwitchRole ? (
               <Link
                 href={{ pathname: "/onboarding/role", query: { switch: "1" } }}
-                className={cn(buttonVariants({ variant: "tertiary", size: "sm" }))}
+                className={cn(
+                  buttonVariants({ variant: "tertiary", size: "sm" })
+                )}
               >
                 Switch role
               </Link>
@@ -106,11 +130,30 @@ export function AppShell({ role, title, children }: { role: ShellRole; title: st
             </Button>
           </div>
         </div>
+        <nav
+          aria-label="Primary"
+          className="mx-auto flex w-full max-w-7xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6 md:hidden"
+        >
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                buttonVariants({ variant: "tertiary", size: "sm" }),
+                "shrink-0"
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </header>
 
       <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-text-strong">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-text-strong">
+            {title}
+          </h1>
         </div>
         {children}
       </main>

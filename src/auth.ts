@@ -66,6 +66,20 @@ function getSupabaseUserAvatar(user: SupabaseUser): string | null {
   );
 }
 
+function getSupabaseUserRole(user: SupabaseUser): UserRole | null {
+  const metadataRole = readString(user.user_metadata?.role)?.toUpperCase();
+
+  if (
+    metadataRole === "AGENT" ||
+    metadataRole === "HOMEOWNER" ||
+    metadataRole === "ADMIN"
+  ) {
+    return metadataRole;
+  }
+
+  return null;
+}
+
 async function resolveAccountAccessState(
   userId: string | undefined,
   role: UserRole | null | undefined
@@ -151,6 +165,7 @@ async function syncWhomaUserFromSupabase(
 
   const name = getSupabaseUserName(supabaseUser);
   const image = getSupabaseUserAvatar(supabaseUser);
+  const metadataRole = getSupabaseUserRole(supabaseUser);
   const emailVerifiedAt = supabaseUser.email_confirmed_at
     ? new Date(supabaseUser.email_confirmed_at)
     : null;
@@ -161,6 +176,7 @@ async function syncWhomaUserFromSupabase(
       email,
       name,
       image,
+      ...(metadataRole ? { role: metadataRole } : {}),
       emailVerified: emailVerifiedAt,
       dataOrigin: "PRODUCTION"
     },

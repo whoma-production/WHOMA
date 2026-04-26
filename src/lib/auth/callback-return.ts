@@ -16,10 +16,7 @@ function readFirstString(value: SearchParamValue): string | null {
   return value;
 }
 
-function readParam(
-  searchParams: SearchParamShape,
-  key: string
-): string | null {
+function readParam(searchParams: SearchParamShape, key: string): string | null {
   if (searchParams instanceof URLSearchParams) {
     return searchParams.get(key);
   }
@@ -35,10 +32,7 @@ export function hasSupabaseAuthReturnParams(
   }
 
   return Boolean(
-    readParam(searchParams, "code") ||
-      readParam(searchParams, "token_hash") ||
-      readParam(searchParams, "error") ||
-      readParam(searchParams, "error_description")
+    readParam(searchParams, "code") || readParam(searchParams, "token_hash")
   );
 }
 

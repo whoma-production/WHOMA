@@ -184,6 +184,48 @@ describe("/api/chat route", () => {
     expect(sendSupportEmailMock).toHaveBeenCalledTimes(1);
   });
 
+  it("injects relevant knowledge base context into the model system prompt", async () => {
+    const request = new Request("http://localhost/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        conversationId: "conversation-knowledge",
+        messages: [
+          createTextMessage(
+            "user",
+            "What happens if a seller disputes a past deal verification?"
+          )
+        ]
+      })
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(anthropicMock).toHaveBeenCalledWith("claude-haiku-4-5-20251001");
+    expect(streamTextMock).toHaveBeenCalledTimes(1);
+
+    const streamOptions = streamTextMock.mock.calls[0]?.[0] as { system?: string };
+    expect(streamOptions.system).toContain("RELEVANT KNOWLEDGE BASE CONTEXT");
+    expect(streamOptions.system).toContain("[past-deals]");
+    expect(streamOptions.system).toContain("## What happens if the seller disputes it?");
+  });
+
+  it("keeps the base system prompt when no knowledge is relevant", async () => {
+    const request = new Request("http://localhost/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        conversationId: "conversation-no-knowledge",
+        messages: [createTextMessage("user", "What is the Tokyo weather forecast?")]
+      })
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const streamOptions = streamTextMock.mock.calls[0]?.[0] as { system?: string };
+    expect(streamOptions.system).not.toContain("RELEVANT KNOWLEDGE BASE CONTEXT");
+  });
+
   it("returns 400 for malformed message payloads", async () => {
     const request = new Request("http://localhost/api/chat", {
       method: "POST",

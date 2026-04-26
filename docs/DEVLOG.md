@@ -7,8 +7,8 @@
 
 ## Session: 2026-02-25 / 13:06 (CET) — Foundation scaffold + docs operating system
 
-**Author:** Codex  
-**Context:** Bootstrap the Whoma MVP from an empty workspace and establish a reliable in-repo development log/task/architecture system for future agents.  
+**Author:** Codex
+**Context:** Bootstrap the Whoma MVP from an empty workspace and establish a reliable in-repo development log/task/architecture system for future agents.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -101,8 +101,8 @@
 
 ## Session: 2026-02-25 / 13:14 (CET) — Runtime verification + landing parse fix
 
-**Author:** Codex  
-**Context:** User asked to continue building and run the app locally for preview.  
+**Author:** Codex
+**Context:** User asked to continue building and run the app locally for preview.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -160,8 +160,8 @@
 
 ## Session: 2026-02-25 / 13:30 (CET) — Auth + RBAC route protection (signed cookie dev auth)
 
-**Author:** Codex  
-**Context:** Audit found T001 as the biggest MVP blocker (no route protection, no server-enforced write auth). Implemented a lean auth/RBAC PR-sized slice without adding libraries.  
+**Author:** Codex
+**Context:** Audit found T001 as the biggest MVP blocker (no route protection, no server-enforced write auth). Implemented a lean auth/RBAC PR-sized slice without adding libraries.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -235,8 +235,8 @@
 
 ## Session: 2026-02-25 / 13:35 (CET) — Homepage copy + trust + motion refresh
 
-**Author:** Codex  
-**Context:** Refine the public homepage to be more UK real-estate conversion-oriented (benefit-led, trust-forward) while preserving Whoma’s structured tender USP.  
+**Author:** Codex
+**Context:** Refine the public homepage to be more UK real-estate conversion-oriented (benefit-led, trust-forward) while preserving Whoma’s structured tender USP.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -309,8 +309,8 @@
 
 ## Session: 2026-02-25 / 13:57 (CET) — Trust pages + HTML sitemap + location browse
 
-**Author:** Codex  
-**Context:** Add table-stakes trust/support pages and a lean SEO/discovery surface (`/locations`) without turning Whoma into a property portal.  
+**Author:** Codex
+**Context:** Add table-stakes trust/support pages and a lean SEO/discovery surface (`/locations`) without turning Whoma into a property portal.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -392,8 +392,8 @@
 
 ## Session: 2026-02-25 / 14:11 (CET) — Dev preview access for local auth-less exploration
 
-**Author:** Codex  
-**Context:** Google OAuth is intentionally configured for production-style auth, but local credentials were not set, blocking the user from entering protected platform routes for review.  
+**Author:** Codex
+**Context:** Google OAuth is intentionally configured for production-style auth, but local credentials were not set, blocking the user from entering protected platform routes for review.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -451,8 +451,8 @@
 
 ## Session: 2026-03-19 / 16:19 (GMT) — Local launch + GitHub repository setup
 
-**Author:** Codex  
-**Context:** User requested launching the site in-browser and creating a GitHub repository to continue feature development.  
+**Author:** Codex
+**Context:** User requested launching the site in-browser and creating a GitHub repository to continue feature development.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -507,8 +507,8 @@
 
 ## Session: 2026-03-19 / 16:36 (GMT) — Phase 1 pivot to real estate agent identity validation
 
-**Author:** Codex  
-**Context:** Product direction clarified: Phase 1 priority is validating real estate agent adoption around personal credibility and identity branding before homeowner-flow expansion.  
+**Author:** Codex
+**Context:** Product direction clarified: Phase 1 priority is validating real estate agent adoption around personal credibility and identity branding before homeowner-flow expansion.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -579,8 +579,8 @@
 
 ## Session: 2026-03-19 / 17:04 (GMT) — Phase 1 implementation: onboarding, CV builder, public profiles, directory
 
-**Author:** Codex  
-**Context:** User requested full Phase 1 implementation with step-by-step delivery and stronger scalable foundations, plus language/copy refinement.  
+**Author:** Codex
+**Context:** User requested full Phase 1 implementation with step-by-step delivery and stronger scalable foundations, plus language/copy refinement.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -686,8 +686,8 @@
 
 ## Session: 2026-03-19 / 17:06 (GMT) — Dev preview auth regression fix (no DATABASE_URL fallback)
 
-**Author:** Codex  
-**Context:** Live dev logs surfaced a regression: preview credential sign-in failed when `DATABASE_URL` was absent locally because preview auth now attempted Prisma writes.  
+**Author:** Codex
+**Context:** Live dev logs surfaced a regression: preview credential sign-in failed when `DATABASE_URL` was absent locally because preview auth now attempted Prisma writes.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -737,8 +737,8 @@
 
 ## Session: 2026-03-21 / 17:28 (GMT) — Dev preview ADMIN sign-in support
 
-**Author:** Codex  
-**Context:** QA requested a dev-only ADMIN preview sign-in path while preserving the existing DB-aware fallback behavior for local development.  
+**Author:** Codex
+**Context:** QA requested a dev-only ADMIN preview sign-in path while preserving the existing DB-aware fallback behavior for local development.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -792,8 +792,8 @@
 
 ## Session: 2026-03-21 / 17:56 (GMT) — Prisma migration + full DB-backed Phase 1 QA + reliability hardening
 
-**Author:** Codex  
-**Context:** Execute the next Phase 1 step end-to-end: apply Prisma migration, validate DB-backed onboarding -> publish -> verification, and strengthen platform reliability before pilot onboarding.  
+**Author:** Codex
+**Context:** Execute the next Phase 1 step end-to-end: apply Prisma migration, validate DB-backed onboarding -> publish -> verification, and strengthen platform reliability before pilot onboarding.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -872,8 +872,8 @@
 
 ## Session: 2026-03-21 / 18:06 (GMT) — Marketplace write infrastructure baseline (data-led backend hardening)
 
-**Author:** Codex  
-**Context:** User requested a future-oriented, robust backend foundation for web deployment and scaling, with strong data-led primitives that future coding agents can extend confidently.  
+**Author:** Codex
+**Context:** User requested a future-oriented, robust backend foundation for web deployment and scaling, with strong data-led primitives that future coding agents can extend confidently.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -959,8 +959,8 @@
 
 ## Session: 2026-03-21 / 18:10 (GMT) — Homeowner instruction form wiring
 
-**Author:** Codex  
-**Context:** User asked to implement only the homeowner instruction form wiring on `/homeowner/instructions/new`, without touching API route handlers.  
+**Author:** Codex
+**Context:** User asked to implement only the homeowner instruction form wiring on `/homeowner/instructions/new`, without touching API route handlers.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1018,8 +1018,8 @@
 
 ## Session: 2026-03-21 / 18:09 (UTC) — Agent proposal form wiring
 
-**Author:** Codex  
-**Context:** User asked to implement only the agent proposal form wiring on `/agent/marketplace/[instructionId]/proposal`, without touching API route handlers.  
+**Author:** Codex
+**Context:** User asked to implement only the agent proposal form wiring on `/agent/marketplace/[instructionId]/proposal`, without touching API route handlers.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1076,8 +1076,8 @@
 
 ## Session: 2026-03-21 / 18:13 (GMT) — Pilot seed + weekly demo automation and release packaging
 
-**Author:** Codex  
-**Context:** User requested a clean Phase 1 DB-backed hardening commit/push and asked to set up seeded pilot agent records plus a repeatable weekly demo script.  
+**Author:** Codex
+**Context:** User requested a clean Phase 1 DB-backed hardening commit/push and asked to set up seeded pilot agent records plus a repeatable weekly demo script.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1145,8 +1145,8 @@
 
 ## Session: 2026-03-21 / 18:20 (GMT) — Marketplace read queries + location browse live data
 
-**Author:** Codex  
-**Context:** User asked to replace mock marketplace/location reads with Prisma-backed LIVE instruction queries while keeping the pages usable when `DATABASE_URL` is missing.  
+**Author:** Codex
+**Context:** User asked to replace mock marketplace/location reads with Prisma-backed LIVE instruction queries while keeping the pages usable when `DATABASE_URL` is missing.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1206,8 +1206,8 @@
 
 ## Session: 2026-03-21 / 18:18 (GMT) — Integrated rollout: form wiring + live reads + idempotency/rate limits
 
-**Author:** Codex  
-**Context:** User requested execution of three concrete rollout items with subagents: wire homeowner/agent forms to persisted APIs, replace mock marketplace reads with Prisma LIVE reads, and add idempotency + rate limiting for safer web rollout.  
+**Author:** Codex
+**Context:** User requested execution of three concrete rollout items with subagents: wire homeowner/agent forms to persisted APIs, replace mock marketplace reads with Prisma LIVE reads, and add idempotency + rate limiting for safer web rollout.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1298,7 +1298,7 @@
 
 ## Session: 2026-03-21 / 23:08 (GMT) — Stability sprint: auth host consistency + hydration-safe smoke gate
 
-**Author:** Codex  
+**Author:** Codex
 **Context:** User asked to step back from repeated endpoint loops, prioritize root-cause stabilization, and make execution reliable before T004.
 **Branch/PR:** `main` (uncommitted working tree)
 
@@ -1384,8 +1384,8 @@
 
 ## Session: 2026-03-21 / 23:34 (GMT) — T004 compare + shortlist/award persistence integrated and validated
 
-**Author:** Codex  
-**Context:** User asked to step back from repeated endpoint loops, spawn focused subagents, and prioritize robust backend-forward delivery with clear next steps.  
+**Author:** Codex
+**Context:** User asked to step back from repeated endpoint loops, spawn focused subagents, and prioritize robust backend-forward delivery with clear next steps.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1462,8 +1462,8 @@
 
 ## Session: 2026-03-22 / 11:02 (GMT) — Phase 1 trust revalidation hardening + docs consistency sweep
 
-**Author:** Codex  
-**Context:** User requested we pick up where we left off, verify Phase 1 real estate agent identity readiness, and keep architecture/docs synchronized with the latest trust controls.  
+**Author:** Codex
+**Context:** User requested we pick up where we left off, verify Phase 1 real estate agent identity readiness, and keep architecture/docs synchronized with the latest trust controls.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1544,8 +1544,8 @@
 
 ## Session: 2026-03-22 / 11:18 (GMT) — T005 thread unlock persistence + homeowner decision E2E hardening
 
-**Author:** Codex  
-**Context:** User asked to pick up where we left off and execute prioritized backend-forward next steps with subagents.  
+**Author:** Codex
+**Context:** User asked to pick up where we left off and execute prioritized backend-forward next steps with subagents.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1618,8 +1618,8 @@
 
 ## Session: 2026-03-22 / 11:26 (GMT) — T005 message-thread participant auth foundation
 
-**Author:** Codex  
-**Context:** Worker A ownership on `src/server/marketplace/service.ts` and related service tests only. User requested service-layer message thread read/write authorization with strict participant checks.  
+**Author:** Codex
+**Context:** Worker A ownership on `src/server/marketplace/service.ts` and related service tests only. User requested service-layer message thread read/write authorization with strict participant checks.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1685,8 +1685,8 @@
 
 ## Session: 2026-03-22 / 11:34 (GMT) — T005 messages API authorization completion
 
-**Author:** Codex  
-**Context:** User asked to pick up where we left off and finish the remaining T005 gap by wiring API-level message read/write authorization on top of thread lock/unlock persistence.  
+**Author:** Codex
+**Context:** User asked to pick up where we left off and finish the remaining T005 gap by wiring API-level message read/write authorization on top of thread lock/unlock persistence.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1748,8 +1748,8 @@
 
 ## Session: 2026-03-22 / 12:02 (GMT) — Messages UI live wiring + shared API safety backing
 
-**Author:** Codex  
-**Context:** User requested two next steps in sequence: wire `/messages` to live APIs, then move idempotency/rate limiting to shared Redis/Upstash for multi-instance readiness.  
+**Author:** Codex
+**Context:** User requested two next steps in sequence: wire `/messages` to live APIs, then move idempotency/rate limiting to shared Redis/Upstash for multi-instance readiness.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1831,8 +1831,8 @@
 
 ## Session: 2026-03-22 / 12:35 (GMT) — Live web deployment on Railway + production auth/deploy hardening
 
-**Author:** Codex  
-**Context:** User requested same-session internet deployment (shareable URL) for the Phase 1 + marketplace build, with cost-effective hosting and immediate external usability.  
+**Author:** Codex
+**Context:** User requested same-session internet deployment (shareable URL) for the Phase 1 + marketplace build, with cost-effective hosting and immediate external usability.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -1932,8 +1932,8 @@
 
 ## Session: 2026-03-22 / 12:56 (GMT) — A010 anti-abuse + strict build gate restoration + live redeploy
 
-**Author:** Codex  
-**Context:** User requested immediate next hardening moves after live deployment: (1) production Google OAuth creds + disable preview auth, (2) remove `typescript.ignoreBuildErrors`, (3) finish A010 verification delivery + anti-abuse controls.  
+**Author:** Codex
+**Context:** User requested immediate next hardening moves after live deployment: (1) production Google OAuth creds + disable preview auth, (2) remove `typescript.ignoreBuildErrors`, (3) finish A010 verification delivery + anti-abuse controls.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -2040,8 +2040,8 @@
 
 ## Session: 2026-03-22 / 13:23 (GMT) — Personal-email preview auth flow + preview button UX fix
 
-**Author:** Codex  
-**Context:** User requested deprioritizing Google auth for now and fixing broken preview access buttons on live sign-in page.  
+**Author:** Codex
+**Context:** User requested deprioritizing Google auth for now and fixing broken preview access buttons on live sign-in page.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -2115,8 +2115,8 @@
 
 ## Session: 2026-03-22 / 13:29 (GMT) — Public copy / positioning rewrite
 
-**Author:** Codex  
-**Context:** User requested a public-facing copy pass only, with outcome-first messaging and less internal marketplace jargon on the listed public pages.  
+**Author:** Codex
+**Context:** User requested a public-facing copy pass only, with outcome-first messaging and less internal marketplace jargon on the listed public pages.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -2176,8 +2176,8 @@
 
 ## Session: 2026-03-23 / 09:31 (GMT) — A012 AI resume intake (OCR + LLM hybrid) implementation
 
-**Author:** Codex  
-**Context:** User requested production-safe AI resume-to-prefill for agent onboarding with stable API contracts, rollout flags, heuristic-first cost control, and suggest-only behavior.  
+**Author:** Codex
+**Context:** User requested production-safe AI resume-to-prefill for agent onboarding with stable API contracts, rollout flags, heuristic-first cost control, and suggest-only behavior.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -2258,8 +2258,8 @@
 
 ## Session: 2026-03-23 / 10:05 (GMT) — Public UX alignment + Railway deploy
 
-**Author:** Codex  
-**Context:** User requested confirmation/implementation of GPT-5.4 public UX recommendations and immediate production deploy to Railway.  
+**Author:** Codex
+**Context:** User requested confirmation/implementation of GPT-5.4 public UX recommendations and immediate production deploy to Railway.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -2350,8 +2350,8 @@
 
 ## Session: 2026-03-23 / 10:45 (GMT) — Logged-in compare UX completion + /requests IA + agent profile proof modules
 
-**Author:** Codex  
-**Context:** User requested continuation from prior session to finish the remaining UX spec gaps: logged-in homeowner compare decision UX, IA migration to `/requests`, deeper agent profile proof modules, and live deployment.  
+**Author:** Codex
+**Context:** User requested continuation from prior session to finish the remaining UX spec gaps: logged-in homeowner compare decision UX, IA migration to `/requests`, deeper agent profile proof modules, and live deployment.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -2437,8 +2437,8 @@
 
 ## Session: 2026-03-31 / 01:35 (CEST) — Phase 1 public repositioning + activation metrics
 
-**Author:** Codex  
-**Context:** Re-align public WHOMA surfaces to the current Phase 1 identity-first thesis, harden public auth, expose clearer activation progress, and strengthen seeded proof without changing the underlying marketplace schema.  
+**Author:** Codex
+**Context:** Re-align public WHOMA surfaces to the current Phase 1 identity-first thesis, harden public auth, expose clearer activation progress, and strengthen seeded proof without changing the underlying marketplace schema.
 **Branch/PR:** `main` (uncommitted working tree)
 
 ### Goal
@@ -2535,8 +2535,8 @@
 
 ## Session: 2026-03-31 / 02:11 (CEST) — Railway redeploy + live verification for Phase 1 repositioning
 
-**Author:** Codex  
-**Context:** User requested that the current Phase 1 repositioning work be pushed online, verified against the received public-MVP feedback, and prepared for GitHub publication.  
+**Author:** Codex
+**Context:** User requested that the current Phase 1 repositioning work be pushed online, verified against the received public-MVP feedback, and prepared for GitHub publication.
 **Branch/PR:** `codex-phase1-public-release` (local branch; GitHub push pending at time of writing)
 
 ### Goal
@@ -2592,8 +2592,8 @@
 
 ## Session: 2026-04-02 / 14:56 (CEST) — Proof-led public trust pass + auth completion hardening
 
-**Author:** Codex  
-**Context:** User asked to turn public-site branding/trust feedback into concrete product changes: stronger UK-consistent brand language, agent-first CTA hierarchy, more operationally credible trust pages, better auth completion, and proof-led empty states.  
+**Author:** Codex
+**Context:** User asked to turn public-site branding/trust feedback into concrete product changes: stronger UK-consistent brand language, agent-first CTA hierarchy, more operationally credible trust pages, better auth completion, and proof-led empty states.
 **Branch/PR:** current working tree (dirty tree contained unrelated in-progress files outside this pass)
 
 ### Goal
@@ -2681,8 +2681,8 @@
 
 ## Session: 2026-04-02 / 14:55 (CEST) — Proof-led public branding pass + auth completion hardening
 
-**Author:** Codex  
-**Context:** User asked to address branding/trust feedback directly in-product: fix homepage CTAs, tighten UK-consistent public language, strengthen trust/contact/privacy pages, remove unfinished auth loading states, and improve public zero states with proof.  
+**Author:** Codex
+**Context:** User asked to address branding/trust feedback directly in-product: fix homepage CTAs, tighten UK-consistent public language, strengthen trust/contact/privacy pages, remove unfinished auth loading states, and improve public zero states with proof.
 **Branch/PR:** `main` (dirty working tree; unrelated user changes present)
 
 ### Goal
@@ -2759,8 +2759,8 @@
 
 ## Session: 2026-04-02 / 15:08 (CEST) — Logged-in lifecycle completion + cookie consent + trust fallback hardening
 
-**Author:** Codex  
-**Context:** User requested production-grade completion of remaining Phase 1-aligned gaps: finish logged-in flow surfaces beyond compare, improve agent-offer lifecycle UX, ship cookie consent controls, harden trust data gaps, and extend regression coverage.  
+**Author:** Codex
+**Context:** User requested production-grade completion of remaining Phase 1-aligned gaps: finish logged-in flow surfaces beyond compare, improve agent-offer lifecycle UX, ship cookie consent controls, harden trust data gaps, and extend regression coverage.
 **Branch/PR:** current working tree (existing dirty tree preserved; no unrelated reverts)
 
 ### Goal
@@ -2846,8 +2846,8 @@
 
 ## Session: 2026-04-02 / 15:12 (CEST) — Railway redeploy + live verification for lifecycle/consent/trust pass
 
-**Author:** Codex  
-**Context:** After completing the lifecycle + consent + trust hardening code pass, user requested production readiness and live verification.  
+**Author:** Codex
+**Context:** After completing the lifecycle + consent + trust hardening code pass, user requested production readiness and live verification.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -2881,8 +2881,8 @@
 
 ## Session: 2026-04-02 / 15:24 (CEST) — Behavioural-validation convergence audit
 
-**Author:** Codex  
-**Context:** User requested a rigorous control-style audit against current client feedback and WHOMA Phase 1 behavioural validation, with emphasis on strategic alignment, measurement integrity, and trust readiness.  
+**Author:** Codex
+**Context:** User requested a rigorous control-style audit against current client feedback and WHOMA Phase 1 behavioural validation, with emphasis on strategic alignment, measurement integrity, and trust readiness.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3028,8 +3028,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-02 / 21:58 (CEST) — Gate 1 trust remediation pass
 
-**Author:** Codex  
-**Context:** User moved from audit into strict gate execution and instructed that work must begin with `GATE 1 — TRUST` before truth, measurement, domain, or activation changes.  
+**Author:** Codex
+**Context:** User moved from audit into strict gate execution and instructed that work must begin with `GATE 1 — TRUST` before truth, measurement, domain, or activation changes.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3093,8 +3093,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-03 / 21:34 (CEST) — Gate 1 production deploy + live sign-off
 
-**Author:** Codex  
-**Context:** User asked to deploy the Gate 1 trust changes and verify them live.  
+**Author:** Codex
+**Context:** User asked to deploy the Gate 1 trust changes and verify them live.
 **Branch/PR:** `codex-phase1-public-release`
 
 ### Goal
@@ -3160,8 +3160,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-02 / 23:18 (CEST) — Launch-surface language + state cleanup
 
-**Author:** Codex  
-**Context:** User asked to begin implementing the launch-readiness audit across public and signed-in surfaces, with emphasis on premium positioning, UK-consistent terminology, and removal of provisional product language.  
+**Author:** Codex
+**Context:** User asked to begin implementing the launch-readiness audit across public and signed-in surfaces, with emphasis on premium positioning, UK-consistent terminology, and removal of provisional product language.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3214,8 +3214,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-02 / 23:20 (CEST) — Railway redeploy + live auth-hardening verification
 
-**Author:** Codex  
-**Context:** User asked to finish the last blocked verification run and then deploy the current launch-readiness pass live.  
+**Author:** Codex
+**Context:** User asked to finish the last blocked verification run and then deploy the current launch-readiness pass live.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3270,8 +3270,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-04 / 15:35 (CEST) — Montserrat restore + pure-white site base + stacked subtitle follow-up
 
-**Author:** Codex  
-**Context:** User liked the calmer editorial direction, but asked for a cleaner baseline: restore the original font family, return the site to a pure white base on every page, and bring back a stacked subtitle under `WHOMA`.  
+**Author:** Codex
+**Context:** User liked the calmer editorial direction, but asked for a cleaner baseline: restore the original font family, return the site to a pure white base on every page, and bring back a stacked subtitle under `WHOMA`.
 **Branch/PR:** `codex-phase1-public-release`
 
 ### Goal
@@ -3317,8 +3317,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-06 / 17:36 (CEST) — BV004 public request-surface split + truthfulness closeout
 
-**Author:** Codex  
-**Context:** User asked to pick up where the prior launch-readiness thread left off and continue the next highest-value public-surface cleanup.  
+**Author:** Codex
+**Context:** User asked to pick up where the prior launch-readiness thread left off and continue the next highest-value public-surface cleanup.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3367,8 +3367,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-06 / 19:20 (CEST) — Estate-agent self-serve auth unblock
 
-**Author:** Codex  
-**Context:** User wants to use WHOMA live and unblock real estate-agent account creation instead of routing public visitors into invitation/support gating.  
+**Author:** Codex
+**Context:** User wants to use WHOMA live and unblock real estate-agent account creation instead of routing public visitors into invitation/support gating.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3450,8 +3450,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-07 / 15:58 (CEST) — Site-wide public style unification + shared header rollout
 
-**Author:** Codex  
-**Context:** User reported visual regression back toward beige/editorial styling and requested a return to the newer clean style across the entire site, not just the homepage.  
+**Author:** Codex
+**Context:** User reported visual regression back toward beige/editorial styling and requested a return to the newer clean style across the entire site, not just the homepage.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3523,8 +3523,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-07 / 16:20 (CEST) — Phase 1 copy alignment + onboarding/contact cleanup
 
-**Author:** Codex  
-**Context:** User requested a site-wide correction away from internal/beige/editorial leftovers and toward the current clean WHOMA style + Phase 1 positioning (`Where Home Owners Meet Agents`) with specific copy removals and onboarding logic fixes.  
+**Author:** Codex
+**Context:** User requested a site-wide correction away from internal/beige/editorial leftovers and toward the current clean WHOMA style + Phase 1 positioning (`Where Home Owners Meet Agents`) with specific copy removals and onboarding logic fixes.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3579,8 +3579,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-07 / 18:05 (CEST) — Production auth method-first pass
 
-**Author:** Codex  
-**Context:** User requested a production-grade public auth experience with Google + Apple + email magic-link sign-in as primary methods, support/request-access as secondary only, and explicit post-auth pending/denied UX states.  
+**Author:** Codex
+**Context:** User requested a production-grade public auth experience with Google + Apple + email magic-link sign-in as primary methods, support/request-access as secondary only, and explicit post-auth pending/denied UX states.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3635,8 +3635,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-07 / 18:35 (CEST) — Premium language hardening follow-up (homepage/contact/onboarding)
 
-**Author:** Codex  
-**Context:** User requested removal of remaining internal/strategy-coded language from public and onboarding surfaces (specifically the homepage `Evidence signal` block and contact/onboarding wording tone).  
+**Author:** Codex
+**Context:** User requested removal of remaining internal/strategy-coded language from public and onboarding surfaces (specifically the homepage `Evidence signal` block and contact/onboarding wording tone).
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3685,7 +3685,7 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-07 / 18:53 (CEST) — FAQ system + top utility strip (public IA polish)
 
-**Author:** Codex  
+**Author:** Codex
 **Context:** User requested a Purplebricks-inspired information architecture pattern for WHOMA (structure only): a thin utility strip above main nav, dedicated `/faqs` page with grouped topics, and a compact homepage FAQ preview, all in premium agent-first language.
 **Branch/PR:** current working tree
 
@@ -3742,8 +3742,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-07 / 21:14 (CEST) — FAQ tone rewrite (approachability pass)
 
-**Author:** Codex  
-**Context:** User reviewed live `/faqs` and requested a full-answer rewrite because the copy felt vague and unapproachable.  
+**Author:** Codex
+**Context:** User reviewed live `/faqs` and requested a full-answer rewrite because the copy felt vague and unapproachable.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3789,8 +3789,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-07 / 21:17 (CEST) — FAQ cache-busting follow-up (dynamic route)
 
-**Author:** Codex  
-**Context:** After deployment, `/faqs` was still serving stale edge-cached HTML.  
+**Author:** Codex
+**Context:** After deployment, `/faqs` was still serving stale edge-cached HTML.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3824,8 +3824,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-08 / 11:58 (CEST) — Agent onboarding UX: profile-generation workflow refactor
 
-**Author:** Codex  
-**Context:** User requested a major UX shift for agent onboarding from form-first data entry to AI-assisted profile generation with document-first momentum.  
+**Author:** Codex
+**Context:** User requested a major UX shift for agent onboarding from form-first data entry to AI-assisted profile generation with document-first momentum.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3877,8 +3877,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-08 / 12:08 (CEST) — Auth migration to Supabase (Google + magic link only)
 
-**Author:** Codex  
-**Context:** User requested fastest production-safe auth fix: migrate broken sign-in flow to Supabase Auth, keep Google + email, remove Apple + email/password, keep approval logic post-auth.  
+**Author:** Codex
+**Context:** User requested fastest production-safe auth fix: migrate broken sign-in flow to Supabase Auth, keep Google + email, remove Apple + email/password, keep approval logic post-auth.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -3946,7 +3946,7 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-08 / 12:32 (CEST) — AI-first agent onboarding polish, GPT-5.4 extraction defaults, and UX E2E coverage
 
-**Author:** Codex  
+**Author:** Codex
 **Context:** User requested shipping the onboarding redesign as document-first profile generation, with GPT-5.4 structured extraction, mobile/desktop UX checks, commit, and deploy readiness.
 **Branch/PR:** `codex-phase1-public-release`
 
@@ -4008,7 +4008,7 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-08 / 12:38 (CEST) — Railway production deploy for AI-first onboarding release
 
-**Author:** Codex  
+**Author:** Codex
 **Context:** Follow-through deployment and live verification after committing AI-first onboarding + extraction updates.
 **Branch/PR:** `codex-phase1-public-release`
 
@@ -4044,7 +4044,7 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-12 / 11:35 (CEST) — Phase 1 proof-loop narrative hardening + public validation dashboard
 
-**Author:** Codex  
+**Author:** Codex
 **Context:** User feedback: public site still read too profile-led and under-specified versus Phase 1 validation objectives (density/logging/engagement), with too much visible future-state seller framing.
 **Branch/PR:** `codex-phase1-public-release`
 
@@ -4104,8 +4104,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-12 / 19:10 (CEST) — Phase 1 public validation dashboard, narrative tightening, and E2E alignment
 
-**Author:** Codex  
-**Context:** User requested tightening Phase 1 public strategy expression (behavioural validation over profile polish), reducing future-state seller emphasis, and shipping concrete UX/test execution.  
+**Author:** Codex
+**Context:** User requested tightening Phase 1 public strategy expression (behavioural validation over profile polish), reducing future-state seller emphasis, and shipping concrete UX/test execution.
 **Branch/PR:** `codex-phase1-public-release`
 
 ### Goal
@@ -4160,8 +4160,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-12 / 19:28 (CEST) — Railway production deploy for Phase 1 validation dashboard pass
 
-**Author:** Codex  
-**Context:** Follow-through deploy after the public Phase 1 validation/proof-loop narrative update.  
+**Author:** Codex
+**Context:** Follow-through deploy after the public Phase 1 validation/proof-loop narrative update.
 **Branch/PR:** `codex-phase1-public-release`
 
 ### Goal
@@ -4195,8 +4195,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-13 / 10:40 (CEST) — Safe-branch proof-ledger rollout on public agent profiles
 
-**Author:** Codex  
-**Context:** User requested the safest execution path to extend Phase 1 proof visibility without risking regression or losing prior release progress.  
+**Author:** Codex
+**Context:** User requested the safest execution path to extend Phase 1 proof visibility without risking regression or losing prior release progress.
 **Branch/PR:** `codex/phase1-proof-ledger`
 
 ### Goal
@@ -4248,8 +4248,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-13 / 10:57 (CEST) — Agent onboarding IA simplification + targeted interview flow
 
-**Author:** Codex  
-**Context:** User asked to make agent onboarding feel much lighter and more intuitive by turning the current cluttered review form into a CV-first draft flow with a short, surgical follow-up interview.  
+**Author:** Codex
+**Context:** User asked to make agent onboarding feel much lighter and more intuitive by turning the current cluttered review form into a CV-first draft flow with a short, surgical follow-up interview.
 **Branch/PR:** `codex/phase1-proof-ledger` (working tree)
 
 ### Goal
@@ -4309,8 +4309,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-13 / 11:40 (CEST) — Structured onboarding signals + auth-enabled QA + Railway deploy
 
-**Author:** Codex  
-**Context:** User asked to complete the natural follow-through from the onboarding IA pass: run auth-enabled onboarding QA, deploy the branch to Railway, verify live routes, and tighten the quick interview with structured working-style signals.  
+**Author:** Codex
+**Context:** User asked to complete the natural follow-through from the onboarding IA pass: run auth-enabled onboarding QA, deploy the branch to Railway, verify live routes, and tighten the quick interview with structured working-style signals.
 **Branch/PR:** `codex/phase1-proofloop-narrative-hardening` (working tree)
 
 ### Goal
@@ -4407,8 +4407,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-13 / 17:15 (CEST) — Supabase sign-in callback-origin hardening
 
-**Author:** Codex  
-**Context:** User requested an immediate sign-in fix and production-scale reliability hardening for the current Supabase auth setup.  
+**Author:** Codex
+**Context:** User requested an immediate sign-in fix and production-scale reliability hardening for the current Supabase auth setup.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -4461,8 +4461,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-13 / 17:20 (CEST) — Auth guardrail completion with subagent verification
 
-**Author:** Codex  
-**Context:** User requested auth solved today and explicitly asked for end-to-end subagent/browser verification.  
+**Author:** Codex
+**Context:** User requested auth solved today and explicitly asked for end-to-end subagent/browser verification.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -4499,8 +4499,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-20 / 14:12 (CEST) — Public auth recovery + host drift diagnosis
 
-**Author:** Codex  
-**Context:** User requested an end-to-end fix for Google sign-in and Supabase magic-link completion, explicitly asked for subagents, and wanted browser-level diagnostics instead of repo-only analysis.  
+**Author:** Codex
+**Context:** User requested an end-to-end fix for Google sign-in and Supabase magic-link completion, explicitly asked for subagents, and wanted browser-level diagnostics instead of repo-only analysis.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -4582,8 +4582,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-20 / 14:35 (CEST) — Codebase audit + README refresh + idempotency fallback hardening
 
-**Author:** Codex  
-**Context:** User requested a repo audit focused on optimization, scale, and future-proofing, plus an updated latest README.  
+**Author:** Codex
+**Context:** User requested a repo audit focused on optimization, scale, and future-proofing, plus an updated latest README.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -4700,8 +4700,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-20 / 14:58 (CEST) — Senior subagent operating-model refresh
 
-**Author:** Codex  
-**Context:** User requested a practical efficiency refresh focused on subagent collaboration, asked to look up best practices, and asked for a full `AGENTS.md` update with senior-capability designations.  
+**Author:** Codex
+**Context:** User requested a practical efficiency refresh focused on subagent collaboration, asked to look up best practices, and asked for a full `AGENTS.md` update with senior-capability designations.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -4759,8 +4759,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-21 / 10:12 (CEST) — Merge to main + README refresh completion
 
-**Author:** Codex  
-**Context:** User requested that all current work be merged into `main` and asked for a README update in the repo.  
+**Author:** Codex
+**Context:** User requested that all current work be merged into `main` and asked for a README update in the repo.
 **Branch/PR:** `main` (post-merge)
 
 ### Goal
@@ -4799,8 +4799,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-20 / 19:57 (CEST) — Branded auth-host recovery + live sign-out fix
 
-**Author:** Codex  
-**Context:** User asked for the sign-in workflow to be fixed end to end on the live site, with less auth friction, no Railway-host bounce on the public domain, and a production deploy completed today.  
+**Author:** Codex
+**Context:** User asked for the sign-in workflow to be fixed end to end on the live site, with less auth friction, no Railway-host bounce on the public domain, and a production deploy completed today.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -4881,8 +4881,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-21 / 13:24 (CEST) — Passwordless auth guardrails + live sign-in clarification
 
-**Author:** Codex  
-**Context:** User asked to sort the sign-in workflow end to end, remove the confusion around missing passwords, reduce login lockouts, and keep the effort focused on agent onboarding.  
+**Author:** Codex
+**Context:** User asked to sort the sign-in workflow end to end, remove the confusion around missing passwords, reduce login lockouts, and keep the effort focused on agent onboarding.
 **Branch/PR:** current working tree
 
 ### Goal
@@ -4957,8 +4957,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-21 / 19:30 (CEST) — Email/password auth rollout + OAuth/session persistence fix
 
-**Author:** Codex  
-**Context:** User requested one coherent pass to resolve three auth issues: replace magic-link with email/password, fix Google OAuth callback, and stop session loss on reload/revisit.  
+**Author:** Codex
+**Context:** User requested one coherent pass to resolve three auth issues: replace magic-link with email/password, fix Google OAuth callback, and stop session loss on reload/revisit.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5045,8 +5045,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-22 / 11:19 (CEST) — Sign-up confirmation outcome hardening + dual-entry sign-in UI
 
-**Author:** Codex  
-**Context:** User reported that account creation always shows "Check your email to confirm your account" but no confirmation emails arrived; requested immediate signup-flow reliability plus clearer sign-in/sign-up entry options.  
+**Author:** Codex
+**Context:** User reported that account creation always shows "Check your email to confirm your account" but no confirmation emails arrived; requested immediate signup-flow reliability plus clearer sign-in/sign-up entry options.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5106,8 +5106,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-22 / 11:58 (CEST) — Canonical callback-origin hardening for signup confirmation links
 
-**Author:** Codex  
-**Context:** User confirmed Supabase template + URL settings looked correct, but confirmation links still intermittently opened localhost targets in browser testing.  
+**Author:** Codex
+**Context:** User confirmed Supabase template + URL settings looked correct, but confirmation links still intermittently opened localhost targets in browser testing.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5153,8 +5153,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-22 / 12:12 (CEST) — Auth callback dual-flow hardening (`token_hash` + OAuth code)
 
-**Author:** Codex  
-**Context:** User reported that confirmed-account links were still breaking sign-in because callback handling did not consistently process Supabase email-confirmation payloads.  
+**Author:** Codex
+**Context:** User reported that confirmed-account links were still breaking sign-in because callback handling did not consistently process Supabase email-confirmation payloads.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5213,8 +5213,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-22 / 12:18 (CEST) — Production localhost-origin redirect fix in `/auth/callback`
 
-**Author:** Codex  
-**Context:** Live production probe after deploy showed `/auth/callback` returning `Location: https://localhost:8080/auth/error`, confirming runtime `request.url` origin can be internal/proxy-localhost in Railway.  
+**Author:** Codex
+**Context:** Live production probe after deploy showed `/auth/callback` returning `Location: https://localhost:8080/auth/error`, confirming runtime `request.url` origin can be internal/proxy-localhost in Railway.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5263,8 +5263,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 ---
 ## Session: 2026-04-22 / 12:36 (CEST) — Forgot-password flow for email/password auth
 
-**Author:** Codex  
-**Context:** User reported sign-in UX lacked a `Forgot password` option after migration to email/password auth.  
+**Author:** Codex
+**Context:** User reported sign-in UX lacked a `Forgot password` option after migration to email/password auth.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5326,8 +5326,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-22 / 12:58 (CEST) — Restored homeowner/agent role selection via switch mode
 
-**Author:** Codex  
-**Context:** User reported they could only continue as homeowner after sign-in and requested role selection between estate agent and homeowner again.  
+**Author:** Codex
+**Context:** User reported they could only continue as homeowner after sign-in and requested role selection between estate agent and homeowner again.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5384,8 +5384,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-22 / 13:02 (CEST) — Premium progressive auth UX refresh (multi-step sign-up + split-shell sign-in)
 
-**Author:** Codex  
-**Context:** User requested a premium, no-reload, progressive-disclosure sign-up flow inspired by Purplebricks, plus a matching split-shell sign-in redesign using WHOMA styling and Supabase browser auth calls.  
+**Author:** Codex
+**Context:** User requested a premium, no-reload, progressive-disclosure sign-up flow inspired by Purplebricks, plus a matching split-shell sign-in redesign using WHOMA styling and Supabase browser auth calls.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5440,8 +5440,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-23 / 11:43 (CEST) — Public signup access lockdown + metrics/admin visibility gates
 
-**Author:** Codex  
-**Context:** Implemented access-control changes to remove public seller/homeowner registration paths, hide public-facing metrics by default, and tighten admin dashboard redirects for non-admin authenticated users.  
+**Author:** Codex
+**Context:** Implemented access-control changes to remove public seller/homeowner registration paths, hide public-facing metrics by default, and tighten admin dashboard redirects for non-admin authenticated users.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5517,8 +5517,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-23 / 11:57 (CEST) — Past Deals verification feature (agent trust loop)
 
-**Author:** Codex  
-**Context:** Implemented the new Past Deals flow for agent trust verification: Supabase schema/RLS, add-deal API + UI, seller verification page, and verification confirmation pipeline with Resend notifications.  
+**Author:** Codex
+**Context:** Implemented the new Past Deals flow for agent trust verification: Supabase schema/RLS, add-deal API + UI, seller verification page, and verification confirmation pipeline with Resend notifications.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5603,8 +5603,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-23 / 12:01 (CEST) — Homepage “Meet our agents” placeholder section
 
-**Author:** Codex  
-**Context:** Added a public-facing featured-agents showcase on the homepage using mock data until live agent profiles are available.  
+**Author:** Codex
+**Context:** Added a public-facing featured-agents showcase on the homepage using mock data until live agent profiles are available.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5654,8 +5654,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-23 / 12:55 (CEST) — Support chat release hardening + deployment readiness validation
 
-**Author:** Codex  
-**Context:** User requested shipping the WHOMA support chat stack live on `main` with deep testing and sub-agent verification, plus hardening to avoid escalation-related tech debt.  
+**Author:** Codex
+**Context:** User requested shipping the WHOMA support chat stack live on `main` with deep testing and sub-agent verification, plus hardening to avoid escalation-related tech debt.
 **Branch/PR:** `main` (working tree, rebase-in-progress integration)
 
 ### Goal
@@ -5731,8 +5731,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-23 / 12:45 (CEST) — Railway production build failure fix (homepage Server Component)
 
-**Author:** Codex  
-**Context:** After pushing `main`, Railway production deployments failed and blocked the new support-chat routes from going live.  
+**Author:** Codex
+**Context:** After pushing `main`, Railway production deployments failed and blocked the new support-chat routes from going live.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5782,8 +5782,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-23 / 12:50 (CEST) — Final production build blockers resolved after Railway retry
 
-**Author:** Codex  
-**Context:** Railway retry deployment still failed after the initial homepage animation fix; additional blockers needed to be cleared for production rollout.  
+**Author:** Codex
+**Context:** Railway retry deployment still failed after the initial homepage animation fix; additional blockers needed to be cleared for production rollout.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5834,8 +5834,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-24 / 11:35 (CEST) — Production sync, deploy recovery, and live verification evidence
 
-**Author:** Codex  
-**Context:** User asked to continue from the unfinished prior session, verify that yesterday's access-control/deals/homepage work is truly live, and test production behavior end to end.  
+**Author:** Codex
+**Context:** User asked to continue from the unfinished prior session, verify that yesterday's access-control/deals/homepage work is truly live, and test production behavior end to end.
 **Branch/PR:** `codex/production-sync-verify` (tracking `origin/main`)
 
 ### Goal
@@ -5910,8 +5910,8 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-24 / 11:24 (CEST) — Support chat backend verification + route hardening
 
-**Author:** Codex  
-**Context:** Senior Backend Reliability task brief to verify support chat escalation behavior/security end-to-end and patch only backend chat/escalation modules for concrete defects.  
+**Author:** Codex
+**Context:** Senior Backend Reliability task brief to verify support chat escalation behavior/security end-to-end and patch only backend chat/escalation modules for concrete defects.
 **Branch/PR:** `main` (working tree)
 
 ### Goal
@@ -5969,7 +5969,7 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 ## Session: 2026-04-24 / 11:45 (CEST) — Support widget E2E stabilization + live rollout verification
 
-**Author:** Codex  
+**Author:** Codex
 **Context:** User requested full continuation from yesterday with deep testing, sub-agent validation, and live deployment confidence for support chat.
 **Branch/PR:** `main` (working tree)
 
@@ -6028,3 +6028,357 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 1. Add Anthropic credits (or switch model/provider) to restore AI response streaming quality in production.
 2. If duplicate escalation tickets appear across replicas, move dedupe state to shared storage (Redis/DB).
+
+---
+
+## Session: 2026-04-25 / 15:58 (CEST) — Agent onboarding auth continuity + mobile upload fix
+
+**Author:** Codex
+**Context:** User reported the agent journey breaking after CV upload, returning to `Sign in to WHOMA`, and asked to continue, review, and deploy.
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Keep authenticated agents inside `/agent/onboarding` after CV/resume upload and improve phone-browser recovery/navigation around the auth/onboarding journey.
+
+### Changes Made
+
+- Added browser-safe compaction for resume suggestion cookies before redirect so large CV extraction payloads cannot crowd out Supabase session cookies.
+- Tightened auth callback-return detection so generic app `error` query params on `/sign-in` no longer get forwarded through `/auth/callback`.
+- Preserved safe `next` paths through email/password sign-in and restored the environment-gated Google sign-in button on the split auth shell.
+- Improved onboarding upload UX:
+  - upload success now returns to `/agent/onboarding?success=resume_prefilled#draft-preview`,
+  - the CV file input has mobile-safe spacing for long filenames.
+- Added mobile logged-in app navigation below the header so primary role routes remain reachable on phone widths.
+
+### Files / Modules Touched
+
+- `src/server/agent-profile/resume-suggestions-cookie.ts`
+- `src/server/agent-profile/resume-suggestions-cookie.test.ts`
+- `src/lib/auth/callback-return.ts`
+- `src/lib/auth/callback-return.test.ts`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/components/auth/sign-in-form.tsx`
+- `src/app/(app)/agent/onboarding/page.tsx`
+- `src/components/layout/app-shell.tsx`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/DEVLOG.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- `npm run test -- src/server/agent-profile/resume-suggestions-cookie.test.ts src/app/api/agent/onboarding/resume-suggestions/route.test.ts src/lib/auth/callback-return.test.ts src/lib/auth/callback-origin.test.ts src/app/auth/callback/route.test.ts` -> passed (`23/23`).
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+- `npm run build` -> passed.
+- `PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3012 PLAYWRIGHT_SUPABASE_URL=http://127.0.0.1:54321 npx playwright test tests/e2e/agent-onboarding-ux.spec.ts --project=chromium --workers=1` -> passed (`2/2`) after starting `tests/e2e/support/mock-supabase-server.mjs`.
+- Railway deploy:
+  - service: `WHOMA`
+  - deployment id: `1726cf49-ea23-494d-a3da-9d1f562d898f`
+  - build logs show successful production build and `/api/health` healthcheck.
+- Live production:
+  - `GET https://www.whoma.co.uk/api/health` -> `200`, `database=up`
+  - `GET https://www.whoma.co.uk/sign-in?error=AccessDenied&next=/agent/onboarding` -> `200`
+  - unauthenticated `/agent/onboarding` still redirects to `/sign-in?next=%2Fagent%2Fonboarding`
+
+### Known Issues / Risks
+
+- The current resume suggestion state still lives in a cookie, now compacted aggressively for safety. A future server-side suggestion store would preserve richer extracted details without browser cookie pressure.
+- Railway status output lagged behind build logs immediately after deploy, reporting `BUILDING` while build logs and live healthcheck showed the release was serving.
+
+### Next Steps
+
+1. Run one real signed-in production CV upload on a controlled agent account to confirm the fix against Safari/Brave mobile behavior.
+2. Consider moving resume suggestion payloads to DB/Redis-backed temporary storage with only a short pointer cookie.
+
+---
+
+## Session: 2026-04-26 / 00:00 (CEST) — Focused single-step agent onboarding redesign
+
+**Author:** Codex
+**Context:** User requested a UI-only redesign of `/agent/onboarding` into a focused single-step-at-a-time flow, preserving all existing API calls, server actions, CV parsing, Supabase writes, email verification, and data model behavior.
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Replace the long all-at-once agent onboarding surface with a calmer six-step guided flow while leaving server-side onboarding mechanics unchanged.
+
+### Changes Made
+
+- Added a route-local client stepper at `src/app/(app)/agent/onboarding/agent-onboarding-stepper.tsx`.
+- Rewired `src/app/(app)/agent/onboarding/page.tsx` so it still performs the existing auth/profile/resume-cookie/server-action setup, then renders the new stepper shell.
+- Implemented the requested six-step sequence:
+  - Import
+  - Draft preview
+  - Confirm details
+  - Quick interview
+  - Verify email
+  - Profile ready
+- Preserved existing form field names and existing server actions for CV upload, resume suggestion clearing, work-email send/confirm, and onboarding completion.
+- Added client-side step transitions, progress bar, mobile-stacked layouts, full-viewport `min-h-[100dvh]` treatment, and UI-local step restoration via `localStorage`.
+- Did not add `current_onboarding_step` persistence because the existing `AgentProfile` schema has no such field and the session constraint explicitly forbade data-model/Supabase-write changes.
+
+### Files / Modules Touched
+
+- `src/app/(app)/agent/onboarding/page.tsx`
+- `src/app/(app)/agent/onboarding/agent-onboarding-stepper.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run build` -> passed.
+- Railway deploy: service `WHOMA`, deployment `625f1ecb-60af-44d7-bd6e-56a22a33d4ba`, status `SUCCESS`.
+- Review hardening follow-up deploy: service `WHOMA`, deployment `452feadb-4f69-46c3-8a0e-c3dd010dbd70`, status `SUCCESS`; previous redesign deployment was removed.
+- Live production: `GET https://www.whoma.co.uk/api/health` -> `200`, `database=up`, fresh container uptime observed after follow-up deploy.
+- Review follow-up tests: `npm run test -- src/lib/knowledge/retrieve.test.ts src/app/api/chat/route.test.ts src/server/agent-profile/resume-suggestions-cookie.test.ts src/lib/auth/callback-return.test.ts` -> passed (`17/17`).
+- Browser plugin note: attempted to use the bundled Browser skill, but the required Node REPL browser-control tool was not exposed after discovery, so in-app browser smoke could not be run in this environment.
+
+### Known Issues / Risks
+
+- Step restoration is browser-local (`localStorage`) rather than Supabase-backed because no existing onboarding-step column exists and no schema/write changes were allowed.
+- `Publish now` still submits through the existing onboarding completion action and hands off to the established profile workspace completion path; no new publish server action was introduced.
+- Senior review found and fixed two client risks before the follow-up deploy: in-progress details now survive email-verification redirects via source-keyed browser draft storage, and import cards no longer nest file inputs inside button elements.
+
+### Next Steps
+
+1. Run a real signed-in mobile browser pass against production after deployment, especially CV upload -> draft preview -> verify email.
+2. If durable cross-device step restore becomes a product requirement, add an explicit schema-backed onboarding progress field in a separate backend PR.
+
+---
+
+## Session: 2026-04-26 / 17:30 (CEST) — File-based support chatbot knowledge base
+
+**Author:** Codex
+**Context:** User requested a simple file-based knowledge base for the WHOMA support chatbot, with no UI changes, no system prompt rewrite, no vector database, and end-to-end validation.
+**Branch/PR:** `main` (working tree)
+
+### Goal
+
+- Add lightweight retrieval from support markdown documents into the existing `/api/chat` Anthropic route while preserving the AI SDK v6 message contract and existing support widget UI.
+
+### Changes Made
+
+- Added structured support knowledge files in `src/content/support/`:
+  - `about-whoma.md`
+  - `signing-up.md`
+  - `onboarding.md`
+  - `profiles.md`
+  - `past-deals.md`
+  - `verification.md`
+  - `troubleshooting.md`
+  - `pricing.md`
+- Added `src/lib/knowledge/retrieve.ts`:
+  - loads support markdown from disk,
+  - parses H2 sections,
+  - scores simple keyword matches,
+  - caps query terms, selected sections, and returned context length.
+- Extended `src/app/api/chat/route.ts` only:
+  - added `export const runtime = "nodejs"` for filesystem access,
+  - retrieves knowledge from the latest user message,
+  - keeps `SYSTEM_PROMPT` unchanged and appends a delimited context block only when relevant knowledge exists.
+- Added tests for retrieval and route injection:
+  - `src/lib/knowledge/retrieve.test.ts`
+  - `src/app/api/chat/route.test.ts`
+- Added provider-independent browser coverage:
+  - `tests/e2e/support-chat-ai.spec.ts` mocks `/api/chat` and verifies the widget send path renders an assistant answer without Anthropic.
+
+### Files / Modules Touched
+
+- `src/app/api/chat/route.ts`
+- `src/app/api/chat/route.test.ts`
+- `src/lib/knowledge/retrieve.ts`
+- `src/lib/knowledge/retrieve.test.ts`
+- `src/content/support/*.md`
+- `tests/e2e/support-chat-ai.spec.ts`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- `npm run test -- src/lib/knowledge/retrieve.test.ts src/app/api/chat/route.test.ts src/app/api/chat/escalate/route.test.ts` -> passed (`13/13`).
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+- `npm run build` -> passed.
+- `PLAYWRIGHT_BASE_URL=http://localhost:3012 PLAYWRIGHT_WEB_SERVER_COMMAND='npm run start -- --hostname localhost --port 3012' npx playwright test tests/e2e/support-chat-ai.spec.ts --project=chromium` -> passed (`1/1`) after approving local server bind.
+- Local real-provider smoke against `POST /api/chat` -> route returned `200` streaming envelope and Anthropic returned `Your credit balance is too low to access the Anthropic API`, confirming provider wiring while leaving account credits as the live blocker.
+- Computer Use plugin was available and used to confirm desktop/browser context. Browser-use tools were not exposed by tool discovery in this session, so browser validation used Playwright Chromium instead.
+
+### Known Issues / Risks
+
+- Retrieval is intentionally keyword-based and file-backed; it is not semantic search and may miss paraphrased questions.
+- Knowledge content duplicates some product/support truth that also appears in existing app copy and FAQs, so future changes should keep support markdown in sync.
+- Production AI streaming still depends on Anthropic account credits/provider availability.
+
+### Next Steps
+
+1. Add a small internal review step when support policy changes so `src/content/support/*.md` stays current.
+2. If support docs grow substantially, consider a build-time index or lightweight semantic retrieval in a separate PR.
+
+---
+
+## Session: 2026-04-26 / 18:05 (CEST) — Contact page split redesign + support inquiry route wiring
+
+**Author:** Codex
+**Context:** User requested a full visual redesign of `/contact` plus a real form submit path to `/api/contact` that delivers support emails via Resend while preserving the existing form field contract and validation semantics.
+**Branch/PR:** `main` (dirty working tree; scoped edits only)
+
+### Goal
+
+- Rebuild the contact experience into a split-screen design, keep the same form field names/validation rules, and replace placeholder submission behavior with the existing support-inquiry persistence and notification path.
+
+### Changes Made
+
+- Added a new client contact shell at `src/components/contact/contact-page-shell.tsx` with:
+  - split-screen desktop layout (`42%` dark contact panel / `58%` white form panel),
+  - mobile collapse (`80px` top bar on small screens),
+  - redesigned field visuals,
+  - mount stagger animation across form fields,
+  - inline error state, loading state (`Sending...`), and success replacement state.
+- Preserved existing field contract and validation boundaries (`name`, `email`, `role`, `category`, `message`; same Zod constraints and enum options as prior contact flow).
+- Added `POST /api/contact` in `src/app/api/contact/route.ts`:
+  - validates the same contact payload contract server-side,
+  - applies the existing public rate-limit guard,
+  - persists through the existing `createSupportInquiry` service,
+  - keeps Resend notification delivery behind the existing lazy support-inquiry service path.
+- Added a dedicated route file at `src/app/contact/page.tsx` for the redesigned contact experience.
+- Removed the previous inline contact form/server-action block from `src/app/[slug]/page.tsx` and narrowed that route back to legal/sitemap content.
+- Added `@keyframes whoma-contact-field-in` to `src/app/globals.css` for the required 5px fade-up animation.
+
+### Files / Modules Touched
+
+- `src/components/contact/contact-page-shell.tsx` (new)
+- `src/app/contact/page.tsx` (new)
+- `src/app/api/contact/route.ts` (new)
+- `src/app/[slug]/page.tsx`
+- `src/app/globals.css`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed.
+- `npm run build` -> passed.
+- Local runtime smoke attempt for `/api/contact` was blocked in this sandbox (`listen EPERM` on `127.0.0.1:3012`), so live POST execution was not possible here.
+
+### Known Issues / Risks
+
+- Because local port binding is blocked in this execution sandbox, I could not verify an actual outbound email delivery in-turn; route/build correctness is validated, but live send still depends on runtime env (`RESEND_API_KEY`) and deployment environment email authorization.
+
+### Next Steps
+
+1. Run a live `/contact` submit in an environment with `RESEND_API_KEY` set and confirm receipt at `support@whoma.co.uk`.
+2. If desired, add a lightweight integration test around `/api/contact` with Resend mocked to lock route behavior.
+
+---
+
+## Session: 2026-04-27 / 00:55 (CEST) — Agent auth routing + onboarding continuity fix
+
+**Author:** Codex
+**Context:** User reported that tapping sign in immediately lands them in agent onboarding, completed onboarding should not repeat, CV upload is unreliable, and signup/verification should continue into the profile path instead of feeling like a return to sign-in.
+**Branch/PR:** `main` (dirty working tree; scoped edits only)
+
+### Goal
+
+- Make estate-agent account access route through the profile surface instead of permanently defaulting to onboarding, preserve one-time onboarding semantics, and harden CV upload handling.
+
+### Changes Made
+
+- Changed the default `AGENT` route from `/agent/onboarding` to `/agent/profile`.
+- Kept `/agent/profile` as the single agent portal entrypoint: it resolves completed agents to `/agent/profile/edit`, while incomplete agents are still routed through onboarding by the existing profile-edit guard.
+- Redirected completed agents away from `/agent/onboarding` to `/agent/profile/edit`, making onboarding a one-time completion flow.
+- Updated approved access-state recovery in middleware to use the shared role default instead of hardcoding `/agent/onboarding`.
+- Updated signup confirmation callback URLs to include `next=/agent/profile`; if Supabase returns a session immediately after signup, the client now continues directly to `/agent/profile`.
+- Copied Supabase `user_metadata.role` into the WHOMA `User.role` on first local-user creation so agent signups can continue without a second role-selection detour.
+- Hardened the onboarding CV upload server action by replacing `instanceof File` with runtime-safe file-shape detection and preserving the draft-preview redirect after successful extraction.
+
+### Files / Modules Touched
+
+- `src/lib/auth/session.ts`
+- `src/lib/auth/session.test.ts`
+- `src/auth.ts`
+- `src/middleware.ts`
+- `src/components/auth/sign-up-flow.tsx`
+- `src/app/(app)/agent/onboarding/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- `npm run test -- src/lib/auth/session.test.ts src/app/auth/callback/route.test.ts` -> passed (`11/11`).
+- `npm run lint -- --file src/auth.ts --file src/middleware.ts --file src/lib/auth/session.ts --file 'src/app/(app)/agent/onboarding/page.tsx' --file src/components/auth/sign-up-flow.tsx` -> passed.
+- `npm run build` -> passed.
+
+### Known Issues / Risks
+
+- I did not run a live browser CV upload because this turn focused on server/routing correctness; the build verifies compilation, but an end-to-end upload pass should still be done against a running local or staging app.
+- Existing dirty-worktree changes from the onboarding/contact/support-chat work remain present and were not reverted.
+
+### Next Steps
+
+1. Run a signed-in browser pass: create account -> confirm -> `/agent/profile` -> onboarding if incomplete -> CV upload -> draft preview -> complete -> profile editor.
+2. If the product wants an explicit post-login portal chooser for already-role-assigned users, add that as a separate UX slice rather than overloading sign-in.
+
+---
+
+## Session: 2026-04-27 / 01:00 (CEST) — Release hardening review + clean gates
+
+**Author:** Codex
+**Context:** User asked for a senior-engineer review pass, blocker elimination, clean code, and deployment readiness evidence across the current dirty release bundle.
+**Branch/PR:** `main` (release bundle pending commit/push)
+
+### Goal
+
+- Review the mixed onboarding/auth/contact/support-chat release as a production bundle, remove blockers, and prove the tree is clean enough to push/deploy.
+
+### Changes Made
+
+- Rewired `POST /api/contact` away from ad hoc direct email sending and back through the existing `createSupportInquiry` service so contact submissions are persisted, event-tracked, rate-limited, and notified through the established lazy Resend path.
+- Added `/api/contact` route regression coverage for success, validation failure, and public rate limiting.
+- Updated the contact form submit payload to include `pagePath` and `source` while preserving the existing public field contract.
+- Normalized touched public/app shells from `min-h-screen` to `min-h-[100dvh]` for safer mobile viewport behavior.
+- Cleaned documentation whitespace and corrected docs to describe the actual contact persistence boundary instead of claiming a direct Resend-only route.
+
+### Files / Modules Touched
+
+- `src/app/api/contact/route.ts`
+- `src/app/api/contact/route.test.ts`
+- `src/components/contact/contact-page-shell.tsx`
+- `src/components/layout/app-shell.tsx`
+- `src/app/[slug]/page.tsx`
+- `docs/DEVLOG.md`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- `npm run test -- src/app/api/contact/route.test.ts src/lib/knowledge/retrieve.test.ts src/app/api/chat/route.test.ts src/server/agent-profile/resume-suggestions-cookie.test.ts src/lib/auth/callback-return.test.ts` -> passed (`20/20`).
+- `npm run typecheck` -> passed.
+- `npm run test` -> passed (`95/95`, `8` DB-backed tests skipped by existing env gating).
+- `npm run build` -> passed.
+- `npm run lint` -> passed (`next lint` deprecation warning only; no warnings/errors).
+- `git diff --check` -> passed.
+
+### Known Issues / Risks
+
+- Browser-use in-app tooling was not exposed in this environment in prior discovery, so the final browser journey still depends on Playwright/local or live manual verification.
+- Live `/contact` email receipt still depends on production `RESEND_API_KEY` and sender-domain authorization; route tests validate behavior without sending real mail.
+- Current local bundle has not yet been committed/pushed/deployed at this entry point.
+
+### Next Steps
+
+1. Commit and push the clean release bundle to `main`.
+2. Confirm whether Railway auto-deploys from the pushed commit or run an approved production deploy.
+3. Verify live `/api/health` and targeted public/auth/onboarding/contact routes after deployment.

@@ -2416,5 +2416,215 @@
       "Restore Anthropic credits (or swap provider/model) so /api/chat returns assistant responses instead of provider credit errors.",
       "Move escalation dedupe state to shared storage if duplicate tickets appear across instances."
     ]
+  },
+  {
+    "session_id": "2026-04-25-1558-onboarding-auth-continuity-mobile-upload",
+    "timestamp": "2026-04-25T15:58:00+02:00",
+    "summary": "Fixed agent onboarding auth continuity after CV upload by compacting resume suggestion cookies, preserving sign-in next paths, preventing app error params from entering /auth/callback, restoring env-gated Google sign-in, adding mobile app navigation, and deploying Railway release 1726cf49-ea23-494d-a3da-9d1f562d898f.",
+    "files_changed": [
+      "src/server/agent-profile/resume-suggestions-cookie.ts",
+      "src/server/agent-profile/resume-suggestions-cookie.test.ts",
+      "src/lib/auth/callback-return.ts",
+      "src/lib/auth/callback-return.test.ts",
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/components/auth/sign-in-form.tsx",
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/components/layout/app-shell.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept resume suggestions cookie-backed for this PR-sized fix but compacted payloads under a strict browser-safe cap to stop large CV drafts from destabilizing session cookies.",
+      "Preserved /sign-in error display by detecting only real Supabase callback params (code/token_hash) as callback returns.",
+      "Added mobile app navigation as a lightweight recovery path instead of introducing a larger drawer/navigation refactor."
+    ],
+    "verification": [
+      "npm run test -- src/server/agent-profile/resume-suggestions-cookie.test.ts src/app/api/agent/onboarding/resume-suggestions/route.test.ts src/lib/auth/callback-return.test.ts src/lib/auth/callback-origin.test.ts src/app/auth/callback/route.test.ts -> passed (23/23)",
+      "npm run typecheck -> passed",
+      "npm run lint -> passed",
+      "npm run build -> passed",
+      "PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3012 PLAYWRIGHT_SUPABASE_URL=http://127.0.0.1:54321 npx playwright test tests/e2e/agent-onboarding-ux.spec.ts --project=chromium --workers=1 -> passed (2/2)",
+      "Live GET https://www.whoma.co.uk/api/health -> 200 database=up",
+      "Live GET https://www.whoma.co.uk/sign-in?error=AccessDenied&next=/agent/onboarding -> 200"
+    ],
+    "next_steps": [
+      "Run one real signed-in production CV upload on a controlled agent account, ideally from mobile Safari/Brave.",
+      "Move resume suggestion payloads to temporary server-side storage with a pointer cookie if richer extracted detail needs to survive redirects without cookie compaction."
+    ]
+  },
+  {
+    "session_id": "2026-04-26-0000-agent-onboarding-single-step-redesign",
+    "timestamp": "2026-04-26T00:00:00+02:00",
+    "summary": "Redesigned agent onboarding into a six-step focused UI while preserving existing CV upload, resume parsing, Supabase writes, work-email verification, and onboarding completion server actions. Deployed Railway production release 625f1ecb-60af-44d7-bd6e-56a22a33d4ba, then follow-up reviewed hardening release 452feadb-4f69-46c3-8a0e-c3dd010dbd70, and verified live health.",
+    "files_changed": [
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "src/app/(app)/agent/onboarding/agent-onboarding-stepper.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Moved visual step sequencing into a route-local client stepper and kept the existing server page as the data/action provider.",
+      "Used browser-local step restoration because AgentProfile has no existing current_onboarding_step field and the task forbade data-model or Supabase-write changes.",
+      "Kept final completion wired to the existing submitAgentOnboardingAction rather than adding any new publish route/action behavior.",
+      "Senior review fixed client redirect-state persistence for email verification and removed invalid nested interactive controls from the import cards before the final live deployment."
+    ],
+    "verification": [
+      "npm run typecheck -> passed",
+      "npm run build -> passed",
+      "Browser plugin runtime unavailable: required Node REPL browser-control tool was not exposed after discovery",
+      "Railway deploy 625f1ecb-60af-44d7-bd6e-56a22a33d4ba -> SUCCESS",
+      "Live GET https://www.whoma.co.uk/api/health -> 200 database=up",
+      "Review hardening Railway deploy 452feadb-4f69-46c3-8a0e-c3dd010dbd70 -> SUCCESS; previous redesign deploy removed",
+      "Live GET https://www.whoma.co.uk/api/health after follow-up deploy -> 200 database=up fresh uptime",
+      "npm run test -- src/lib/knowledge/retrieve.test.ts src/app/api/chat/route.test.ts src/server/agent-profile/resume-suggestions-cookie.test.ts src/lib/auth/callback-return.test.ts -> passed (17/17)",
+      "git diff --check -> passed"
+    ],
+    "next_steps": [
+      "Run a real signed-in production mobile pass through CV upload, draft preview, work-email verification, and completion.",
+      "If cross-device onboarding restore is required, add schema-backed progress persistence in a separate backend PR."
+    ]
+  },
+  {
+    "session_id": "2026-04-26-1730-support-chat-file-knowledge-base",
+    "timestamp": "2026-04-26T17:30:00+02:00",
+    "summary": "Added a simple file-based support knowledge base for the WHOMA chatbot, wired bounded markdown retrieval into /api/chat without changing the widget UI or base system prompt, and verified the route plus browser send path with provider-independent tests.",
+    "files_changed": [
+      "src/app/api/chat/route.ts",
+      "src/app/api/chat/route.test.ts",
+      "src/lib/knowledge/retrieve.ts",
+      "src/lib/knowledge/retrieve.test.ts",
+      "src/content/support/about-whoma.md",
+      "src/content/support/signing-up.md",
+      "src/content/support/onboarding.md",
+      "src/content/support/profiles.md",
+      "src/content/support/past-deals.md",
+      "src/content/support/verification.md",
+      "src/content/support/troubleshooting.md",
+      "src/content/support/pricing.md",
+      "tests/e2e/support-chat-ai.spec.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Kept SupportChat.tsx untouched so the existing widget UI and escalation UX remain unchanged.",
+      "Kept the base support SYSTEM_PROMPT unchanged and appends delimited knowledge context only when keyword retrieval finds relevant sections.",
+      "Used dependency-free, bounded markdown keyword retrieval instead of adding packages, embeddings, or a vector database at this MVP stage.",
+      "Switched /api/chat from edge to nodejs runtime because filesystem-backed retrieval cannot run in the Edge runtime."
+    ],
+    "verification": [
+      "npm run test -- src/lib/knowledge/retrieve.test.ts src/app/api/chat/route.test.ts src/app/api/chat/escalate/route.test.ts -> passed (13/13)",
+      "npm run typecheck -> passed",
+      "npm run lint -> passed",
+      "npm run build -> passed",
+      "PLAYWRIGHT_BASE_URL=http://localhost:3012 PLAYWRIGHT_WEB_SERVER_COMMAND='npm run start -- --hostname localhost --port 3012' npx playwright test tests/e2e/support-chat-ai.spec.ts --project=chromium -> passed (1/1)",
+      "Local real-provider POST /api/chat smoke -> HTTP 200 streaming envelope with Anthropic low-credit error, confirming provider wiring and current account-credit blocker"
+    ],
+    "next_steps": [
+      "Keep src/content/support/*.md in sync whenever support policy, onboarding, verification, or pricing copy changes.",
+      "Restore Anthropic credits or keep provider-independent smoke tests as the deployment gate until live model streaming is available again.",
+      "If support documentation grows substantially, evaluate a build-time index or semantic retrieval in a separate PR."
+    ]
+  },
+  {
+    "session_id": "2026-04-26-1805-contact-support-inquiry-split-redesign",
+    "timestamp": "2026-04-26T18:05:00+02:00",
+    "summary": "Redesigned /contact into a split support shell and wired POST /api/contact through the existing SupportInquiry persistence and notification service, while preserving the contact field contract and validation semantics and moving the route to a dedicated src/app/contact/page.tsx surface.",
+    "files_changed": [
+      "src/components/contact/contact-page-shell.tsx",
+      "src/app/contact/page.tsx",
+      "src/app/api/contact/route.ts",
+      "src/app/[slug]/page.tsx",
+      "src/app/globals.css",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Moved /contact to a dedicated static route file and narrowed the dynamic /[slug] page back to legal/sitemap ownership to keep route responsibilities explicit.",
+      "Preserved prior contact validation semantics by reusing the same Zod constraints and category enum in the new client form before POSTing to /api/contact.",
+      "Kept the API route behind the existing SupportInquiry service so submissions remain persisted, event-tracked, rate-limited, and notified through the established lazy Resend path."
+    ],
+    "verification": [
+      "npm run typecheck -> passed",
+      "npm run lint -> passed",
+      "npm run build -> passed",
+      "Local /api/contact runtime smoke blocked in sandbox: next dev listen EPERM on 127.0.0.1:3012 (no local port binding permission)"
+    ],
+    "next_steps": [
+      "Submit a live /contact form in an environment with RESEND_API_KEY set and confirm inbox delivery at support@whoma.co.uk.",
+      "Optionally add a mocked integration test for /api/contact route success/error branches to lock behavior."
+    ]
+  },
+  {
+    "session_id": "2026-04-27-0055-agent-auth-routing-onboarding-continuity",
+    "timestamp": "2026-04-27T00:55:00+02:00",
+    "summary": "Fixed agent post-auth routing so sign-in and signup continue through /agent/profile instead of permanently defaulting to onboarding, made completed onboarding one-time by redirecting completed agents to profile edit, and hardened onboarding CV upload file detection.",
+    "files_changed": [
+      "src/lib/auth/session.ts",
+      "src/lib/auth/session.test.ts",
+      "src/auth.ts",
+      "src/middleware.ts",
+      "src/components/auth/sign-up-flow.tsx",
+      "src/app/(app)/agent/onboarding/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use /agent/profile as the estate-agent portal entrypoint so it can route completed agents to profile editing and incomplete agents through onboarding.",
+      "Copy Supabase signup role metadata only when creating the local WHOMA user so future role switches are not overwritten by stale auth metadata.",
+      "Use runtime file-shape detection for CV uploads instead of instanceof File to avoid multipart runtime differences."
+    ],
+    "verification": [
+      "npm run test -- src/lib/auth/session.test.ts src/app/auth/callback/route.test.ts -> passed (11/11)",
+      "npm run lint -- --file src/auth.ts --file src/middleware.ts --file src/lib/auth/session.ts --file 'src/app/(app)/agent/onboarding/page.tsx' --file src/components/auth/sign-up-flow.tsx -> passed",
+      "npm run build -> passed"
+    ],
+    "next_steps": [
+      "Run a signed-in browser pass through create account, confirmation, /agent/profile, CV upload, draft preview, onboarding completion, and profile edit.",
+      "If product direction calls for it, add an explicit post-login portal chooser as a separate UX slice."
+    ]
+  },
+  {
+    "session_id": "2026-04-27-0100-release-hardening-clean-gates",
+    "timestamp": "2026-04-27T01:00:28+02:00",
+    "summary": "Reviewed and hardened the current release bundle, routing /api/contact through the existing SupportInquiry persistence/service boundary, adding contact route regression coverage, normalizing touched mobile viewport shells, and rerunning full release gates.",
+    "files_changed": [
+      "src/app/api/contact/route.ts",
+      "src/app/api/contact/route.test.ts",
+      "src/components/contact/contact-page-shell.tsx",
+      "src/components/layout/app-shell.tsx",
+      "src/app/[slug]/page.tsx",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use the existing SupportInquiry service for public contact requests instead of a direct email-only route, preserving persistence, analytics, validation, and lazy notification behavior.",
+      "Add route-level regression tests for the public contact boundary so validation and rate-limit behavior stay locked.",
+      "Normalize touched layouts to min-h-[100dvh] to reduce mobile browser viewport issues without widening the UI scope."
+    ],
+    "verification": [
+      "npm run test -- src/app/api/contact/route.test.ts src/lib/knowledge/retrieve.test.ts src/app/api/chat/route.test.ts src/server/agent-profile/resume-suggestions-cookie.test.ts src/lib/auth/callback-return.test.ts -> passed (20/20)",
+      "git diff --check -> passed",
+      "npm run typecheck -> passed",
+      "npm run test -> passed (95/95, 8 DB-backed tests skipped by existing env gating)",
+      "npm run build -> passed",
+      "npm run lint -> passed (next lint deprecation warning only)"
+    ],
+    "next_steps": [
+      "Commit and push the release bundle to main.",
+      "Verify whether Railway auto-deploys from the pushed commit or run an approved production deploy.",
+      "Run live health and targeted route checks after deployment."
+    ]
   }
 ]

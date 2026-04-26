@@ -637,6 +637,25 @@ Phase 1 delivery focus:
   - browser-driven widget interaction checks on `https://www.whoma.co.uk`.
 - Operational caveat: AI streaming on `/api/chat` currently returns Anthropic credit-balance errors until provider credits are restored.
 
+65. File-based support knowledge retrieval (2026-04-26) (new)
+
+- Added conservative support knowledge files under `src/content/support/*.md` covering WHOMA basics, signing up, onboarding, profiles, past deals, verification, troubleshooting, and early-access pricing.
+- Added `src/lib/knowledge/retrieve.ts` as a bounded, dependency-free markdown retriever that parses H2 sections, scores simple keyword matches, and caps returned context length.
+- `/api/chat` now runs in the Node.js runtime so it can read the file-backed knowledge base, then appends delimited relevant context to the unchanged support system prompt before calling Anthropic.
+- `SupportChat.tsx` was intentionally left unchanged; widget UI/interaction behavior remains governed by the existing component and tests.
+- Added `src/lib/knowledge/retrieve.test.ts` plus route-level assertions in `src/app/api/chat/route.test.ts` and provider-independent browser coverage in `tests/e2e/support-chat-ai.spec.ts`.
+
+66. Contact page split redesign + support inquiry route (2026-04-26) (new)
+
+- `/contact` now renders a dedicated split-shell experience via `ContactPageShell`:
+  - desktop: 42% dark support rail + 58% focused form surface,
+  - mobile: compact 80px top bar then single-column form body.
+- Contact form still uses the same field contract (`name`, `email`, `role`, `category`, `message`) and same validation thresholds/enum set as before.
+- Submission now posts JSON to `/api/contact` instead of the previous inline page server-action path.
+- New API boundary: `src/app/api/contact/route.ts` validates and rate-limits public contact requests, then persists through the existing `SupportInquiry` service; notification email delivery remains behind the existing lazy Resend support-inquiry path.
+- Contact UX now includes explicit in-form status states: inline error banner, disabled sending CTA (`Sending...`), and full success replacement state.
+- Route coverage in `src/app/api/contact/route.test.ts` locks the success, invalid-payload, and rate-limit branches for this public support boundary.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
@@ -650,7 +669,10 @@ Phase 1 delivery focus:
 - Auth: `/sign-in`, `/sign-up`, `/onboarding/role` with server-resolved public auth state and backend-only preview controls reserved for QA/E2E
 - Auth compatibility aliases: `/signup` forwards to `/sign-up` and handles seller/homeowner redirect-to-sign-in guardrails; `/register/seller` redirects to `/auth/login?message=coming-soon`.
 - Auth entry routes now also recover misrouted Supabase callback params and forward already-authenticated users out of the public auth form.
+- Auth continuity hardening (2026-04-25): `/sign-in` preserves safe protected `next` paths after email/password login, shows the Google option when the environment enables it, and no longer routes generic app `error` params through `/auth/callback`.
+- Auth routing hardening (2026-04-27): the default agent destination is `/agent/profile`; the profile index routes completed agents into the editor and incomplete agents through onboarding, so sign-in no longer treats onboarding as the permanent estate-agent landing page.
 - Agent app: `/agent/onboarding`, `/agent/profile/edit`, proposals, marketplace
+- Agent onboarding resume intake now compacts signed suggestion cookies under a browser-safe value cap before redirect; `/agent/onboarding` renders a focused six-step client stepper so agents see only the current import/review/confirm/verify/finish step; completed onboarding is one-time and returns agents to `/agent/profile/edit`.
 - Agent trust evidence app: `/agent/deals` (add past sales + trigger seller verification requests)
 - Homeowner app: `/homeowner/instructions/new` client-side instruction form with structured payload assembly and bid-window sync
 - Admin app: `/admin/agents` verification queue + expanded activation counters (authenticated non-admin users are redirected to `/dashboard`).
@@ -660,11 +682,13 @@ Phase 1 delivery focus:
 
 - Auth/session: Supabase Auth (email/password plus optional Google OAuth) + middleware route guards + DB-backed role/access-state authorization in server routes
 - Access-state cookies are bound to Supabase user ids, and middleware now refreshes Supabase session cookies on matched requests via `auth.getUser()`.
+- Initial Supabase agent signup metadata (`user_metadata.role`) is copied into the WHOMA `User.role` on first local-user creation so confirmed signups can continue directly into the agent profile/onboarding path.
 - Dev host consistency: middleware redirects sign-in/app route traffic to the canonical `AUTH_URL` host in development
+- Signed resume suggestion cookies are size-capped via compaction so CV extraction data cannot destabilize auth/session cookies in mobile browsers; server-action uploads now use file-shape detection for runtime-safe multipart handling.
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)
 - Service layer: `src/server/marketplace/service.ts` for instruction/proposal persistence, bid-window domain guards, duplicate handling, and event emission
-- Support chat APIs: `src/app/api/chat/route.ts` and `src/app/api/chat/escalate/route.ts` with rate-limit guardrails and conversation-scoped dedupe support
+- Support chat APIs: `src/app/api/chat/route.ts` and `src/app/api/chat/escalate/route.ts` with rate-limit guardrails, file-based support knowledge retrieval, and conversation-scoped dedupe support
 - Consent layer: `src/server/consent/cookie-consent.ts` for signed preference cookies + `/api/consent` route for user-managed non-essential cookie consent
 - Security helpers: `src/server/http/idempotency.ts` and `src/server/http/rate-limit.ts` for replay-safe writes and request throttling, now backed by optional Upstash Redis shared storage with fallback to Prisma/in-memory when unconfigured; the Prisma idempotency path now reserves a pending record before executing the write so fallback mode stays concurrency-safe.
 - Persistence: Prisma + Postgres
@@ -690,6 +714,7 @@ Phase 1 delivery focus:
 - Auth UI tests: `src/components/auth/google-auth-button.test.tsx`, `src/lib/auth/password-auth.test.ts`
 - T004 decision guard tests: `src/server/marketplace/service.test.ts`
 - T005 persistence tests: `src/server/marketplace/service.persistence.test.ts`, `src/server/marketplace/messages.persistence.test.ts`
+- Support chat knowledge tests: `src/lib/knowledge/retrieve.test.ts`, `src/app/api/chat/route.test.ts`, `tests/e2e/support-chat-ai.spec.ts`
 - End-to-end flow test: `tests/e2e/phase1-agent-flow.spec.ts`
 - Homeowner decision flow E2E: `tests/e2e/homeowner-compare-decision.spec.ts`
 - Playwright runtime controls: `PLAYWRIGHT_SKIP_WEB_SERVER=1`, `PLAYWRIGHT_BASE_URL`, `PLAYWRIGHT_WEB_SERVER_COMMAND`

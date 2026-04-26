@@ -38,7 +38,7 @@ export function canAccessPagePath(role: UserRole, pathname: string): boolean {
 
 const defaultRouteByRole: Record<UserRole, Route> = {
   HOMEOWNER: "/homeowner/instructions",
-  AGENT: "/agent/onboarding",
+  AGENT: "/agent/profile",
   ADMIN: "/admin/agents"
 };
 

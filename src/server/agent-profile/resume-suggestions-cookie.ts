@@ -14,9 +14,12 @@ export const resumeSuggestionFieldKeys = [
   "specialties"
 ] as const;
 
-export type ResumeSuggestionFieldKey = (typeof resumeSuggestionFieldKeys)[number];
+export type ResumeSuggestionFieldKey =
+  (typeof resumeSuggestionFieldKeys)[number];
 
-export function isResumeSuggestionFieldKey(value: string): value is ResumeSuggestionFieldKey {
+export function isResumeSuggestionFieldKey(
+  value: string
+): value is ResumeSuggestionFieldKey {
   return (resumeSuggestionFieldKeys as readonly string[]).includes(value);
 }
 
@@ -198,17 +201,28 @@ const resumeSuggestionsSchema = z.union([
   resumeSuggestionsV3Schema
 ]);
 
-export type ResumeExtractionProfile = z.infer<typeof resumeExtractionProfileSchema>;
-export type ResumeExtractionProfileConfidence = z.infer<typeof resumeProfileConfidenceSchema>;
+export type ResumeExtractionProfile = z.infer<
+  typeof resumeExtractionProfileSchema
+>;
+export type ResumeExtractionProfileConfidence = z.infer<
+  typeof resumeProfileConfidenceSchema
+>;
 export type ResumeSourceDocument = z.infer<typeof resumeSourceDocumentSchema>;
-export type ResumeNeedsConfirmation = z.infer<typeof resumeNeedsConfirmationSchema>;
+export type ResumeNeedsConfirmation = z.infer<
+  typeof resumeNeedsConfirmationSchema
+>;
 export type ResumePrefillValues = z.infer<typeof resumePrefillValuesSchema>;
-export type ResumeSuggestionConfidence = z.infer<typeof resumeLegacyConfidenceSchema>;
-export type ResumeSuggestionEvidence = z.infer<typeof resumeLegacyEvidenceSchema>;
+export type ResumeSuggestionConfidence = z.infer<
+  typeof resumeLegacyConfidenceSchema
+>;
+export type ResumeSuggestionEvidence = z.infer<
+  typeof resumeLegacyEvidenceSchema
+>;
 export type ResumeSuggestions = z.infer<typeof resumeSuggestionsV3Schema>;
 
 export const RESUME_SUGGESTIONS_COOKIE_NAME = "whoma_agent_resume_suggestions";
 export const RESUME_SUGGESTIONS_COOKIE_MAX_AGE_SECONDS = 15 * 60;
+export const RESUME_SUGGESTIONS_COOKIE_MAX_VALUE_BYTES = 3400;
 
 function getResumeSuggestionSecret(): string {
   return (
@@ -245,7 +259,10 @@ function createSuggestionId(input: {
   return `resume_${hash.slice(0, 24)}`;
 }
 
-function normalizeStringList(values: string[] | undefined, limit: number): string[] {
+function normalizeStringList(
+  values: string[] | undefined,
+  limit: number
+): string[] {
   if (!values) {
     return [];
   }
@@ -256,7 +273,254 @@ function normalizeStringList(values: string[] | undefined, limit: number): strin
     .slice(0, limit);
 }
 
-function profileToPrefill(profile: ResumeExtractionProfile): ResumePrefillValues {
+function truncateText(value: string | null, maxLength: number): string | null {
+  if (!value) {
+    return value;
+  }
+
+  const normalized = value.trim().replace(/\s+/g, " ");
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return normalized.slice(0, maxLength).trim();
+}
+
+function truncateOptionalText(
+  value: string | undefined,
+  maxLength: number
+): string | undefined {
+  return truncateText(value ?? null, maxLength) ?? undefined;
+}
+
+function truncateArray(
+  values: string[],
+  maxItems: number,
+  maxLength: number
+): string[] {
+  return values
+    .map((value) => truncateText(value, maxLength))
+    .filter((value): value is string => Boolean(value))
+    .slice(0, maxItems);
+}
+
+function truncatePrefillValues(
+  prefill: ResumePrefillValues,
+  options: { bioMax: number; listMax: number }
+): ResumePrefillValues {
+  return {
+    ...prefill,
+    ...(prefill.fullName
+      ? { fullName: truncateOptionalText(prefill.fullName, 120) }
+      : {}),
+    ...(prefill.workEmail
+      ? { workEmail: truncateOptionalText(prefill.workEmail, 320) }
+      : {}),
+    ...(prefill.phone
+      ? { phone: truncateOptionalText(prefill.phone, 32) }
+      : {}),
+    ...(prefill.agencyName
+      ? { agencyName: truncateOptionalText(prefill.agencyName, 120) }
+      : {}),
+    ...(prefill.jobTitle
+      ? { jobTitle: truncateOptionalText(prefill.jobTitle, 120) }
+      : {}),
+    ...(prefill.bio && options.bioMax > 0
+      ? { bio: truncateOptionalText(prefill.bio, options.bioMax) }
+      : {}),
+    ...(prefill.serviceAreas
+      ? {
+          serviceAreas: truncateArray(prefill.serviceAreas, options.listMax, 40)
+        }
+      : {}),
+    ...(prefill.specialties
+      ? {
+          specialties: truncateArray(prefill.specialties, options.listMax, 80)
+        }
+      : {})
+  };
+}
+
+function compactProfile(
+  profile: ResumeExtractionProfile,
+  options: {
+    summaryMax: number;
+    bioMax: number;
+    listMax: number;
+    needsConfirmationMax: number;
+    nextStepsMax: number;
+  }
+): ResumeExtractionProfile {
+  return {
+    ...profile,
+    full_name: truncateText(profile.full_name, 120),
+    preferred_display_name: truncateText(profile.preferred_display_name, 120),
+    agency: truncateText(profile.agency, 120),
+    job_title: truncateText(profile.job_title, 120),
+    professional_summary: truncateText(
+      profile.professional_summary,
+      options.summaryMax
+    ),
+    longer_bio: truncateText(profile.longer_bio, options.bioMax),
+    service_areas: truncateArray(profile.service_areas, options.listMax, 40),
+    specialties: truncateArray(profile.specialties, options.listMax, 80),
+    credentials: truncateArray(profile.credentials, options.listMax, 80),
+    languages: truncateArray(profile.languages, options.listMax, 40),
+    notable_experience: truncateArray(
+      profile.notable_experience,
+      options.listMax,
+      100
+    ),
+    education: truncateArray(
+      profile.education,
+      Math.min(options.listMax, 4),
+      100
+    ),
+    awards_or_memberships: truncateArray(
+      profile.awards_or_memberships,
+      Math.min(options.listMax, 4),
+      100
+    ),
+    social_links: {
+      linkedin: truncateText(profile.social_links.linkedin, 220),
+      website: null,
+      instagram: null
+    },
+    source_documents: profile.source_documents.slice(0, 1),
+    missing_fields: truncateArray(profile.missing_fields, 12, 80),
+    needs_confirmation: profile.needs_confirmation
+      .map((item) => ({
+        field: truncateText(item.field, 80) ?? item.field,
+        reason: truncateText(item.reason, 160) ?? item.reason
+      }))
+      .slice(0, options.needsConfirmationMax),
+    recommended_next_steps: truncateArray(
+      profile.recommended_next_steps,
+      options.nextStepsMax,
+      100
+    )
+  };
+}
+
+function compactSuggestion(
+  input: ResumeSuggestions,
+  level: "moderate" | "aggressive" | "minimal"
+): ResumeSuggestions {
+  const parsed = resumeSuggestionsV3Schema.parse(input);
+
+  if (level === "minimal") {
+    const prefill = truncatePrefillValues(parsed.prefill, {
+      bioMax: 0,
+      listMax: 4
+    });
+    const sourceDocument = parsed.profile.source_documents[0] ?? {
+      document_id: parsed.suggestionId,
+      type: "resume" as const
+    };
+    const compactSummary = "Review imported CV draft.";
+    const profile: ResumeExtractionProfile = {
+      full_name: prefill.fullName ?? null,
+      preferred_display_name: prefill.fullName ?? null,
+      email: prefill.workEmail ?? null,
+      phone: prefill.phone ?? null,
+      agency: prefill.agencyName ?? null,
+      job_title: prefill.jobTitle ?? null,
+      years_experience: prefill.yearsExperience ?? null,
+      service_areas: prefill.serviceAreas ?? [],
+      specialties: prefill.specialties ?? [],
+      credentials: [],
+      languages: [],
+      professional_summary: compactSummary,
+      longer_bio: null,
+      notable_experience: [],
+      education: [],
+      awards_or_memberships: [],
+      social_links: {
+        linkedin: null,
+        website: null,
+        instagram: null
+      },
+      headshot_present: false,
+      source_documents: [sourceDocument],
+      confidence: {
+        full_name: prefill.fullName ? 0.8 : 0,
+        preferred_display_name: prefill.fullName ? 0.8 : 0,
+        email: prefill.workEmail ? 0.8 : 0,
+        phone: prefill.phone ? 0.75 : 0,
+        agency: prefill.agencyName ? 0.75 : 0,
+        job_title: prefill.jobTitle ? 0.75 : 0,
+        years_experience: prefill.yearsExperience !== undefined ? 0.75 : 0,
+        service_areas: prefill.serviceAreas?.length ? 0.75 : 0,
+        specialties: prefill.specialties?.length ? 0.75 : 0,
+        credentials: 0,
+        languages: 0,
+        professional_summary: 0.7,
+        longer_bio: 0,
+        notable_experience: 0,
+        education: 0,
+        awards_or_memberships: 0,
+        social_links: 0,
+        headshot_present: 0
+      },
+      missing_fields: [],
+      needs_confirmation: [],
+      publish_readiness_score: parsed.profile.publish_readiness_score,
+      recommended_next_steps: []
+    };
+
+    return {
+      ...parsed,
+      summary: compactSummary,
+      highlights: [],
+      profile,
+      prefill: profileToPrefill(profile),
+      confidence: confidenceToLegacyConfidence(profile),
+      evidence: createHeuristicEvidence(profileToPrefill(profile)),
+      warnings: []
+    };
+  }
+
+  const aggressive = level === "aggressive";
+  const prefill = truncatePrefillValues(parsed.prefill, {
+    bioMax: aggressive ? 500 : 900,
+    listMax: aggressive ? 5 : 8
+  });
+
+  return {
+    ...parsed,
+    summary:
+      truncateText(parsed.summary, aggressive ? 220 : 320) ?? parsed.summary,
+    highlights: truncateArray(parsed.highlights, aggressive ? 4 : 6, 100),
+    prefill,
+    profile: compactProfile(parsed.profile, {
+      summaryMax: aggressive ? 220 : 320,
+      bioMax: aggressive ? 500 : 900,
+      listMax: aggressive ? 5 : 8,
+      needsConfirmationMax: aggressive ? 6 : 10,
+      nextStepsMax: aggressive ? 5 : 8
+    }),
+    evidence: Object.fromEntries(
+      Object.entries(parsed.evidence)
+        .map(([key, value]) => [
+          key,
+          truncateText(value ?? null, aggressive ? 120 : 180)
+        ])
+        .filter((entry): entry is [string, string] => Boolean(entry[1]))
+    ) as ResumeSuggestionEvidence,
+    warnings: truncateArray(parsed.warnings, aggressive ? 4 : 8, 140)
+  };
+}
+
+function encodeParsedSuggestion(parsed: ResumeSuggestions): string {
+  const serializedPayload = JSON.stringify(parsed);
+  const payload = Buffer.from(serializedPayload, "utf8").toString("base64url");
+  const signature = signPayload(serializedPayload);
+  return `${signature}.${payload}`;
+}
+
+function profileToPrefill(
+  profile: ResumeExtractionProfile
+): ResumePrefillValues {
   const bio = profile.professional_summary ?? profile.longer_bio ?? undefined;
 
   return {
@@ -265,10 +529,16 @@ function profileToPrefill(profile: ResumeExtractionProfile): ResumePrefillValues
     ...(profile.phone ? { phone: profile.phone } : {}),
     ...(profile.agency ? { agencyName: profile.agency } : {}),
     ...(profile.job_title ? { jobTitle: profile.job_title } : {}),
-    ...(profile.years_experience !== null ? { yearsExperience: profile.years_experience } : {}),
+    ...(profile.years_experience !== null
+      ? { yearsExperience: profile.years_experience }
+      : {}),
     ...(bio ? { bio: bio.slice(0, 3000) } : {}),
-    ...(profile.service_areas.length > 0 ? { serviceAreas: profile.service_areas } : {}),
-    ...(profile.specialties.length > 0 ? { specialties: profile.specialties } : {})
+    ...(profile.service_areas.length > 0
+      ? { serviceAreas: profile.service_areas }
+      : {}),
+    ...(profile.specialties.length > 0
+      ? { specialties: profile.specialties }
+      : {})
   };
 }
 
@@ -276,11 +546,21 @@ function confidenceToLegacyConfidence(
   profile: ResumeExtractionProfile
 ): ResumeSuggestionConfidence {
   return {
-    ...(profile.confidence.full_name > 0 ? { fullName: profile.confidence.full_name } : {}),
-    ...(profile.confidence.email > 0 ? { workEmail: profile.confidence.email } : {}),
-    ...(profile.confidence.phone > 0 ? { phone: profile.confidence.phone } : {}),
-    ...(profile.confidence.agency > 0 ? { agencyName: profile.confidence.agency } : {}),
-    ...(profile.confidence.job_title > 0 ? { jobTitle: profile.confidence.job_title } : {}),
+    ...(profile.confidence.full_name > 0
+      ? { fullName: profile.confidence.full_name }
+      : {}),
+    ...(profile.confidence.email > 0
+      ? { workEmail: profile.confidence.email }
+      : {}),
+    ...(profile.confidence.phone > 0
+      ? { phone: profile.confidence.phone }
+      : {}),
+    ...(profile.confidence.agency > 0
+      ? { agencyName: profile.confidence.agency }
+      : {}),
+    ...(profile.confidence.job_title > 0
+      ? { jobTitle: profile.confidence.job_title }
+      : {}),
     ...(profile.confidence.years_experience > 0
       ? { yearsExperience: profile.confidence.years_experience }
       : {}),
@@ -377,7 +657,9 @@ function createProfileFromPrefill(
   };
 }
 
-function deriveProfileCompletion(profile: ResumeExtractionProfile): ResumeExtractionProfile {
+function deriveProfileCompletion(
+  profile: ResumeExtractionProfile
+): ResumeExtractionProfile {
   const missingFields = new Set<string>();
   const needsConfirmation: ResumeNeedsConfirmation[] = [];
 
@@ -449,7 +731,8 @@ function deriveProfileCompletion(profile: ResumeExtractionProfile): ResumeExtrac
       valuePresent: profile.headshot_present,
       required: false,
       missingLabel: "headshot_present",
-      confirmationReason: "Add a headshot if you want a stronger public profile."
+      confirmationReason:
+        "Add a headshot if you want a stronger public profile."
     }
   ];
 
@@ -492,26 +775,32 @@ function deriveProfileCompletion(profile: ResumeExtractionProfile): ResumeExtrac
     weightedScore += fieldWeights[item.field] ?? 0;
   }
 
-  weightedScore += profile.credentials.length > 0 ? fieldWeights.credentials ?? 0 : 0;
-  weightedScore += profile.languages.length > 0 ? fieldWeights.languages ?? 0 : 0;
-  weightedScore += profile.notable_experience.length > 0
-    ? fieldWeights.notable_experience ?? 0
-    : 0;
-  weightedScore += profile.education.length > 0 ? fieldWeights.education ?? 0 : 0;
-  weightedScore += profile.awards_or_memberships.length > 0
-    ? fieldWeights.awards_or_memberships ?? 0
-    : 0;
+  weightedScore +=
+    profile.credentials.length > 0 ? (fieldWeights.credentials ?? 0) : 0;
+  weightedScore +=
+    profile.languages.length > 0 ? (fieldWeights.languages ?? 0) : 0;
+  weightedScore +=
+    profile.notable_experience.length > 0
+      ? (fieldWeights.notable_experience ?? 0)
+      : 0;
+  weightedScore +=
+    profile.education.length > 0 ? (fieldWeights.education ?? 0) : 0;
+  weightedScore +=
+    profile.awards_or_memberships.length > 0
+      ? (fieldWeights.awards_or_memberships ?? 0)
+      : 0;
 
-  if (profile.social_links.linkedin || profile.social_links.website || profile.social_links.instagram) {
+  if (
+    profile.social_links.linkedin ||
+    profile.social_links.website ||
+    profile.social_links.instagram
+  ) {
     weightedScore += 2;
   }
 
   const publishReadinessScore = Math.max(
     0,
-    Math.min(
-      100,
-      Math.round(weightedScore)
-    )
+    Math.min(100, Math.round(weightedScore))
   );
 
   const recommendedNextSteps = new Set<string>();
@@ -544,7 +833,9 @@ function deriveProfileCompletion(profile: ResumeExtractionProfile): ResumeExtrac
     recommendedNextSteps.add("Review the fields needing confirmation");
   }
   if (publishReadinessScore >= 75) {
-    recommendedNextSteps.add("Publish the profile when you're happy with the draft");
+    recommendedNextSteps.add(
+      "Publish the profile when you're happy with the draft"
+    );
   } else {
     recommendedNextSteps.add("Finish the missing fields before publishing");
   }
@@ -552,7 +843,10 @@ function deriveProfileCompletion(profile: ResumeExtractionProfile): ResumeExtrac
   profile.missing_fields = Array.from(missingFields).slice(0, 24);
   profile.needs_confirmation = needsConfirmation.slice(0, 24);
   profile.publish_readiness_score = publishReadinessScore;
-  profile.recommended_next_steps = Array.from(recommendedNextSteps).slice(0, 12);
+  profile.recommended_next_steps = Array.from(recommendedNextSteps).slice(
+    0,
+    12
+  );
 
   return profile;
 }
@@ -617,12 +911,29 @@ function normalizeSuggestion(input: unknown): ResumeSuggestions {
   };
 }
 
-export function encodeResumeSuggestionsCookie(input: ResumeSuggestions): string {
+export function encodeResumeSuggestionsCookie(
+  input: ResumeSuggestions
+): string {
   const parsed = resumeSuggestionsV3Schema.parse(input);
-  const serializedPayload = JSON.stringify(parsed);
-  const payload = Buffer.from(serializedPayload, "utf8").toString("base64url");
-  const signature = signPayload(serializedPayload);
-  return `${signature}.${payload}`;
+  const candidates: ResumeSuggestions[] = [
+    parsed,
+    compactSuggestion(parsed, "moderate"),
+    compactSuggestion(parsed, "aggressive"),
+    compactSuggestion(parsed, "minimal")
+  ];
+
+  for (const candidate of candidates) {
+    const encoded = encodeParsedSuggestion(candidate);
+
+    if (
+      Buffer.byteLength(encoded, "utf8") <=
+      RESUME_SUGGESTIONS_COOKIE_MAX_VALUE_BYTES
+    ) {
+      return encoded;
+    }
+  }
+
+  return encodeParsedSuggestion(compactSuggestion(parsed, "minimal"));
 }
 
 export function decodeResumeSuggestionsCookie(
@@ -652,7 +963,12 @@ export function decodeResumeSuggestionsCookie(
     return null;
   }
 
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  if (
+    !crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    )
+  ) {
     return null;
   }
 

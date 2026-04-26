@@ -1,29 +1,18 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata, Route } from "next";
-import { z } from "zod";
 
 import { CookieConsentPanel } from "@/components/layout/cookie-consent-panel";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicHeader } from "@/components/layout/public-header";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { getContactFaqPreview } from "@/lib/faqs";
-import {
-  PUBLIC_FAQS_HREF,
-  getPublicSiteConfig,
-  getSupportMailto
-} from "@/lib/public-site";
-import { cn } from "@/lib/utils";
+import { PUBLIC_FAQS_HREF, getPublicSiteConfig } from "@/lib/public-site";
 import {
   getLiveInstructionCards,
   getLiveInstructionLocationSummaries
 } from "@/server/marketplace/queries";
-import { createSupportInquiry } from "@/server/support/inquiries";
 
-type LegalSlug = "privacy" | "cookies" | "terms" | "complaints" | "contact";
+type LegalSlug = "privacy" | "cookies" | "terms" | "complaints";
 type StaticPageSlug = LegalSlug | "sitemap";
 
 interface LegalSection {
@@ -41,8 +30,7 @@ const legalSlugs: readonly LegalSlug[] = [
   "privacy",
   "cookies",
   "terms",
-  "complaints",
-  "contact"
+  "complaints"
 ] as const;
 const staticPageSlugs: readonly StaticPageSlug[] = [
   ...legalSlugs,
@@ -56,54 +44,6 @@ const sitemapPublicPages: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/sign-up?role=AGENT", label: "Create account" },
   { href: "/contact", label: "Contact" }
 ];
-
-const contactFormSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  email: z.string().trim().toLowerCase().email().max(320),
-  role: z.string().trim().max(80).optional(),
-  category: z.enum([
-    "ACCOUNT_ACCESS",
-    "ONBOARDING",
-    "VERIFICATION",
-    "SELLER_ACCESS",
-    "PARTNERSHIP",
-    "COMPLAINT",
-    "GENERAL"
-  ]),
-  message: z.string().trim().min(12).max(4000)
-});
-
-async function submitContactInquiryAction(formData: FormData): Promise<void> {
-  "use server";
-
-  const parsed = contactFormSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    role: formData.get("role"),
-    category: formData.get("category"),
-    message: formData.get("message")
-  });
-
-  if (!parsed.success) {
-    redirect("/contact?contact=invalid");
-  }
-
-  try {
-    await createSupportInquiry({
-      name: parsed.data.name,
-      email: parsed.data.email,
-      role: parsed.data.role,
-      category: parsed.data.category,
-      message: parsed.data.message,
-      pagePath: "/contact",
-      source: "/contact"
-    });
-  } catch {
-    redirect("/contact?contact=error");
-  }
-
-  redirect("/contact?contact=sent");
-}
 
 function getLegalContent(
   site: ReturnType<typeof getPublicSiteConfig>
@@ -228,41 +168,12 @@ function getLegalContent(
           ]
         }
       ]
-    },
-    contact: {
-      title: "Contact",
-      intro:
-        "Contact WHOMA for account access, profile questions, verification help, partnerships, or seller access enquiries.",
-      sections: [
-        {
-          heading: "Support",
-          paragraphs: [
-            `Email ${site.supportEmail}.`,
-            site.supportCoverage
-          ]
-        },
-        {
-          heading: "Account access",
-          paragraphs: [
-            "Estate agents can sign in with the secure sign-in method currently offered on the sign-in page.",
-            "If a sign-in method fails, or an email is already linked to a different provider, contact support and include the account email you tried to use."
-          ]
-        },
-        {
-          heading: "What to include",
-          paragraphs: [
-            "Include your account email, public profile slug, or request reference where relevant so the team can locate the right record quickly.",
-            "Please also state whether the enquiry relates to agent onboarding, verification, profile visibility, seller access, privacy, or partnerships."
-          ]
-        }
-      ]
     }
   };
 }
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ contact?: string }>;
 }
 
 function isStaticPageSlug(value: string): value is StaticPageSlug {
@@ -304,11 +215,9 @@ export async function generateMetadata({
 }
 
 export default async function StaticPage({
-  params,
-  searchParams
+  params
 }: PageProps): Promise<JSX.Element> {
   const { slug } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const site = getPublicSiteConfig();
   const legalContent = getLegalContent(site);
 
@@ -324,11 +233,9 @@ export default async function StaticPage({
     slug === "sitemap"
       ? getLiveInstructionLocationSummaries(liveInstructions)
       : [];
-  const contactStatus = slug === "contact" ? resolvedSearchParams?.contact : null;
-  const contactFaqPreview = slug === "contact" ? getContactFaqPreview() : [];
 
   return (
-    <div className="min-h-screen bg-surface-1">
+    <div className="min-h-[100dvh] bg-surface-1">
       <PublicHeader />
 
       <main className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -430,158 +337,6 @@ export default async function StaticPage({
             </div>
           ) : (
             <div className="space-y-6">
-              {slug === "contact" ? (
-                <Card className="space-y-4 bg-surface-1">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                        Primary support route
-                      </p>
-                      <a
-                        href={getSupportMailto(site.supportEmail)}
-                        className="text-sm font-medium text-brand-ink underline"
-                      >
-                        {site.supportEmail}
-                      </a>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                        Seller access
-                      </p>
-                      <p className="text-sm font-medium text-text-strong">
-                        Selective homeowner access
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                        Account access
-                      </p>
-                      <p className="text-sm font-medium text-text-strong">
-                        Secure sign-in methods
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                        How support works
-                      </p>
-                      <p className="text-sm font-medium text-text-strong">
-                        {site.supportCoverage}
-                      </p>
-                    </div>
-                  </div>
-
-                  {contactStatus === "invalid" ? (
-                    <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-                      Please provide your name, a valid email, category, and a clear message.
-                    </p>
-                  ) : null}
-                  {contactStatus === "error" ? (
-                    <p className="rounded-md border border-state-danger/20 bg-state-danger/10 px-3 py-2 text-sm text-state-danger">
-                      We could not submit your enquiry right now. Please retry or email support directly.
-                    </p>
-                  ) : null}
-                  {contactStatus === "sent" ? (
-                    <p className="rounded-md border border-state-success/20 bg-state-success/10 px-3 py-2 text-sm text-state-success">
-                      Thanks, your enquiry has been received. We will respond through the support route.
-                    </p>
-                  ) : null}
-
-                  <form action={submitContactInquiryAction} className="grid gap-3">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <label className="space-y-1">
-                        <span className="text-sm text-text-muted">Name</span>
-                        <Input name="name" required placeholder="Your full name" />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-sm text-text-muted">Email</span>
-                        <Input
-                          name="email"
-                          type="email"
-                          required
-                          placeholder="you@example.com"
-                        />
-                      </label>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <label className="space-y-1">
-                        <span className="text-sm text-text-muted">Role (optional)</span>
-                        <Input
-                          name="role"
-                          placeholder="Independent estate agent, partner, homeowner..."
-                        />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-sm text-text-muted">Category</span>
-                        <select
-                          name="category"
-                          required
-                          className="h-11 rounded-md border border-line bg-surface-0 px-3 text-sm text-text-strong"
-                          defaultValue="GENERAL"
-                        >
-                          <option value="GENERAL">General enquiry</option>
-                          <option value="ACCOUNT_ACCESS">Account access</option>
-                          <option value="ONBOARDING">Agent onboarding</option>
-                          <option value="VERIFICATION">Verification</option>
-                          <option value="SELLER_ACCESS">Seller access</option>
-                          <option value="PARTNERSHIP">Partnership</option>
-                          <option value="COMPLAINT">Complaint</option>
-                        </select>
-                      </label>
-                    </div>
-                    <label className="space-y-1">
-                      <span className="text-sm text-text-muted">Message</span>
-                      <Textarea
-                        name="message"
-                        required
-                        placeholder="Tell us what you need help with and include any profile slug or reference if available."
-                      />
-                    </label>
-                    <Button type="submit" className="w-full sm:w-auto">
-                      Send enquiry
-                    </Button>
-                  </form>
-
-                  <div className="space-y-2 rounded-md border border-line bg-surface-0 px-4 py-3">
-                    <p className="text-sm font-semibold text-text-strong">Quick FAQ</p>
-                    <div className="space-y-2 text-sm text-text-muted">
-                      {contactFaqPreview.map((item) => (
-                        <p key={item.id}>
-                          <span className="font-medium text-text-strong">
-                            {item.question}
-                          </span>{" "}
-                          {item.answer}
-                        </p>
-                      ))}
-                    </div>
-                    <Link
-                      href={PUBLIC_FAQS_HREF}
-                      className="inline-flex text-sm font-medium text-brand-ink underline"
-                    >
-                      View all FAQs
-                    </Link>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    <a
-                      href={getSupportMailto(site.supportEmail)}
-                      className={cn(
-                        buttonVariants({ variant: "primary", size: "sm" })
-                      )}
-                    >
-                      Email support
-                    </a>
-                    <Link
-                      href="/complaints"
-                      className={cn(
-                        buttonVariants({ variant: "secondary", size: "sm" })
-                      )}
-                    >
-                      Complaints route
-                    </Link>
-                  </div>
-                </Card>
-              ) : null}
-
               {legalContent[slug].sections.map((section) => (
                 <section key={section.heading} className="space-y-2">
                   <h2 className="text-lg">{section.heading}</h2>

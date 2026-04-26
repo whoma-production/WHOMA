@@ -14,6 +14,15 @@ describe("auth callback return helpers", () => {
     ).toBe(true);
   });
 
+  it("does not treat app error query params as auth callback returns", () => {
+    expect(
+      hasSupabaseAuthReturnParams({
+        error: "AccessDenied",
+        next: "/agent/onboarding"
+      })
+    ).toBe(false);
+  });
+
   it("builds a callback path from code and next params", () => {
     expect(
       buildSupabaseAuthCallbackPath({
