@@ -3,30 +3,30 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { sendVerificationEmail } from "@/lib/email/verification";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { addPastDealSchema } from "@/lib/validation/deals";
 
 type PastDealRow = {
   id: string;
-  agent_id: string;
-  agent_name: string;
-  agent_email: string;
-  property_address: string;
-  property_postcode: string;
-  sale_price: number | null;
-  completion_date: string | null;
-  role: "sole_agent" | "joint_agent" | "referral";
-  seller_email: string | null;
-  seller_name: string | null;
-  verification_status: "unverified" | "pending" | "verified" | "disputed";
-  verification_token: string;
-  verification_sent_at: string | null;
-  verified_at: string | null;
-  seller_comment: string | null;
-  created_at: string;
+  agentId: string;
+  agentName: string;
+  agentEmail: string;
+  propertyAddress: string;
+  propertyPostcode: string;
+  salePrice: number | null;
+  completionDate: Date | null;
+  role: "sole_agent" | "multi_agent" | "buyers_agent";
+  sellerEmail: string | null;
+  sellerName: string | null;
+  verificationStatus: "unverified" | "pending" | "verified" | "disputed";
+  verificationToken: string;
+  verificationSentAt: Date | null;
+  verifiedAt: Date | null;
+  sellerComment: string | null;
+  createdAt: Date;
 };
 
-const supabaseUserIdSchema = z.string().uuid();
+const userIdSchema = z.string().min(1);
 
 function jsonError(
   status: number,
@@ -59,7 +59,7 @@ function mapDealForClient(deal: PastDealRow): {
   propertyPostcode: string;
   salePricePence: number | null;
   completionDate: string | null;
-  role: "sole_agent" | "joint_agent" | "referral";
+  role: "sole_agent" | "multi_agent" | "buyers_agent";
   sellerEmail: string | null;
   sellerName: string | null;
   verificationStatus: "unverified" | "pending" | "verified" | "disputed";
@@ -70,19 +70,27 @@ function mapDealForClient(deal: PastDealRow): {
 } {
   return {
     id: deal.id,
-    propertyAddress: deal.property_address,
-    propertyPostcode: deal.property_postcode,
-    salePricePence: deal.sale_price,
-    completionDate: deal.completion_date,
+    propertyAddress: deal.propertyAddress,
+    propertyPostcode: deal.propertyPostcode,
+    salePricePence: deal.salePrice,
+    completionDate: formatDateOnly(deal.completionDate),
     role: deal.role,
-    sellerEmail: deal.seller_email,
-    sellerName: deal.seller_name,
-    verificationStatus: deal.verification_status,
-    verificationSentAt: deal.verification_sent_at,
-    verifiedAt: deal.verified_at,
-    sellerComment: deal.seller_comment,
-    createdAt: deal.created_at
+    sellerEmail: deal.sellerEmail,
+    sellerName: deal.sellerName,
+    verificationStatus: deal.verificationStatus,
+    verificationSentAt: deal.verificationSentAt?.toISOString() ?? null,
+    verifiedAt: deal.verifiedAt?.toISOString() ?? null,
+    sellerComment: deal.sellerComment,
+    createdAt: deal.createdAt.toISOString()
   };
+}
+
+function parseDateOnly(value: string): Date {
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+function formatDateOnly(value: Date | null): string | null {
+  return value ? value.toISOString().slice(0, 10) : null;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -96,15 +104,13 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError(403, "FORBIDDEN_ROLE", "Only agents can add past deals.");
   }
 
-  const parsedSupabaseUserId = supabaseUserIdSchema.safeParse(
-    session.user.supabaseUserId
-  );
+  const parsedUserId = userIdSchema.safeParse(session.user.id);
 
-  if (!parsedSupabaseUserId.success) {
+  if (!parsedUserId.success) {
     return jsonError(
       403,
       "INVALID_AGENT_IDENTITY",
-      "Supabase agent identity is missing."
+      "Agent identity is missing."
     );
   }
 
@@ -126,7 +132,6 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const supabase = await createSupabaseServerClient();
   const sellerName = parsed.data.sellerName?.trim() || null;
   const sellerEmail = parsed.data.sellerEmail?.trim().toLowerCase() || null;
   const salePricePence =
@@ -135,75 +140,59 @@ export async function POST(request: Request): Promise<Response> {
       : null;
 
   const insertPayload = {
-    agent_id: parsedSupabaseUserId.data,
-    agent_name: session.user.name?.trim() || "Estate agent",
-    agent_email: session.user.email.trim().toLowerCase(),
-    property_address: parsed.data.propertyAddress.trim(),
-    property_postcode: parsed.data.propertyPostcode,
-    sale_price: salePricePence,
-    completion_date: parsed.data.completionDate,
+    agentId: parsedUserId.data,
+    agentName: session.user.name?.trim() || "Estate agent",
+    agentEmail: session.user.email.trim().toLowerCase(),
+    propertyAddress: parsed.data.propertyAddress.trim(),
+    propertyPostcode: parsed.data.propertyPostcode,
+    salePrice: salePricePence,
+    completionDate: parseDateOnly(parsed.data.completionDate),
     role: parsed.data.role,
-    seller_email: sellerEmail,
-    seller_name: sellerName
+    sellerEmail,
+    sellerName
   };
 
-  const { data: createdDealData, error: createError } = await supabase
-    .from("past_deals")
-    .insert(insertPayload)
-    .select("*")
-    .single();
-
-  if (createError || !createdDealData) {
-    console.error("Past deal create failed", createError);
+  let savedDeal: PastDealRow;
+  try {
+    savedDeal = await prisma.pastDeal.create({
+      data: insertPayload
+    });
+  } catch (error) {
+    console.error("Past deal create failed", error);
     return jsonError(500, "DEAL_CREATE_FAILED", "Could not add the past deal.");
   }
 
-  let savedDeal = createdDealData as PastDealRow;
   let verificationRequested = false;
+  let verificationWarning: string | null = null;
 
   if (sellerEmail) {
     try {
       await sendVerificationEmail({
         sellerEmail,
         sellerName,
-        agentName: savedDeal.agent_name,
-        propertyAddress: savedDeal.property_address,
-        verificationToken: savedDeal.verification_token
+        agentName: savedDeal.agentName,
+        propertyAddress: savedDeal.propertyAddress,
+        verificationToken: savedDeal.verificationToken
       });
 
-      const { data: updatedDealData, error: updateError } = await supabase
-        .from("past_deals")
-        .update({
-          verification_status: "pending",
-          verification_sent_at: new Date().toISOString()
-        })
-        .eq("id", savedDeal.id)
-        .select("*")
-        .single();
-
-      if (updateError || !updatedDealData) {
-        console.error("Past deal verification update failed", updateError);
-        return jsonError(
-          500,
-          "DEAL_VERIFICATION_STATE_FAILED",
-          "Deal was added but verification state could not be updated."
-        );
-      }
-
-      savedDeal = updatedDealData as PastDealRow;
+      savedDeal = await prisma.pastDeal.update({
+        where: { id: savedDeal.id },
+        data: {
+          verificationStatus: "pending",
+          verificationSentAt: new Date()
+        }
+      });
       verificationRequested = true;
     } catch (error) {
-      console.error("Past deal verification email failed", error);
-      return jsonError(
-        502,
-        "VERIFICATION_EMAIL_FAILED",
-        "Deal was added, but we could not send a verification email right now."
-      );
+      console.error("Past deal verification request failed", error);
+      verificationWarning =
+        "Deal added. We could not send the seller verification email right now.";
     }
   }
 
   return jsonSuccess(201, {
     deal: mapDealForClient(savedDeal),
-    verificationRequested
+    verificationRequested,
+    verificationWarning
   });
 }

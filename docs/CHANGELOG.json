@@ -2664,11 +2664,55 @@
       "Railway deployment 196409f8-2f42-448d-925b-9ef2326b9d8b -> SUCCESS",
       "GET https://www.whoma.co.uk/api/health -> 200 with database=up",
       "POST https://www.whoma.co.uk/api/agent/onboarding/actions signed out -> 401 structured JSON",
-      "GET https://www.whoma.co.uk/agent/onboarding signed out -> 307 /sign-in?next=%2Fagent%2Fonboarding"
+      "GET https://www.whoma.co.uk/agent/onboarding signed out -> 307 /sign-in?next=%2Fagent%2Fonboarding",
+      "Railway docs follow-up deployment a20a065e-45a3-4188-b90d-90ced8c5a9d6 -> SUCCESS for commit 4e81cec",
+      "Final GET https://www.whoma.co.uk/api/health -> 200 with database=up",
+      "Final POST https://www.whoma.co.uk/api/agent/onboarding/actions signed out -> 401 structured JSON"
     ],
     "next_steps": [
       "Run signed-in onboarding verification against production.",
       "Add first-class response-time measurement once message/inquiry events can support behavioural metrics."
+    ]
+  },
+  {
+    "session_id": "2026-04-28-1319-past-deal-submission-unblock",
+    "timestamp": "2026-04-28T13:19:37+02:00",
+    "summary": "Moved the active Past Deals add/verification path to Prisma/Postgres, updated the role vocabulary, removed Referral from validation/UI, and made seller-email delivery failures non-blocking after a deal is saved.",
+    "files_changed": [
+      "prisma/schema.prisma",
+      "prisma/migrations/20260428123000_past_deals_prisma/migration.sql",
+      "src/app/api/deals/add/route.ts",
+      "src/app/api/deals/add/route.test.ts",
+      "src/app/api/deals/verify/[token]/route.ts",
+      "src/app/api/deals/verify/confirm/route.ts",
+      "src/app/verify/[token]/page.tsx",
+      "src/components/deals/AddDealForm.tsx",
+      "src/components/deals/AddDealForm.test.tsx",
+      "src/lib/validation/deals.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use Railway-managed Prisma/Postgres for the active PastDeal write path so deployment applies the required schema automatically.",
+      "Keep the seller-verification email as a follow-up side effect: if the deal is saved but delivery fails, return a successful response with a warning instead of blocking the user.",
+      "Represent the requested roles as sole_agent, multi_agent, and buyers_agent across UI, validation, API, and persistence."
+    ],
+    "verification": [
+      "npx prisma generate -> passed",
+      "Local Postgres migration SQL apply for 20260428123000_past_deals_prisma -> passed",
+      "npx prisma migrate status -> database schema is up to date",
+      "npm run test -- src/app/api/deals/add/route.test.ts src/components/deals/AddDealForm.test.tsx -> passed (5/5)",
+      "npm run typecheck -> passed",
+      "npm run lint -> passed (next lint deprecation warning only)",
+      "npm run test -> passed (102/102, 8 DB-backed tests skipped by existing env gating)",
+      "npm run build -> passed",
+      "git diff --check -> passed"
+    ],
+    "next_steps": [
+      "Commit, push, and deploy the hotfix to Railway.",
+      "Run signed-in Add Past Deal production verification with the new role options."
     ]
   }
 ]

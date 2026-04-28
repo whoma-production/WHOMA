@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { sendAgentVerificationOutcomeEmail } from "@/lib/email/verification";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { confirmPastDealSchema } from "@/lib/validation/deals";
 
 type PastDealConfirmRow = {
   id: string;
-  agent_name: string;
-  agent_email: string;
-  property_address: string;
-  completion_date: string | null;
-  verification_status: "unverified" | "pending" | "verified" | "disputed";
+  agentName: string;
+  agentEmail: string;
+  propertyAddress: string;
+  completionDate: Date | null;
+  verificationStatus: "unverified" | "pending" | "verified" | "disputed";
 };
 
 function jsonError(
@@ -38,6 +38,10 @@ function jsonSuccess(status: number, data: unknown): Response {
   );
 }
 
+function formatDateOnly(value: Date | null): string | null {
+  return value ? value.toISOString().slice(0, 10) : null;
+}
+
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
   try {
@@ -56,57 +60,76 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: foundDealData, error: findError } = await supabase
-    .from("past_deals")
-    .select("id, agent_name, agent_email, property_address, completion_date, verification_status")
-    .eq("verification_token", parsed.data.token)
-    .maybeSingle();
-
-  if (findError) {
-    console.error("Deal verification confirm lookup failed", findError);
+  let foundDeal: PastDealConfirmRow | null = null;
+  try {
+    foundDeal = await prisma.pastDeal.findUnique({
+      where: { verificationToken: parsed.data.token },
+      select: {
+        id: true,
+        agentName: true,
+        agentEmail: true,
+        propertyAddress: true,
+        completionDate: true,
+        verificationStatus: true
+      }
+    });
+  } catch (error) {
+    console.error("Deal verification confirm lookup failed", error);
     return jsonError(500, "LOOKUP_FAILED", "Could not load the verification record.");
   }
 
-  if (!foundDealData) {
+  if (!foundDeal) {
     return jsonError(404, "NOT_FOUND", "Verification link not found.");
   }
 
-  const foundDeal = foundDealData as PastDealConfirmRow;
-
   if (
-    foundDeal.verification_status !== "pending" &&
-    foundDeal.verification_status !== "unverified"
+    foundDeal.verificationStatus !== "pending" &&
+    foundDeal.verificationStatus !== "unverified"
   ) {
     return jsonError(
       409,
       "ALREADY_RECORDED",
       "This verification response has already been recorded.",
-      { verificationStatus: foundDeal.verification_status }
+      { verificationStatus: foundDeal.verificationStatus }
     );
   }
 
   const nextStatus = parsed.data.confirmed ? "verified" : "disputed";
   const sellerComment = parsed.data.sellerComment?.trim() || null;
 
-  const { data: updatedDealData, error: updateError } = await supabase
-    .from("past_deals")
-    .update({
-      verification_status: nextStatus,
-      verified_at: new Date().toISOString(),
-      seller_comment: sellerComment
-    })
-    .eq("verification_token", parsed.data.token)
-    .in("verification_status", ["pending", "unverified"])
-    .select("id, agent_name, agent_email, property_address, completion_date, verification_status")
-    .maybeSingle();
+  let updatedDeal: PastDealConfirmRow | null = null;
+  try {
+    const updateResult = await prisma.pastDeal.updateMany({
+      where: {
+        verificationToken: parsed.data.token,
+        verificationStatus: { in: ["pending", "unverified"] }
+      },
+      data: {
+        verificationStatus: nextStatus,
+        verifiedAt: new Date(),
+        sellerComment
+      }
+    });
 
-  if (updateError) {
-    console.error("Deal verification confirm update failed", updateError);
+    if (updateResult.count > 0) {
+      updatedDeal = await prisma.pastDeal.findUnique({
+        where: { verificationToken: parsed.data.token },
+        select: {
+          id: true,
+          agentName: true,
+          agentEmail: true,
+          propertyAddress: true,
+          completionDate: true,
+          verificationStatus: true
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Deal verification confirm update failed", error);
     return jsonError(500, "UPDATE_FAILED", "Could not save the verification response.");
   }
 
-  if (!updatedDealData) {
+  if (!updatedDeal) {
     return jsonError(
       409,
       "ALREADY_RECORDED",
@@ -114,14 +137,12 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const updatedDeal = updatedDealData as PastDealConfirmRow;
-
   try {
     await sendAgentVerificationOutcomeEmail({
-      agentEmail: updatedDeal.agent_email,
-      agentName: updatedDeal.agent_name,
-      propertyAddress: updatedDeal.property_address,
-      completionDate: updatedDeal.completion_date,
+      agentEmail: updatedDeal.agentEmail,
+      agentName: updatedDeal.agentName,
+      propertyAddress: updatedDeal.propertyAddress,
+      completionDate: formatDateOnly(updatedDeal.completionDate),
       sellerComment,
       confirmed: parsed.data.confirmed
     });
@@ -131,6 +152,6 @@ export async function POST(request: Request): Promise<Response> {
 
   return jsonSuccess(200, {
     dealId: updatedDeal.id,
-    verificationStatus: updatedDeal.verification_status
+    verificationStatus: updatedDeal.verificationStatus
   });
 }

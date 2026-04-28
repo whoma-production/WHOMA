@@ -566,9 +566,9 @@ Phase 1 delivery focus:
 
 59. Past Deals verification trust loop (2026-04-23) (new)
 
-- Added Supabase-backed `past_deals` verification domain (`supabase/migrations/20260423130000_past_deals.sql`) with status lifecycle: `unverified -> pending -> verified/disputed`.
+- Added Past Deals verification domain, originally Supabase-backed and now actively persisted through Prisma/Postgres `PastDeal` records (`prisma/migrations/20260428123000_past_deals_prisma/migration.sql`), with status lifecycle: `unverified -> pending -> verified/disputed`.
 - New authenticated agent flow at `/agent/deals` allows adding completed deals with structured fields (`address`, `postcode`, `completion date`, `role`, optional sale price + seller contact).
-- New server boundary `POST /api/deals/add` inserts deal records through Supabase server client and sends seller verification email through Resend when seller email is provided.
+- New server boundary `POST /api/deals/add` inserts deal records through Prisma and sends seller verification email through Resend when seller email is provided; email delivery failures no longer turn a saved deal into a failed submission.
 - New seller-facing public verification route `/verify/[token]` (no auth) shows agent name + property details and captures confirm/dispute responses via `POST /api/deals/verify/confirm`.
 - New token helper route `GET /api/deals/verify/[token]` redirects into the public verification page with resolved state hints.
 - Verification confirmations now trigger an agent outcome notification email and persist seller comment + verification timestamp.
@@ -658,7 +658,7 @@ Phase 1 delivery focus:
 
 67. Agent onboarding continuity release (2026-04-28) (new)
 
-- Railway production deployment `196409f8-2f42-448d-925b-9ef2326b9d8b` is live on service `WHOMA` for commit `ede728d`.
+- Railway production deployment `196409f8-2f42-448d-925b-9ef2326b9d8b` shipped the onboarding fix commit `ede728d`; docs follow-up commit `4e81cec` then auto-deployed successfully as deployment `a20a065e-45a3-4188-b90d-90ced8c5a9d6`.
 - Live verification on `https://www.whoma.co.uk` confirmed:
   - `/api/health` returns `database=up`,
   - `/api/agent/onboarding/actions` is present and returns structured `401` JSON while signed out,
@@ -682,7 +682,7 @@ Phase 1 delivery focus:
 - Auth routing hardening (2026-04-27): the default agent destination is `/agent/profile`; the profile index routes completed agents into the editor and incomplete agents through onboarding, so sign-in no longer treats onboarding as the permanent estate-agent landing page.
 - Agent app: `/agent/onboarding`, `/agent/profile/edit`, proposals, marketplace
 - Agent onboarding resume intake now compacts signed suggestion cookies under a browser-safe value cap before redirect; `/agent/onboarding` renders a focused six-step client stepper so agents see only the current import/review/confirm/verify/finish step; completed onboarding is one-time and returns agents to `/agent/profile/edit`. Onboarding POSTs now prefer authenticated API submission with Supabase bearer-token fallback, reducing login-loop risk when server-action cookie reads are unreliable.
-- Agent trust evidence app: `/agent/deals` (add past sales + trigger seller verification requests)
+- Agent trust evidence app: `/agent/deals` (add past sales + trigger seller verification requests through Prisma-backed `PastDeal` records)
 - Homeowner app: `/homeowner/instructions/new` client-side instruction form with structured payload assembly and bid-window sync
 - Admin app: `/admin/agents` verification queue + expanded activation counters (authenticated non-admin users are redirected to `/dashboard`).
 - Public verification page: `/verify/[token]` for seller confirm/dispute responses from email links.
@@ -718,6 +718,7 @@ Phase 1 delivery focus:
 - Migration: `prisma/migrations/20260407170500_phase1_event_spine_support_inquiries/migration.sql`
 - Migration: `prisma/migrations/20260407183500_agent_verification_rejected_state/migration.sql`
 - Migration: `supabase/migrations/20260423130000_past_deals.sql`
+- Migration: `prisma/migrations/20260428123000_past_deals_prisma/migration.sql`
 - DB-backed service test: `src/server/agent-profile/phase1-flow.test.ts`
 - API safety tests: `src/server/http/idempotency.test.ts`, `src/server/http/rate-limit.test.ts`
 - Gate 1 auth contract test: `src/lib/auth/preview-access.test.ts`
@@ -738,6 +739,7 @@ Phase 1 delivery focus:
 
 - `User` (identity + role)
 - `AgentProfile` (professional identity + verification state)
+- `PastDeal` (agent-entered historic transaction evidence + seller verification lifecycle)
 - `Instruction` + `Proposal` (marketplace flow; `Instruction.mustHaves` now persisted as structured array)
 - `MessageThread` + `Message` (post-shortlist communication)
 

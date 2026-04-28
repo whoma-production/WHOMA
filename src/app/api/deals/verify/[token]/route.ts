@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 
 type PastDealVerifyRow = {
   verification_status: "unverified" | "pending" | "verified" | "disputed";
@@ -30,23 +30,27 @@ export async function GET(
     return jsonError(400, "INVALID_TOKEN", "Invalid verification token.");
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: dealData, error: dealError } = await supabase
-    .from("past_deals")
-    .select("verification_status")
-    .eq("verification_token", parsedToken.data)
-    .maybeSingle();
+  let deal: PastDealVerifyRow | null = null;
+  try {
+    const dealData = await prisma.pastDeal.findUnique({
+      where: { verificationToken: parsedToken.data },
+      select: { verificationStatus: true }
+    });
 
-  if (dealError) {
-    console.error("Deal verification lookup failed", dealError);
+    deal = dealData
+      ? {
+          verification_status: dealData.verificationStatus
+        }
+      : null;
+  } catch (error) {
+    console.error("Deal verification lookup failed", error);
     return jsonError(500, "LOOKUP_FAILED", "Could not load verification state.");
   }
 
-  if (!dealData) {
+  if (!deal) {
     return jsonError(404, "NOT_FOUND", "Verification link not found.");
   }
 
-  const deal = dealData as PastDealVerifyRow;
   const requestUrl = new URL(request.url);
   const redirectUrl = new URL(`/verify/${encodeURIComponent(parsedToken.data)}`, request.url);
   const confirmedParam = requestUrl.searchParams.get("confirmed");

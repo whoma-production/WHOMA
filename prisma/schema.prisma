@@ -115,6 +115,19 @@ enum ThreadStatus {
   OPEN
 }
 
+enum PastDealRole {
+  sole_agent
+  multi_agent
+  buyers_agent
+}
+
+enum PastDealVerificationStatus {
+  unverified
+  pending
+  verified
+  disputed
+}
+
 model User {
   id               String           @id @default(cuid())
   role             UserRole?
@@ -138,6 +151,7 @@ model User {
   sessions         Session[]
   productEventsAsActor   ProductEvent[] @relation("ProductEventActor")
   productEventsAsSubject ProductEvent[] @relation("ProductEventSubject")
+  pastDeals       PastDeal[]
 
   @@index([dataOrigin])
 }
@@ -352,6 +366,31 @@ model ProductEvent {
   @@index([eventName, createdAt])
   @@index([subjectUserId, eventName, createdAt])
   @@index([actorId, eventName, createdAt])
+}
+
+model PastDeal {
+  id                 String                     @id @default(cuid())
+  agentId            String
+  agentName          String
+  agentEmail         String
+  propertyAddress    String
+  propertyPostcode   String
+  salePrice          Int?
+  completionDate     DateTime?                  @db.Date
+  role               PastDealRole
+  sellerEmail        String?
+  sellerName         String?
+  verificationStatus PastDealVerificationStatus @default(unverified)
+  verificationToken  String                     @unique @default(uuid()) @db.Uuid
+  verificationSentAt DateTime?
+  verifiedAt         DateTime?
+  sellerComment      String?
+  createdAt          DateTime                   @default(now())
+
+  agent User @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, createdAt])
+  @@index([verificationStatus])
 }
 
 model SupportInquiry {

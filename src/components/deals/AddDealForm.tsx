@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import React, { useMemo, useState, type FormEvent } from "react";
 
 import { extractPostcodeDistrict } from "@/lib/postcode";
+import { pastDealRoleValues } from "@/lib/validation/deals";
 
-type DealRole = "sole_agent" | "joint_agent" | "referral";
+type DealRole = (typeof pastDealRoleValues)[number];
 
 type AddDealState = {
   propertyAddress: string;
@@ -144,6 +145,7 @@ export function AddDealForm(): JSX.Element {
             };
             data?: {
               verificationRequested?: boolean;
+              verificationWarning?: string | null;
             };
           }
         | null;
@@ -161,7 +163,9 @@ export function AddDealForm(): JSX.Element {
       }
 
       const verificationRequested = Boolean(payload.data?.verificationRequested);
-      if (verificationRequested && trimmedSellerEmail.length > 0) {
+      if (payload.data?.verificationWarning) {
+        setSuccessMessage(payload.data.verificationWarning);
+      } else if (verificationRequested && trimmedSellerEmail.length > 0) {
         setSuccessMessage(
           `Deal added. Verification request sent to ${trimmedSellerEmail}.`
         );
@@ -268,8 +272,8 @@ export function AddDealForm(): JSX.Element {
           className="h-11 w-full rounded-xl border border-line bg-surface-1 px-3 text-text-strong focus:border-brand-accent focus:outline-none"
         >
           <option value="sole_agent">Sole agent</option>
-          <option value="joint_agent">Joint agent</option>
-          <option value="referral">Referral</option>
+          <option value="multi_agent">Multi-agent</option>
+          <option value="buyers_agent">Buyer&apos;s agent</option>
         </select>
       </label>
 
@@ -337,7 +341,7 @@ export function AddDealForm(): JSX.Element {
         {isSubmitting ? "Adding deal..." : "Add deal"}
       </button>
 
-      <style jsx>{`
+      <style>{`
         @keyframes deal-submit-shimmer {
           0% {
             background-position: 100% 0;

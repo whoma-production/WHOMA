@@ -4,8 +4,8 @@ import { extractPostcodeDistrict, normalizeUkPostcode } from "@/lib/postcode";
 
 export const pastDealRoleValues = [
   "sole_agent",
-  "joint_agent",
-  "referral"
+  "multi_agent",
+  "buyers_agent"
 ] as const;
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;

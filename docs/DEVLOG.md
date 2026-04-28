@@ -6435,6 +6435,9 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 - Live `GET https://www.whoma.co.uk/api/health` -> `200`, `database=up`, uptime reset after deploy.
 - Live `POST https://www.whoma.co.uk/api/agent/onboarding/actions` without auth -> `401` structured JSON (`UNAUTHENTICATED`), confirming the new route is live and protected.
 - Live `GET https://www.whoma.co.uk/agent/onboarding` signed out -> `307 /sign-in?next=%2Fagent%2Fonboarding`.
+- Follow-up docs commit `4e81cec` auto-deployed via Railway deployment `a20a065e-45a3-4188-b90d-90ced8c5a9d6` -> `SUCCESS`.
+- Final live `GET https://www.whoma.co.uk/api/health` -> `200`, `database=up`.
+- Final live `POST https://www.whoma.co.uk/api/agent/onboarding/actions` without auth -> `401` structured JSON (`UNAUTHENTICATED`).
 
 ### Known Issues / Risks
 
@@ -6446,3 +6449,60 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 
 1. Run a signed-in production onboarding pass through CV/LinkedIn import -> draft preview -> confirm fields -> verify email -> complete.
 2. Add a first-class response-time measurement task when the message/inquiry event model is ready to support behaviour-derived profile metrics.
+
+---
+
+## Session: 2026-04-28 / 13:19 (CEST) — Past deal submission unblock + role cleanup
+
+**Author:** Codex
+**Context:** User reported that Add Past Deal role options need amending and that completed past-deal submissions were returning a generic failure, blocking onboarding/profile verification progress.
+**Branch/PR:** `main` (past-deal hotfix pending commit/push/deploy)
+
+### Goal
+
+- Make Add Past Deal submission reliable in the deployed Railway path, remove `Referral` from role selection, and keep seller-verification email problems from masking a saved deal as a failed submission.
+
+### Changes Made
+
+- Added Prisma/Postgres `PastDeal` persistence with deployable migration `prisma/migrations/20260428123000_past_deals_prisma/migration.sql`.
+- Moved `POST /api/deals/add`, `/verify/[token]`, `GET /api/deals/verify/[token]`, and `POST /api/deals/verify/confirm` from the Supabase-only `past_deals` table path onto Prisma `PastDeal` records.
+- Updated Add Past Deal role vocabulary to `Sole agent`, `Multi-agent`, and `Buyer's agent`; removed `Referral` from UI and server validation.
+- Changed seller verification email/update handling so a successfully saved deal still returns `201` even if the verification email cannot be sent immediately.
+- Added API and component regression coverage for the new role vocabulary, removed-role rejection, non-blocking email failure, and past-deal input stability while typing.
+
+### Files / Modules Touched
+
+- `prisma/schema.prisma`
+- `prisma/migrations/20260428123000_past_deals_prisma/migration.sql`
+- `src/app/api/deals/add/route.ts`
+- `src/app/api/deals/add/route.test.ts`
+- `src/app/api/deals/verify/[token]/route.ts`
+- `src/app/api/deals/verify/confirm/route.ts`
+- `src/app/verify/[token]/page.tsx`
+- `src/components/deals/AddDealForm.tsx`
+- `src/components/deals/AddDealForm.test.tsx`
+- `src/lib/validation/deals.ts`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- `npx prisma generate` -> passed.
+- Local Postgres migration SQL apply for `20260428123000_past_deals_prisma` -> passed; `npx prisma migrate status` -> schema up to date.
+- `npm run test -- src/app/api/deals/add/route.test.ts src/components/deals/AddDealForm.test.tsx` -> passed (`5/5`).
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed (`next lint` deprecation warning only; no warnings/errors).
+- `npm run test` -> passed (`102/102`, `8` DB-backed tests skipped by existing env gating).
+- `npm run build` -> passed.
+- `git diff --check` -> passed.
+
+### Known Issues / Risks
+
+- Existing legacy Supabase `past_deals` rows are not migrated into Prisma in this hotfix; the active Add Past Deal and verification-token flow now uses `PastDeal` in Railway Postgres.
+- Live signed-in Add Past Deal verification still requires an authenticated agent session; signed-out guard and health checks should be used as deploy smoke checks when no live test account is available.
+
+### Next Steps
+
+1. Commit, push, and deploy this hotfix to Railway so the new Prisma migration runs in production.
+2. Run a signed-in Add Past Deal pass with `Multi-agent` and `Buyer's agent`, including one seller-email attempt.

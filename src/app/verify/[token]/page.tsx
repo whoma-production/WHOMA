@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { Logo } from "@/components/brand/logo";
 import { VerifyDealResponseForm } from "@/components/deals/VerifyDealResponseForm";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 
 interface VerifyDealPageProps {
   params: Promise<{ token: string }>;
@@ -13,7 +13,7 @@ interface VerifyDealPageProps {
 type VerifyDealRow = {
   agent_name: string;
   property_address: string;
-  completion_date: string | null;
+  completion_date: Date | null;
   verification_status: "unverified" | "pending" | "verified" | "disputed";
 };
 
@@ -45,12 +45,12 @@ function parseConfirmedQuery(value: string | undefined): boolean | null {
   return null;
 }
 
-function formatCompletionDate(value: string | null): string {
+function formatCompletionDate(value: Date | null): string {
   if (!value) {
     return "Not provided";
   }
 
-  const parsed = new Date(`${value}T00:00:00.000Z`);
+  const parsed = new Date(`${value.toISOString().slice(0, 10)}T00:00:00.000Z`);
   if (Number.isNaN(parsed.getTime())) {
     return "Not provided";
   }
@@ -91,18 +91,30 @@ export default async function VerifyDealPage({
     );
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: dealData, error: dealError } = await supabase
-    .from("past_deals")
-    .select("agent_name, property_address, completion_date, verification_status")
-    .eq("verification_token", parsedToken.data)
-    .maybeSingle();
+  let deal: VerifyDealRow | null = null;
+  try {
+    const dealData = await prisma.pastDeal.findUnique({
+      where: { verificationToken: parsedToken.data },
+      select: {
+        agentName: true,
+        propertyAddress: true,
+        completionDate: true,
+        verificationStatus: true
+      }
+    });
 
-  if (dealError) {
-    console.error("Verify page lookup failed", dealError);
+    deal = dealData
+      ? {
+          agent_name: dealData.agentName,
+          property_address: dealData.propertyAddress,
+          completion_date: dealData.completionDate,
+          verification_status: dealData.verificationStatus
+        }
+      : null;
+  } catch (error) {
+    console.error("Verify page lookup failed", error);
   }
 
-  const deal = (dealData as VerifyDealRow | null) ?? null;
   const queryConfirmed = parseConfirmedQuery(
     readSingleSearchParam(resolvedSearchParams?.confirmed)
   );
