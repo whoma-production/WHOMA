@@ -6428,15 +6428,21 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 - `npm run test` -> passed (`97/97`, `8` DB-backed tests skipped by existing env gating).
 - `npm run build` -> passed.
 - `npm run lint` -> passed (`next lint` deprecation warning only; no warnings/errors).
+- `git commit -m "Fix agent onboarding continuity"` -> commit `ede728d`.
+- `git push origin main` -> pushed `ede728d` to `origin/main`.
+- Railway CLI direct deploy initially failed because the checkout was not linked; linked project `fe8ec398-49e0-40fa-8686-9c0008def841`, service `WHOMA`, environment `production`.
+- Railway deployment `196409f8-2f42-448d-925b-9ef2326b9d8b` -> `SUCCESS`.
+- Live `GET https://www.whoma.co.uk/api/health` -> `200`, `database=up`, uptime reset after deploy.
+- Live `POST https://www.whoma.co.uk/api/agent/onboarding/actions` without auth -> `401` structured JSON (`UNAUTHENTICATED`), confirming the new route is live and protected.
+- Live `GET https://www.whoma.co.uk/agent/onboarding` signed out -> `307 /sign-in?next=%2Fagent%2Fonboarding`.
 
 ### Known Issues / Risks
 
 - The storage enum/column remains named `transactionBand` for compatibility; the user-facing question/options now present property category language. A future migration can rename the field if we want cleaner internals.
 - Actual response-time behaviour is still not measured as a first-class metric; the UI now avoids presenting it as system-measured, and the product follow-up is to derive it from message/inquiry events.
-- Live signed-in browser verification and deployment still need to run after this local release gate.
+- Live signed-in browser verification still needs a real agent session; signed-out route/API gates were verified after deployment.
 
 ### Next Steps
 
-1. Deploy this bundle to Railway production.
-2. Verify live `/api/health`, `/agent/onboarding` auth gate, and a signed-in onboarding pass through CV/LinkedIn import -> draft preview -> confirm fields -> verify email -> complete.
-3. Add a first-class response-time measurement task when the message/inquiry event model is ready to support behaviour-derived profile metrics.
+1. Run a signed-in production onboarding pass through CV/LinkedIn import -> draft preview -> confirm fields -> verify email -> complete.
+2. Add a first-class response-time measurement task when the message/inquiry event model is ready to support behaviour-derived profile metrics.

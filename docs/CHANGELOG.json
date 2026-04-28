@@ -2658,11 +2658,16 @@
       "git diff --check -> passed",
       "npm run test -> passed (97/97, 8 DB-backed tests skipped by existing env gating)",
       "npm run build -> passed",
-      "npm run lint -> passed (next lint deprecation warning only)"
+      "npm run lint -> passed (next lint deprecation warning only)",
+      "git commit -m \"Fix agent onboarding continuity\" -> commit ede728d",
+      "git push origin main -> pushed ede728d to origin/main",
+      "Railway deployment 196409f8-2f42-448d-925b-9ef2326b9d8b -> SUCCESS",
+      "GET https://www.whoma.co.uk/api/health -> 200 with database=up",
+      "POST https://www.whoma.co.uk/api/agent/onboarding/actions signed out -> 401 structured JSON",
+      "GET https://www.whoma.co.uk/agent/onboarding signed out -> 307 /sign-in?next=%2Fagent%2Fonboarding"
     ],
     "next_steps": [
-      "Deploy this bundle to Railway production.",
-      "Run live health and signed-in onboarding verification against production.",
+      "Run signed-in onboarding verification against production.",
       "Add first-class response-time measurement once message/inquiry events can support behavioural metrics."
     ]
   }

@@ -656,6 +656,15 @@ Phase 1 delivery focus:
 - Contact UX now includes explicit in-form status states: inline error banner, disabled sending CTA (`Sending...`), and full success replacement state.
 - Route coverage in `src/app/api/contact/route.test.ts` locks the success, invalid-payload, and rate-limit branches for this public support boundary.
 
+67. Agent onboarding continuity release (2026-04-28) (new)
+
+- Railway production deployment `196409f8-2f42-448d-925b-9ef2326b9d8b` is live on service `WHOMA` for commit `ede728d`.
+- Live verification on `https://www.whoma.co.uk` confirmed:
+  - `/api/health` returns `database=up`,
+  - `/api/agent/onboarding/actions` is present and returns structured `401` JSON while signed out,
+  - `/agent/onboarding` redirects signed-out users to `/sign-in?next=%2Fagent%2Fonboarding`.
+- Remaining verification gap: a real signed-in agent-session pass is still needed for CV/LinkedIn import -> draft preview -> confirm fields -> verify email -> complete.
+
 ## Frontend/Backend Map
 
 ## Frontend (Next.js App Router)
