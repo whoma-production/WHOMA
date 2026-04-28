@@ -1,6 +1,6 @@
 import type { UserRole } from "@prisma/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -60,9 +60,7 @@ function getSupabaseUserAvatar(user: SupabaseUser): string | null {
   const metadata = user.user_metadata;
 
   return (
-    readString(metadata?.avatar_url) ??
-    readString(metadata?.picture) ??
-    null
+    readString(metadata?.avatar_url) ?? readString(metadata?.picture) ?? null
   );
 }
 
@@ -222,12 +220,33 @@ export async function auth(): Promise<AuthSession | null> {
     error
   } = await supabase.auth.getUser();
 
-  if (error || !supabaseUser) {
+  let resolvedSupabaseUser = supabaseUser ?? null;
+
+  if (error || !resolvedSupabaseUser) {
+    const headerStore = await headers();
+    const authorization = headerStore.get("authorization");
+    const bearerToken = authorization?.startsWith("Bearer ")
+      ? authorization.slice("Bearer ".length).trim()
+      : null;
+
+    if (bearerToken) {
+      const {
+        data: { user: bearerUser },
+        error: bearerError
+      } = await supabase.auth.getUser(bearerToken);
+
+      if (!bearerError && bearerUser) {
+        resolvedSupabaseUser = bearerUser;
+      }
+    }
+  }
+
+  if (!resolvedSupabaseUser) {
     await clearAccessHintIfPossible();
     return null;
   }
 
-  const syncedUser = await syncWhomaUserFromSupabase(supabaseUser);
+  const syncedUser = await syncWhomaUserFromSupabase(resolvedSupabaseUser);
 
   if (!syncedUser) {
     await clearAccessHintIfPossible();

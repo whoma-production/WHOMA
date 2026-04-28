@@ -18,7 +18,9 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const profile = await getPublicAgentProfileBySlug(slug);
 
@@ -55,15 +57,15 @@ const feePreferenceLabels = {
 } as const;
 
 const transactionBandLabels = {
-  UNDER_250K: "Under £250k",
-  FROM_250K_TO_500K: "£250k–£500k",
-  FROM_500K_TO_1M: "£500k–£1m",
-  FROM_1M_TO_2M: "£1m–£2m",
-  OVER_2M: "Over £2m"
+  UNDER_250K: "Residential",
+  FROM_250K_TO_500K: "Commercial",
+  FROM_500K_TO_1M: "Luxury",
+  FROM_1M_TO_2M: "New homes",
+  OVER_2M: "Luxury"
 } as const;
 
 const collaborationPreferenceLabels = {
-  JV_OR_REFERRALS: "Open to JV + referrals",
+  JV_OR_REFERRALS: "Open to fee split deals",
   REFERRALS_ONLY: "Referrals only",
   SELECTIVE: "Selective / case by case",
   NOT_OPEN: "Not currently looking"
@@ -89,7 +91,9 @@ function buildPublicProofBullets(profile: {
   const bullets: string[] = [];
 
   if (profile.yearsExperience !== null) {
-    bullets.push(`${profile.yearsExperience}+ years of estate agency experience.`);
+    bullets.push(
+      `${profile.yearsExperience}+ years of estate agency experience.`
+    );
   }
 
   if (profile.serviceAreas.length > 0) {
@@ -125,7 +129,7 @@ function buildPublicProofBullets(profile: {
     ]
   ) {
     bullets.push(
-      `Typical lead response time: ${
+      `Self-reported response expectation: ${
         responseTimeLabels[
           profile.responseTimeMinutes as keyof typeof responseTimeLabels
         ]
@@ -210,13 +214,13 @@ export default async function PublicAgentProfilePage({
       : null,
     profile.transactionBand
       ? {
-          label: "Typical transaction band",
+          label: "Primary property category",
           value: transactionBandLabels[profile.transactionBand]
         }
       : null,
     profile.collaborationPreference
       ? {
-          label: "Collaboration posture",
+          label: "Fee split posture",
           value: collaborationPreferenceLabels[profile.collaborationPreference]
         }
       : null,
@@ -225,7 +229,7 @@ export default async function PublicAgentProfilePage({
       profile.responseTimeMinutes as keyof typeof responseTimeLabels
     ]
       ? {
-          label: "Response time",
+          label: "Self-reported response time",
           value:
             responseTimeLabels[
               profile.responseTimeMinutes as keyof typeof responseTimeLabels
@@ -256,8 +260,7 @@ export default async function PublicAgentProfilePage({
                 <Badge variant="success">Verified profile</Badge>
                 <Badge variant="accent">
                   {profile.serviceAreas.length} area
-                  {profile.serviceAreas.length === 1 ? "" : "s"}
-                  {" "}covered
+                  {profile.serviceAreas.length === 1 ? "" : "s"} covered
                 </Badge>
                 <Badge variant="default">
                   {profile.specialties.length} specialt
@@ -280,7 +283,9 @@ export default async function PublicAgentProfilePage({
                       {stat.value}
                     </p>
                     {stat.note ? (
-                      <p className="mt-1 text-xs text-text-muted">{stat.note}</p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {stat.note}
+                      </p>
                     ) : null}
                   </div>
                 ))}
@@ -290,7 +295,9 @@ export default async function PublicAgentProfilePage({
             <div className="flex flex-wrap gap-2">
               <Link
                 href={PUBLIC_AGENT_CTA_HREF}
-                className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
+                className={cn(
+                  buttonVariants({ variant: "primary", size: "sm" })
+                )}
               >
                 Create your profile
               </Link>
@@ -312,8 +319,8 @@ export default async function PublicAgentProfilePage({
               ))}
             </ul>
             <p className="text-xs text-text-muted">
-              WHOMA only publishes profiles once they are approved for
-              directory visibility.
+              WHOMA only publishes profiles once they are approved for directory
+              visibility.
             </p>
           </Card>
         </div>
@@ -322,7 +329,8 @@ export default async function PublicAgentProfilePage({
           <Card className="space-y-3">
             <h2 className="text-lg font-semibold text-text-strong">About</h2>
             <p className="text-sm leading-6 text-text-muted">
-              {profile.bio ?? "This agent has not added a professional summary yet."}
+              {profile.bio ??
+                "This agent has not added a professional summary yet."}
             </p>
           </Card>
 
@@ -366,7 +374,9 @@ export default async function PublicAgentProfilePage({
         ) : null}
 
         <Card className="mt-6 space-y-3">
-          <h2 className="text-lg font-semibold text-text-strong">Proof ledger</h2>
+          <h2 className="text-lg font-semibold text-text-strong">
+            Proof ledger
+          </h2>
           <p className="text-sm text-text-muted">
             Signals below are logged events unless explicitly marked as a
             verified milestone.
@@ -397,7 +407,9 @@ export default async function PublicAgentProfilePage({
                         {entry.statusLabel}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-text-muted">{entry.detail}</p>
+                    <p className="mt-1 text-sm text-text-muted">
+                      {entry.detail}
+                    </p>
                     <p className="mt-1 text-xs text-text-muted">
                       {entry.sourceLabel} ·{" "}
                       {londonDateFormatter.format(entry.occurredAt)}
@@ -415,7 +427,9 @@ export default async function PublicAgentProfilePage({
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <Card className="space-y-3">
-            <h3 className="text-base font-semibold text-text-strong">Service areas</h3>
+            <h3 className="text-base font-semibold text-text-strong">
+              Service areas
+            </h3>
             {profile.serviceAreas.length ? (
               <div className="flex flex-wrap gap-2">
                 {profile.serviceAreas.map((area) => (
@@ -425,12 +439,16 @@ export default async function PublicAgentProfilePage({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-text-muted">Service areas are not listed yet.</p>
+              <p className="text-sm text-text-muted">
+                Service areas are not listed yet.
+              </p>
             )}
           </Card>
 
           <Card className="space-y-3">
-            <h3 className="text-base font-semibold text-text-strong">Specialties</h3>
+            <h3 className="text-base font-semibold text-text-strong">
+              Specialties
+            </h3>
             {profile.specialties.length ? (
               <div className="flex flex-wrap gap-2">
                 {profile.specialties.map((specialty) => (
@@ -440,7 +458,9 @@ export default async function PublicAgentProfilePage({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-text-muted">Specialties are not listed yet.</p>
+              <p className="text-sm text-text-muted">
+                Specialties are not listed yet.
+              </p>
             )}
           </Card>
         </div>
@@ -462,12 +482,16 @@ export default async function PublicAgentProfilePage({
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-text-muted">No achievements listed yet.</p>
+              <p className="text-sm text-text-muted">
+                No achievements listed yet.
+              </p>
             )}
           </Card>
 
           <Card className="space-y-2">
-            <h3 className="text-base font-semibold text-text-strong">Languages</h3>
+            <h3 className="text-base font-semibold text-text-strong">
+              Languages
+            </h3>
             {profile.languages.length ? (
               <ul className="space-y-2 text-sm text-text-muted">
                 {profile.languages.map((language) => (
@@ -480,7 +504,9 @@ export default async function PublicAgentProfilePage({
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-text-muted">No languages listed yet.</p>
+              <p className="text-sm text-text-muted">
+                No languages listed yet.
+              </p>
             )}
           </Card>
         </div>
@@ -490,8 +516,8 @@ export default async function PublicAgentProfilePage({
             Want a WHOMA profile like this?
           </h2>
           <p className="text-sm text-text-muted">
-            Start with email verification, complete your profile, and
-            publish it for review.
+            Start with email verification, complete your profile, and publish it
+            for review.
           </p>
           <div className="flex flex-wrap gap-2">
             <Link
@@ -502,7 +528,9 @@ export default async function PublicAgentProfilePage({
             </Link>
             <Link
               href={PUBLIC_AGENT_DIRECTORY_HREF}
-              className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "sm" })
+              )}
             >
               Browse agents
             </Link>

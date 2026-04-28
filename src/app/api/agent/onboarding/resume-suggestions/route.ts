@@ -131,7 +131,14 @@ function getBioTextHash(bioText: string): string {
   return crypto.createHash("sha256").update(bioText).digest("hex");
 }
 
-function setResumeSuggestionsCookie(response: NextResponse, suggestion: ResumeSuggestions): void {
+function getOptionalString(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function setResumeSuggestionsCookie(
+  response: NextResponse,
+  suggestion: ResumeSuggestions
+): void {
   response.cookies.set({
     name: RESUME_SUGGESTIONS_COOKIE_NAME,
     value: encodeResumeSuggestionsCookie(suggestion),
@@ -155,9 +162,9 @@ function clearResumeSuggestionsCookie(response: NextResponse): void {
   });
 }
 
-function requireAgentSession(session: AuthSession | null):
-  | { ok: true; userId: string }
-  | { ok: false; response: Response } {
+function requireAgentSession(
+  session: AuthSession | null
+): { ok: true; userId: string } | { ok: false; response: Response } {
   if (!session?.user) {
     return {
       ok: false,
@@ -168,7 +175,11 @@ function requireAgentSession(session: AuthSession | null):
   if (session.user.role !== "AGENT") {
     return {
       ok: false,
-      response: jsonError(403, "FORBIDDEN_ROLE", "Only estate agents can upload resumes.")
+      response: jsonError(
+        403,
+        "FORBIDDEN_ROLE",
+        "Only estate agents can upload resumes."
+      )
     };
   }
 
@@ -227,8 +238,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const resumeFile = formData.get("resumeFile");
-  const rawBioText = formData.get("bioText");
-  const bioText = typeof rawBioText === "string" ? rawBioText.trim() : "";
+  const bioText = getOptionalString(formData.get("bioText"));
+  const linkedinUrl = getOptionalString(formData.get("linkedinUrl"));
   const uploadFile = isFileLike(resumeFile) ? resumeFile : null;
 
   if (!uploadFile && bioText.length === 0) {
@@ -242,7 +253,9 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const rawMode = formData.get("mode");
-  const parsedMode = modeSchema.safeParse(rawMode === null ? undefined : rawMode);
+  const parsedMode = modeSchema.safeParse(
+    rawMode === null ? undefined : rawMode
+  );
 
   if (!parsedMode.success && rawMode !== null) {
     return jsonError(
@@ -258,40 +271,53 @@ export async function POST(request: Request): Promise<Response> {
     const fileHash = uploadFile ? await getFileHash(uploadFile) : null;
     const bioHash = bioText.length > 0 ? getBioTextHash(bioText) : null;
 
-    const idempotent = await executeIdempotentRequest<ResumeSuggestionEnvelope>({
-      actorId: sessionResult.userId,
-      route: "/api/agent/onboarding/resume-suggestions",
-      idempotencyKey: request.headers.get("idempotency-key"),
-      requestHash: createRequestHash({
-        inputType: fileHash ? "file" : "bioText",
-        fileName: fileHash && uploadFile ? uploadFile.name : undefined,
-        fileSize: fileHash && uploadFile ? uploadFile.size : undefined,
-        fileType: fileHash && uploadFile ? uploadFile.type : undefined,
-        fileHash,
-        bioHash,
-        mode: parsedMode.success ? parsedMode.data : undefined
-      }),
-      operation: async () => {
-        const extractionInput = parsedMode.success
-          ? fileHash && uploadFile
-            ? { file: uploadFile, mode: parsedMode.data }
-            : { bioText, mode: parsedMode.data }
-          : fileHash && uploadFile
-            ? { file: uploadFile }
-            : { bioText };
+    const idempotent = await executeIdempotentRequest<ResumeSuggestionEnvelope>(
+      {
+        actorId: sessionResult.userId,
+        route: "/api/agent/onboarding/resume-suggestions",
+        idempotencyKey: request.headers.get("idempotency-key"),
+        requestHash: createRequestHash({
+          inputType: fileHash ? "file" : "bioText",
+          fileName: fileHash && uploadFile ? uploadFile.name : undefined,
+          fileSize: fileHash && uploadFile ? uploadFile.size : undefined,
+          fileType: fileHash && uploadFile ? uploadFile.type : undefined,
+          fileHash,
+          bioHash,
+          linkedinUrl,
+          mode: parsedMode.success ? parsedMode.data : undefined
+        }),
+        operation: async () => {
+          const extractionInput: Parameters<
+            typeof createResumeSuggestionsFromFile
+          >[0] = {};
 
-        const result = await createResumeSuggestionsFromFile(extractionInput);
-
-        return {
-          status: 201,
-          body: {
-            actor: { id: sessionResult.userId, role: "AGENT" as const },
-            suggestion: result.suggestion,
-            pipeline: result.pipeline
+          if (fileHash && uploadFile) {
+            extractionInput.file = uploadFile;
+          } else {
+            extractionInput.bioText = bioText;
           }
-        };
+
+          if (linkedinUrl.length > 0) {
+            extractionInput.supplementalText = `LinkedIn URL: ${linkedinUrl}`;
+          }
+
+          if (parsedMode.success) {
+            extractionInput.mode = parsedMode.data;
+          }
+
+          const result = await createResumeSuggestionsFromFile(extractionInput);
+
+          return {
+            status: 201,
+            body: {
+              actor: { id: sessionResult.userId, role: "AGENT" as const },
+              suggestion: result.suggestion,
+              pipeline: result.pipeline
+            }
+          };
+        }
       }
-    });
+    );
 
     const response = NextResponse.json(
       {
@@ -353,7 +379,8 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const suggestion = decodeResumeSuggestionsCookie(
-    request.headers.get("cookie")
+    request.headers
+      .get("cookie")
       ?.split(";")
       .map((part) => part.trim())
       .find((part) => part.startsWith(`${RESUME_SUGGESTIONS_COOKIE_NAME}=`))

@@ -8,13 +8,13 @@ import {
   Trophy,
   UploadSimple
 } from "@phosphor-icons/react";
-import {
+import React, {
   useEffect,
   useCallback,
-  useMemo,
   useState,
   type ChangeEvent,
   type CSSProperties,
+  type FormEvent,
   type ReactNode
 } from "react";
 import { useFormStatus } from "react-dom";
@@ -25,6 +25,7 @@ import {
   collaborationPreferenceOptions,
   responseTimeOptionsWithLabels
 } from "@/lib/validation/agent-profile";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
 
 type FormAction = (formData: FormData) => void | Promise<void>;
@@ -123,8 +124,8 @@ const fieldLabels: Record<FieldKey, string> = {
   achievements: "Recent wins",
   languages: "Languages",
   feePreference: "Fee style",
-  transactionBand: "Property value band",
-  collaborationPreference: "Collaboration",
+  transactionBand: "Property category",
+  collaborationPreference: "Fee split deals",
   responseTimeMinutes: "Response time"
 };
 
@@ -159,18 +160,19 @@ const quickQuestions: Array<{
   },
   {
     key: "transactionBand",
-    label: "What property value band do you usually handle?",
-    helper: "This helps frame the kind of instructions that fit you."
+    label: "Which property category do you usually handle?",
+    helper: "Choose the category that best matches your usual work."
   },
   {
     key: "collaborationPreference",
-    label: "How open are you to referral-style collaboration?",
+    label: "Are you open to fee split deals with other agents?",
     helper: "Set the posture you want WHOMA to show."
   },
   {
     key: "responseTimeMinutes",
     label: "How quickly do you usually respond?",
-    helper: "Set an expectation that feels accurate for your rhythm."
+    helper:
+      "For now this is self-reported; WHOMA should replace it with measured response behaviour as real interactions grow."
   }
 ];
 
@@ -246,17 +248,20 @@ function SubmitButton({
   children,
   pendingText,
   disabled,
+  pendingOverride = false,
   variant = "primary",
   onClick
 }: {
   children: ReactNode;
   pendingText?: string;
   disabled?: boolean;
+  pendingOverride?: boolean;
   variant?: "primary" | "outline";
   onClick?: () => void;
 }) {
   const { pending } = useFormStatus();
-  const isDisabled = disabled || pending;
+  const isPending = pending || pendingOverride;
+  const isDisabled = disabled || isPending;
 
   return (
     <button
@@ -270,7 +275,7 @@ function SubmitButton({
           : "border border-slate-200 bg-white text-zinc-700"
       )}
     >
-      {pending ? (pendingText ?? "Working...") : children}
+      {isPending ? (pendingText ?? "Working...") : children}
     </button>
   );
 }
@@ -307,6 +312,7 @@ function OnboardingField({
   textareaRows?: number;
 }) {
   const label = fieldLabels[fieldKey];
+  const inputId = `agent-onboarding-${fieldKey}`;
   const baseClass =
     "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-300 transition-all duration-200 focus:border-[#2d6a5a]/50 focus:outline-none focus:ring-2 focus:ring-[#2d6a5a]/10";
 
@@ -318,10 +324,14 @@ function OnboardingField({
         className="animate-[field-reveal_220ms_ease-out_both] space-y-1.5"
         style={style}
       >
-        <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        <label
+          htmlFor={inputId}
+          className="text-xs font-medium uppercase tracking-wide text-zinc-500"
+        >
           {label}
         </label>
         <textarea
+          id={inputId}
           name={fieldKey}
           value={value}
           onChange={(event) => onChange(fieldKey, event.target.value)}
@@ -353,10 +363,14 @@ function OnboardingField({
         className="animate-[field-reveal_220ms_ease-out_both] space-y-1.5"
         style={style}
       >
-        <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        <label
+          htmlFor={inputId}
+          className="text-xs font-medium uppercase tracking-wide text-zinc-500"
+        >
           {label}
         </label>
         <select
+          id={inputId}
           name={fieldKey}
           value={value}
           onChange={(event) => onChange(fieldKey, event.target.value)}
@@ -378,12 +392,22 @@ function OnboardingField({
       className="animate-[field-reveal_220ms_ease-out_both] space-y-1.5"
       style={style}
     >
-      <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+      <label
+        htmlFor={inputId}
+        className="text-xs font-medium uppercase tracking-wide text-zinc-500"
+      >
         {label}
       </label>
       <input
+        id={inputId}
         name={fieldKey}
-        type={fieldKey === "workEmail" ? "email" : fieldKey === "yearsExperience" ? "number" : "text"}
+        type={
+          fieldKey === "workEmail"
+            ? "email"
+            : fieldKey === "yearsExperience"
+              ? "number"
+              : "text"
+        }
         value={value}
         onChange={(event) => onChange(fieldKey, event.target.value)}
         placeholder={placeholders[fieldKey]}
@@ -403,6 +427,36 @@ function HiddenProfileFields({ values }: { values: Values }) {
       ))}
     </>
   );
+}
+
+function getConfirmationFields(params: {
+  values: Values;
+  confidence: ResumeConfidence;
+  hasResumeSuggestions: boolean;
+}): FieldKey[] {
+  return coreDetailFields.filter(
+    (key) =>
+      !fieldIsReady(
+        key,
+        params.values,
+        params.confidence,
+        params.hasResumeSuggestions
+      )
+  );
+}
+
+function getApiErrorMessage(payload: unknown, fallback: string): string {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "error" in payload &&
+    typeof (payload as { error?: { message?: unknown } }).error?.message ===
+      "string"
+  ) {
+    return (payload as { error: { message: string } }).error.message;
+  }
+
+  return fallback;
 }
 
 export function AgentOnboardingStepper({
@@ -426,48 +480,63 @@ export function AgentOnboardingStepper({
   const storageKey = `whoma-agent-onboarding-step:${userId}`;
   const draftStorageKey = `whoma-agent-onboarding-draft:${userId}`;
   const [currentStep, setCurrentStep] = useState(hasResumeSuggestions ? 2 : 1);
-  const [transitionState, setTransitionState] = useState<"idle" | "exit" | "enter">("idle");
+  const [transitionState, setTransitionState] = useState<
+    "idle" | "exit" | "enter"
+  >("idle");
   const [importMode, setImportMode] = useState<"file" | "bio">("file");
   const [hasFile, setHasFile] = useState(false);
   const [bioText, setBioText] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [values, setValues] = useState<Values>(formValues);
   const [quickIndex, setQuickIndex] = useState(0);
-  const [verificationSent, setVerificationSent] = useState(initialVerificationSent);
+  const [verificationSent, setVerificationSent] = useState(
+    initialVerificationSent
+  );
   const [canResendCode, setCanResendCode] = useState(false);
-  const [showConfirmedInterstitial, setShowConfirmedInterstitial] = useState(false);
+  const [showConfirmedInterstitial, setShowConfirmedInterstitial] =
+    useState(false);
+  const [actionNotice, setActionNotice] = useState<{
+    tone: NoticeTone;
+    message: string;
+  } | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [confirmationFields, setConfirmationFields] = useState<FieldKey[]>(() =>
+    getConfirmationFields({
+      values: formValues,
+      confidence: resumeConfidence,
+      hasResumeSuggestions
+    })
+  );
+  const [hydratedDraftSourceKey, setHydratedDraftSourceKey] = useState<
+    string | null
+  >(null);
 
   const updateValue = (key: FieldKey, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
   };
-
-  const confirmationFields = useMemo(
-    () =>
-      coreDetailFields.filter(
-        (key) => !fieldIsReady(key, values, resumeConfidence, hasResumeSuggestions)
-      ),
-    [hasResumeSuggestions, resumeConfidence, values]
-  );
 
   const detectedCount = summaryFields.filter((field) =>
     hasValue(values[field.key])
   ).length;
   const missingCount = summaryFields.length - detectedCount;
 
-  const setStep = useCallback((nextStep: number) => {
-    const safeStep = Math.max(1, Math.min(totalSteps, nextStep));
-    if (safeStep === currentStep) {
-      return;
-    }
+  const setStep = useCallback(
+    (nextStep: number) => {
+      const safeStep = Math.max(1, Math.min(totalSteps, nextStep));
+      if (safeStep === currentStep) {
+        return;
+      }
 
-    setTransitionState("exit");
-    window.setTimeout(() => {
-      setCurrentStep(safeStep);
-      localStorage.setItem(storageKey, String(safeStep));
-      setTransitionState("enter");
-      window.setTimeout(() => setTransitionState("idle"), 260);
-    }, 180);
-  }, [currentStep, storageKey]);
+      setTransitionState("exit");
+      window.setTimeout(() => {
+        setCurrentStep(safeStep);
+        localStorage.setItem(storageKey, String(safeStep));
+        setTransitionState("enter");
+        window.setTimeout(() => setTransitionState("idle"), 260);
+      }, 180);
+    },
+    [currentStep, storageKey]
+  );
 
   useEffect(() => {
     const savedStep = Number(localStorage.getItem(storageKey));
@@ -477,14 +546,27 @@ export function AgentOnboardingStepper({
       return;
     }
 
-    if (Number.isInteger(savedStep) && savedStep >= 1 && savedStep <= totalSteps) {
+    if (
+      Number.isInteger(savedStep) &&
+      savedStep >= 1 &&
+      savedStep <= totalSteps
+    ) {
       setCurrentStep(savedStep);
     }
   }, [hasResumeSuggestions, storageKey]);
 
   useEffect(() => {
     const savedDraft = localStorage.getItem(draftStorageKey);
+
     if (!savedDraft) {
+      setConfirmationFields(
+        getConfirmationFields({
+          values: formValues,
+          confidence: resumeConfidence,
+          hasResumeSuggestions
+        })
+      );
+      setHydratedDraftSourceKey(draftSourceKey);
       return;
     }
 
@@ -495,21 +577,56 @@ export function AgentOnboardingStepper({
       };
       if (parsed.draftSourceKey !== draftSourceKey || !parsed.values) {
         localStorage.removeItem(draftStorageKey);
+        setConfirmationFields(
+          getConfirmationFields({
+            values: formValues,
+            confidence: resumeConfidence,
+            hasResumeSuggestions
+          })
+        );
+        setHydratedDraftSourceKey(draftSourceKey);
         return;
       }
 
-      setValues((current) => ({ ...current, ...parsed.values }));
+      const restoredValues = { ...formValues, ...parsed.values };
+      setValues(restoredValues);
+      setConfirmationFields(
+        getConfirmationFields({
+          values: restoredValues,
+          confidence: resumeConfidence,
+          hasResumeSuggestions
+        })
+      );
+      setHydratedDraftSourceKey(draftSourceKey);
     } catch {
       localStorage.removeItem(draftStorageKey);
+      setConfirmationFields(
+        getConfirmationFields({
+          values: formValues,
+          confidence: resumeConfidence,
+          hasResumeSuggestions
+        })
+      );
+      setHydratedDraftSourceKey(draftSourceKey);
     }
-  }, [draftSourceKey, draftStorageKey]);
+  }, [
+    draftSourceKey,
+    draftStorageKey,
+    formValues,
+    hasResumeSuggestions,
+    resumeConfidence
+  ]);
 
   useEffect(() => {
+    if (hydratedDraftSourceKey !== draftSourceKey) {
+      return;
+    }
+
     localStorage.setItem(
       draftStorageKey,
       JSON.stringify({ draftSourceKey, values })
     );
-  }, [draftSourceKey, draftStorageKey, values]);
+  }, [draftSourceKey, draftStorageKey, hydratedDraftSourceKey, values]);
 
   useEffect(() => {
     if (currentStep !== 3 || confirmationFields.length > 0) {
@@ -546,16 +663,166 @@ export function AgentOnboardingStepper({
 
   const contentClass = cn(
     "mx-auto max-w-lg px-6 pb-16 pt-24 transition-all md:px-6",
-    transitionState === "exit" && "translate-x-[-16px] opacity-0 duration-[180ms]",
+    transitionState === "exit" &&
+      "translate-x-[-16px] opacity-0 duration-[180ms]",
     transitionState === "enter" && "translate-x-0 opacity-100 duration-[250ms]",
     transitionState === "idle" && "translate-x-0 opacity-100"
   );
 
   const progressPercent = (currentStep / totalSteps) * 100;
+  const displayNotice = actionNotice ?? notice;
+
+  async function fetchWithAuth(
+    url: string,
+    formData: FormData,
+    options?: { idempotencyKey?: string }
+  ): Promise<unknown> {
+    const supabase = getSupabaseBrowserClient();
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    const headers = new Headers();
+    if (session?.access_token) {
+      headers.set("Authorization", `Bearer ${session.access_token}`);
+    }
+    if (options?.idempotencyKey) {
+      headers.set("Idempotency-Key", options.idempotencyKey);
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+      headers,
+      credentials: "same-origin"
+    });
+    const payload = (await response.json().catch(() => null)) as unknown;
+
+    if (!response.ok) {
+      throw new Error(
+        getApiErrorMessage(payload, "We could not save that step right now.")
+      );
+    }
+
+    return payload;
+  }
+
+  async function handleResumeSubmit(
+    event: FormEvent<HTMLFormElement>
+  ): Promise<void> {
+    event.preventDefault();
+    setActionNotice(null);
+    setPendingAction("resume");
+
+    try {
+      await fetchWithAuth(
+        "/api/agent/onboarding/resume-suggestions",
+        new FormData(event.currentTarget),
+        { idempotencyKey: crypto.randomUUID() }
+      );
+      window.location.assign(
+        "/agent/onboarding?success=resume_prefilled#draft-preview"
+      );
+    } catch (error) {
+      setActionNotice({
+        tone: "danger",
+        message:
+          error instanceof Error
+            ? error.message
+            : "We could not build your draft right now."
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleClearResume(
+    event: FormEvent<HTMLFormElement>
+  ): Promise<void> {
+    event.preventDefault();
+    setActionNotice(null);
+    setPendingAction("clear-resume");
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+      const headers = new Headers();
+      if (session?.access_token) {
+        headers.set("Authorization", `Bearer ${session.access_token}`);
+      }
+      const response = await fetch("/api/agent/onboarding/resume-suggestions", {
+        method: "DELETE",
+        headers,
+        credentials: "same-origin"
+      });
+      const payload = (await response.json().catch(() => null)) as unknown;
+
+      if (!response.ok) {
+        throw new Error(
+          getApiErrorMessage(payload, "We could not clear the CV draft.")
+        );
+      }
+
+      window.location.assign(
+        "/agent/onboarding?success=resume_prefill_cleared"
+      );
+    } catch (error) {
+      setActionNotice({
+        tone: "danger",
+        message:
+          error instanceof Error
+            ? error.message
+            : "We could not clear the CV draft."
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleOnboardingAction(
+    event: FormEvent<HTMLFormElement>,
+    pendingKey: string,
+    successPath: string
+  ): Promise<void> {
+    event.preventDefault();
+    setActionNotice(null);
+    setPendingAction(pendingKey);
+
+    try {
+      const payload = await fetchWithAuth(
+        "/api/agent/onboarding/actions",
+        new FormData(event.currentTarget)
+      );
+      const devCode =
+        typeof payload === "object" &&
+        payload !== null &&
+        "data" in payload &&
+        typeof (payload as { data?: { devCode?: unknown } }).data?.devCode ===
+          "string"
+          ? (payload as { data: { devCode: string } }).data.devCode
+          : null;
+      const destination = devCode
+        ? `${successPath}&devCode=${encodeURIComponent(devCode)}`
+        : successPath;
+      window.location.assign(destination);
+    } catch (error) {
+      setActionNotice({
+        tone: "danger",
+        message:
+          error instanceof Error
+            ? error.message
+            : "We could not save that onboarding step."
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  }
 
   return (
     <main className="min-h-[100dvh] bg-[#f4f4f2] text-zinc-900">
-      <style jsx global>{`
+      <style>{`
         @keyframes field-reveal {
           from {
             opacity: 0;
@@ -574,10 +841,16 @@ export function AgentOnboardingStepper({
       <header className="fixed inset-x-0 top-0 z-20 h-14 border-b border-zinc-200/80 bg-[#f4f4f2]/95 backdrop-blur">
         <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4 md:px-6">
           <div className="min-w-0">
-            <p className="text-sm font-semibold tracking-tight text-zinc-900">WHOMA</p>
-            <p className="truncate text-[11px] text-zinc-400">Where Home Owners Meet Agents</p>
+            <p className="text-sm font-semibold tracking-tight text-zinc-900">
+              WHOMA
+            </p>
+            <p className="truncate text-[11px] text-zinc-400">
+              Where Home Owners Meet Agents
+            </p>
           </div>
-          <p className="text-sm text-zinc-400">Step {currentStep} of {totalSteps}</p>
+          <p className="text-sm text-zinc-400">
+            Step {currentStep} of {totalSteps}
+          </p>
         </div>
         <div className="h-px w-full bg-zinc-200">
           <div
@@ -588,16 +861,19 @@ export function AgentOnboardingStepper({
       </header>
 
       <div className={contentClass}>
-        {notice ? (
+        {displayNotice ? (
           <div
             className={cn(
               "mb-6 rounded-2xl border px-4 py-3 text-sm",
-              notice.tone === "success" && "border-[#2d6a5a]/20 bg-[#2d6a5a]/5 text-[#2d6a5a]",
-              notice.tone === "warning" && "border-amber-200 bg-amber-50 text-amber-700",
-              notice.tone === "danger" && "border-red-200 bg-red-50 text-red-500"
+              displayNotice.tone === "success" &&
+                "border-[#2d6a5a]/20 bg-[#2d6a5a]/5 text-[#2d6a5a]",
+              displayNotice.tone === "warning" &&
+                "border-amber-200 bg-amber-50 text-amber-700",
+              displayNotice.tone === "danger" &&
+                "border-red-200 bg-red-50 text-red-500"
             )}
           >
-            {notice.message}
+            {displayNotice.message}
           </div>
         ) : null}
 
@@ -608,12 +884,18 @@ export function AgentOnboardingStepper({
             headline="Let's start with what you've already got."
             subtext="Upload your CV or paste your LinkedIn bio. We'll build the first draft — you just confirm."
           >
-            <form action={uploadResumeAction} className="space-y-5">
+            <form
+              action={uploadResumeAction}
+              className="space-y-5"
+              onSubmit={handleResumeSubmit}
+            >
               <input type="hidden" name="mode" value={resumeMode} />
               <div
                 className={cn(
                   "w-full cursor-pointer rounded-2xl border bg-white p-5 text-left transition-all duration-200 active:scale-[0.98]",
-                  importMode === "file" ? "border-[#2d6a5a] bg-[#2d6a5a]/5" : "border-slate-200"
+                  importMode === "file"
+                    ? "border-[#2d6a5a] bg-[#2d6a5a]/5"
+                    : "border-slate-200"
                 )}
               >
                 <button
@@ -623,8 +905,12 @@ export function AgentOnboardingStepper({
                 >
                   <UploadSimple size={20} className="mt-0.5 text-zinc-400" />
                   <div>
-                    <p className="text-sm font-medium text-zinc-800">Upload CV or resume</p>
-                    <p className="text-xs text-zinc-400">PDF, Word, or text file</p>
+                    <p className="text-sm font-medium text-zinc-800">
+                      Upload CV or resume
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      PDF, Word, or text file
+                    </p>
                   </div>
                 </button>
                 {importMode === "file" ? (
@@ -653,7 +939,9 @@ export function AgentOnboardingStepper({
               <div
                 className={cn(
                   "w-full cursor-pointer rounded-2xl border bg-white p-5 text-left transition-all duration-200 active:scale-[0.98]",
-                  importMode === "bio" ? "border-[#2d6a5a] bg-[#2d6a5a]/5" : "border-slate-200"
+                  importMode === "bio"
+                    ? "border-[#2d6a5a] bg-[#2d6a5a]/5"
+                    : "border-slate-200"
                 )}
               >
                 <button
@@ -663,8 +951,12 @@ export function AgentOnboardingStepper({
                 >
                   <LinkedinLogo size={20} className="mt-0.5 text-zinc-400" />
                   <div>
-                    <p className="text-sm font-medium text-zinc-800">Paste your LinkedIn About section</p>
-                    <p className="text-xs text-zinc-400">Professional bio or public summary</p>
+                    <p className="text-sm font-medium text-zinc-800">
+                      Paste your LinkedIn About section
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      Professional bio or public summary
+                    </p>
                   </div>
                 </button>
                 {importMode === "bio" ? (
@@ -698,6 +990,7 @@ export function AgentOnboardingStepper({
               <SubmitButton
                 pendingText="Building your draft..."
                 disabled={importMode === "file" ? !hasFile : !hasValue(bioText)}
+                pendingOverride={pendingAction === "resume"}
               >
                 Build my draft
               </SubmitButton>
@@ -722,17 +1015,29 @@ export function AgentOnboardingStepper({
               {summaryFields.map((field) => {
                 const ready = hasValue(values[field.key]);
                 return (
-                  <div key={field.key} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                  <div
+                    key={field.key}
+                    className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                  >
                     <div className="min-w-0">
-                      <p className="text-xs uppercase tracking-wide text-zinc-400">{field.label}</p>
-                      <p className={cn("mt-1 text-sm font-medium text-zinc-800", field.key === "bio" && "line-clamp-2")}>
+                      <p className="text-xs uppercase tracking-wide text-zinc-400">
+                        {field.label}
+                      </p>
+                      <p
+                        className={cn(
+                          "mt-1 text-sm font-medium text-zinc-800",
+                          field.key === "bio" && "line-clamp-2"
+                        )}
+                      >
                         {displayValue(field.key, values[field.key])}
                       </p>
                     </div>
                     <span
                       className={cn(
                         "shrink-0 rounded-full px-2 py-0.5 text-xs",
-                        ready ? "bg-[#2d6a5a]/10 text-[#2d6a5a]" : "bg-zinc-100 text-zinc-400"
+                        ready
+                          ? "bg-[#2d6a5a]/10 text-[#2d6a5a]"
+                          : "bg-zinc-100 text-zinc-400"
                       )}
                     >
                       {ready ? "Ready" : "Missing"}
@@ -749,8 +1054,14 @@ export function AgentOnboardingStepper({
               >
                 Looks good, continue →
               </button>
-              <form action={clearResumeSuggestionsAction}>
-                <button type="submit" className="mx-auto block text-sm text-zinc-400 transition-colors hover:text-zinc-700">
+              <form
+                action={clearResumeSuggestionsAction}
+                onSubmit={handleClearResume}
+              >
+                <button
+                  type="submit"
+                  className="mx-auto block text-sm text-zinc-400 transition-colors hover:text-zinc-700"
+                >
                   Re-import CV
                 </button>
               </form>
@@ -767,8 +1078,13 @@ export function AgentOnboardingStepper({
           >
             {showConfirmedInterstitial ? (
               <div className="rounded-2xl border border-[#2d6a5a]/10 bg-white p-6 text-center">
-                <CheckCircle size={32} className="mx-auto mb-3 text-[#2d6a5a]" />
-                <p className="text-lg font-semibold text-zinc-800">All details confirmed</p>
+                <CheckCircle
+                  size={32}
+                  className="mx-auto mb-3 text-[#2d6a5a]"
+                />
+                <p className="text-lg font-semibold text-zinc-800">
+                  All details confirmed
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -781,7 +1097,7 @@ export function AgentOnboardingStepper({
                     index={index}
                   />
                 ))}
-                <div className="pt-4 space-y-3">
+                <div className="space-y-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setStep(4)}
@@ -789,7 +1105,9 @@ export function AgentOnboardingStepper({
                   >
                     Save details →
                   </button>
-                  <TextLinkButton onClick={() => setStep(2)}>← Back</TextLinkButton>
+                  <TextLinkButton onClick={() => setStep(2)}>
+                    ← Back
+                  </TextLinkButton>
                 </div>
               </div>
             )}
@@ -800,7 +1118,7 @@ export function AgentOnboardingStepper({
           <StepFrame
             step={4}
             label="QUICK INTERVIEW"
-            headline="Three quick questions."
+            headline="A few quick questions."
             subtext="These shape how your profile reads to homeowners."
           >
             <div className="mb-6 flex gap-2">
@@ -869,18 +1187,39 @@ export function AgentOnboardingStepper({
           >
             {workEmailVerified ? (
               <div className="rounded-2xl border border-[#2d6a5a]/10 bg-white p-6 text-center">
-                <CheckCircle size={32} className="mx-auto mb-3 text-[#2d6a5a]" />
-                <p className="text-lg font-semibold text-zinc-800">Email verified</p>
+                <CheckCircle
+                  size={32}
+                  className="mx-auto mb-3 text-[#2d6a5a]"
+                />
+                <p className="text-lg font-semibold text-zinc-800">
+                  Email verified
+                </p>
               </div>
             ) : (
-              <form action={sendWorkEmailVerificationCodeAction} className="space-y-4">
+              <form
+                action={sendWorkEmailVerificationCodeAction}
+                className="space-y-4"
+                onSubmit={(event) =>
+                  handleOnboardingAction(
+                    event,
+                    "send-code",
+                    "/agent/onboarding?success=work_email_code_sent"
+                  )
+                }
+              >
                 <div className="rounded-xl bg-zinc-100 px-4 py-3 font-mono text-sm text-zinc-600">
                   {values.workEmail || "Add your email in step 3"}
                 </div>
-                <input type="hidden" name="workEmail" value={values.workEmail} />
+                <input type="hidden" name="action" value="send_code" />
+                <input
+                  type="hidden"
+                  name="workEmail"
+                  value={values.workEmail}
+                />
                 <SubmitButton
                   variant="outline"
                   pendingText="Sending code..."
+                  pendingOverride={pendingAction === "send-code"}
                   onClick={() => setVerificationSent(true)}
                 >
                   Send code
@@ -889,8 +1228,23 @@ export function AgentOnboardingStepper({
             )}
 
             {!workEmailVerified && verificationSent ? (
-              <form action={confirmWorkEmailVerificationCodeAction} className="mt-5 space-y-4">
-                <input type="hidden" name="workEmail" value={values.workEmail} />
+              <form
+                action={confirmWorkEmailVerificationCodeAction}
+                className="mt-5 space-y-4"
+                onSubmit={(event) =>
+                  handleOnboardingAction(
+                    event,
+                    "confirm-code",
+                    "/agent/onboarding?success=work_email_verified"
+                  )
+                }
+              >
+                <input type="hidden" name="action" value="confirm_code" />
+                <input
+                  type="hidden"
+                  name="workEmail"
+                  value={values.workEmail}
+                />
                 <input
                   name="verificationCode"
                   inputMode="numeric"
@@ -899,15 +1253,33 @@ export function AgentOnboardingStepper({
                   placeholder="123456"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center font-mono text-lg tracking-[0.5em] text-zinc-800 placeholder:text-zinc-300 focus:border-[#2d6a5a]/50 focus:outline-none focus:ring-2 focus:ring-[#2d6a5a]/10"
                 />
-                <SubmitButton pendingText="Verifying...">
+                <SubmitButton
+                  pendingText="Verifying..."
+                  pendingOverride={pendingAction === "confirm-code"}
+                >
                   Verify code
                 </SubmitButton>
               </form>
             ) : null}
 
             {!workEmailVerified && verificationSent && canResendCode ? (
-              <form action={sendWorkEmailVerificationCodeAction} className="mt-4">
-                <input type="hidden" name="workEmail" value={values.workEmail} />
+              <form
+                action={sendWorkEmailVerificationCodeAction}
+                className="mt-4"
+                onSubmit={(event) =>
+                  handleOnboardingAction(
+                    event,
+                    "send-code",
+                    "/agent/onboarding?success=work_email_code_sent"
+                  )
+                }
+              >
+                <input type="hidden" name="action" value="send_code" />
+                <input
+                  type="hidden"
+                  name="workEmail"
+                  value={values.workEmail}
+                />
                 <button
                   type="submit"
                   className="mx-auto block text-sm text-zinc-400 transition-colors hover:text-zinc-700"
@@ -936,16 +1308,30 @@ export function AgentOnboardingStepper({
             headline="Your profile is ready."
             subtext="You can publish now or log your first past deal to boost credibility before going live."
           >
-            <form action={submitAgentOnboardingAction} className="space-y-6">
+            <form
+              action={submitAgentOnboardingAction}
+              className="space-y-6"
+              onSubmit={(event) =>
+                handleOnboardingAction(
+                  event,
+                  "complete",
+                  "/agent/profile/edit?success=onboarding-complete"
+                )
+              }
+            >
+              <input type="hidden" name="action" value="complete" />
               <HiddenProfileFields values={values} />
               <div className="grid gap-3 md:grid-cols-2">
                 <button
                   type="submit"
+                  disabled={pendingAction === "complete"}
                   className="rounded-2xl bg-[#2d6a5a] p-6 text-left text-white transition-all duration-200 active:scale-[0.98]"
                 >
                   <Rocket size={24} className="mb-4" />
                   <p className="font-semibold">Publish now</p>
-                  <p className="mt-1 text-sm opacity-80">Go live and start building trust.</p>
+                  <p className="mt-1 text-sm opacity-80">
+                    Go live and start building trust.
+                  </p>
                 </button>
                 <Link
                   href="/agent/deals"
@@ -953,7 +1339,9 @@ export function AgentOnboardingStepper({
                 >
                   <Trophy size={24} className="mb-4 text-[#2d6a5a]" />
                   <p className="font-semibold text-zinc-800">Add a past deal</p>
-                  <p className="mt-1 text-sm text-zinc-400">Verified deals build credibility faster.</p>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    Verified deals build credibility faster.
+                  </p>
                 </Link>
               </div>
             </form>

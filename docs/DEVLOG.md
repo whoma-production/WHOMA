@@ -6382,3 +6382,61 @@ Land the first public brand execution pass so WHOMA reads as a calmer, more prem
 1. Commit and push the clean release bundle to `main`.
 2. Confirm whether Railway auto-deploys from the pushed commit or run an approved production deploy.
 3. Verify live `/api/health` and targeted public/auth/onboarding/contact routes after deployment.
+
+---
+
+## Session: 2026-04-28 / 12:56 (CEST) — Agent onboarding continuity + input stability
+
+**Author:** Codex
+**Context:** User reported an urgent onboarding login loop after CV + LinkedIn import, disappearing fields while typing, and requested wording/category amendments plus deployment readiness.
+**Branch/PR:** `main` (release bundle pending commit/push/deploy)
+
+### Goal
+
+- Keep agents signed in through onboarding POST steps, stabilize the one-step-at-a-time onboarding inputs, and update the quick-interview questions without expanding the MVP domain.
+
+### Changes Made
+
+- Added bearer-token fallback to `auth()` so authenticated API requests can resolve the Supabase user even when cookie reads are unreliable.
+- Added `POST /api/agent/onboarding/actions` for work-email code send/confirm and final onboarding completion, preserving server-side validation, authorization, and rate limiting.
+- Switched the onboarding stepper's JS path to submit CV import, code send/confirm, and completion through authenticated API calls while retaining existing server actions as no-JS fallback.
+- Passed optional LinkedIn URL context through `/api/agent/onboarding/resume-suggestions`.
+- Fixed disappearing confirmation inputs by freezing the missing-field list per draft instead of recalculating it away on each keystroke.
+- Associated onboarding field labels with controls for more reliable editing, accessibility, and automation.
+- Replaced the price-band options in onboarding/profile surfaces with property categories: `Residential`, `Commercial`, `Luxury`, `New homes`.
+- Changed JV/collaboration wording to fee-split language and labeled response time as self-reported pending measured behaviour.
+
+### Files / Modules Touched
+
+- `src/auth.ts`
+- `src/app/api/agent/onboarding/actions/route.ts`
+- `src/app/api/agent/onboarding/resume-suggestions/route.ts`
+- `src/app/(app)/agent/onboarding/agent-onboarding-stepper.tsx`
+- `src/app/(app)/agent/onboarding/agent-onboarding-stepper.test.tsx`
+- `src/app/(app)/agent/profile/edit/page.tsx`
+- `src/app/agents/[slug]/page.tsx`
+- `src/lib/validation/agent-profile.ts`
+- `docs/TASKS.md`
+- `docs/PLATFORM_MAP.md`
+- `docs/CHANGELOG.json`
+
+### Verification
+
+- `npm run test -- 'src/app/(app)/agent/onboarding/agent-onboarding-stepper.test.tsx' 'src/app/api/agent/onboarding/resume-suggestions/route.test.ts'` -> passed (`7/7`).
+- `npm run typecheck` -> passed.
+- `git diff --check` -> passed.
+- `npm run test` -> passed (`97/97`, `8` DB-backed tests skipped by existing env gating).
+- `npm run build` -> passed.
+- `npm run lint` -> passed (`next lint` deprecation warning only; no warnings/errors).
+
+### Known Issues / Risks
+
+- The storage enum/column remains named `transactionBand` for compatibility; the user-facing question/options now present property category language. A future migration can rename the field if we want cleaner internals.
+- Actual response-time behaviour is still not measured as a first-class metric; the UI now avoids presenting it as system-measured, and the product follow-up is to derive it from message/inquiry events.
+- Live signed-in browser verification and deployment still need to run after this local release gate.
+
+### Next Steps
+
+1. Deploy this bundle to Railway production.
+2. Verify live `/api/health`, `/agent/onboarding` auth gate, and a signed-in onboarding pass through CV/LinkedIn import -> draft preview -> confirm fields -> verify email -> complete.
+3. Add a first-class response-time measurement task when the message/inquiry event model is ready to support behaviour-derived profile metrics.

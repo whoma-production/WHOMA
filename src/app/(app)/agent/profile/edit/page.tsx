@@ -427,14 +427,14 @@ export default async function AgentProfileEditPage({
               </label>
               <label className="space-y-1">
                 <span className="text-sm font-medium text-text-strong">
-                  Typical transaction band
+                  Primary property category
                 </span>
                 <select
                   name="transactionBand"
                   defaultValue={profile?.transactionBand ?? ""}
                   className={selectClasses}
                 >
-                  <option value="">Select transaction band</option>
+                  <option value="">Select property category</option>
                   {agentTransactionBandOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -444,14 +444,14 @@ export default async function AgentProfileEditPage({
               </label>
               <label className="space-y-1">
                 <span className="text-sm font-medium text-text-strong">
-                  Collaboration posture
+                  Fee split posture
                 </span>
                 <select
                   name="collaborationPreference"
                   defaultValue={profile?.collaborationPreference ?? ""}
                   className={selectClasses}
                 >
-                  <option value="">Select collaboration posture</option>
+                  <option value="">Select fee split posture</option>
                   {collaborationPreferenceOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}

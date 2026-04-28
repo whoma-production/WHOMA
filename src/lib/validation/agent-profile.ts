@@ -36,15 +36,14 @@ export const agentFeePreferenceOptions = [
 ] as const;
 
 export const agentTransactionBandOptions = [
-  { value: "UNDER_250K", label: "Under £250k" },
-  { value: "FROM_250K_TO_500K", label: "£250k–£500k" },
-  { value: "FROM_500K_TO_1M", label: "£500k–£1m" },
-  { value: "FROM_1M_TO_2M", label: "£1m–£2m" },
-  { value: "OVER_2M", label: "Over £2m" }
+  { value: "UNDER_250K", label: "Residential" },
+  { value: "FROM_250K_TO_500K", label: "Commercial" },
+  { value: "FROM_500K_TO_1M", label: "Luxury" },
+  { value: "FROM_1M_TO_2M", label: "New homes" }
 ] as const;
 
 export const collaborationPreferenceOptions = [
-  { value: "JV_OR_REFERRALS", label: "Open to JV + referrals" },
+  { value: "JV_OR_REFERRALS", label: "Open to fee split deals" },
   { value: "REFERRALS_ONLY", label: "Referrals only" },
   { value: "SELECTIVE", label: "Selective / case by case" },
   { value: "NOT_OPEN", label: "Not currently looking" }
@@ -82,7 +81,9 @@ function dedupe(values: string[]): string[] {
   return [...new Set(values)];
 }
 
-function optionalEnumValue<T extends readonly [string, ...string[]]>(values: T) {
+function optionalEnumValue<T extends readonly [string, ...string[]]>(
+  values: T
+) {
   return z.preprocess(
     (value) =>
       typeof value === "string" && value.trim().length === 0
@@ -104,8 +105,8 @@ const optionalResponseTimeSchema = z.preprocess(
 
     return value;
   },
-  z
-    .coerce.number()
+  z.coerce
+    .number()
     .int()
     .refine(
       (value) =>

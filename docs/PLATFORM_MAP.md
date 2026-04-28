@@ -672,7 +672,7 @@ Phase 1 delivery focus:
 - Auth continuity hardening (2026-04-25): `/sign-in` preserves safe protected `next` paths after email/password login, shows the Google option when the environment enables it, and no longer routes generic app `error` params through `/auth/callback`.
 - Auth routing hardening (2026-04-27): the default agent destination is `/agent/profile`; the profile index routes completed agents into the editor and incomplete agents through onboarding, so sign-in no longer treats onboarding as the permanent estate-agent landing page.
 - Agent app: `/agent/onboarding`, `/agent/profile/edit`, proposals, marketplace
-- Agent onboarding resume intake now compacts signed suggestion cookies under a browser-safe value cap before redirect; `/agent/onboarding` renders a focused six-step client stepper so agents see only the current import/review/confirm/verify/finish step; completed onboarding is one-time and returns agents to `/agent/profile/edit`.
+- Agent onboarding resume intake now compacts signed suggestion cookies under a browser-safe value cap before redirect; `/agent/onboarding` renders a focused six-step client stepper so agents see only the current import/review/confirm/verify/finish step; completed onboarding is one-time and returns agents to `/agent/profile/edit`. Onboarding POSTs now prefer authenticated API submission with Supabase bearer-token fallback, reducing login-loop risk when server-action cookie reads are unreliable.
 - Agent trust evidence app: `/agent/deals` (add past sales + trigger seller verification requests)
 - Homeowner app: `/homeowner/instructions/new` client-side instruction form with structured payload assembly and bid-window sync
 - Admin app: `/admin/agents` verification queue + expanded activation counters (authenticated non-admin users are redirected to `/dashboard`).
@@ -684,7 +684,8 @@ Phase 1 delivery focus:
 - Access-state cookies are bound to Supabase user ids, and middleware now refreshes Supabase session cookies on matched requests via `auth.getUser()`.
 - Initial Supabase agent signup metadata (`user_metadata.role`) is copied into the WHOMA `User.role` on first local-user creation so confirmed signups can continue directly into the agent profile/onboarding path.
 - Dev host consistency: middleware redirects sign-in/app route traffic to the canonical `AUTH_URL` host in development
-- Signed resume suggestion cookies are size-capped via compaction so CV extraction data cannot destabilize auth/session cookies in mobile browsers; server-action uploads now use file-shape detection for runtime-safe multipart handling.
+- Signed resume suggestion cookies are size-capped via compaction so CV extraction data cannot destabilize auth/session cookies in mobile browsers; server-action uploads now use file-shape detection for runtime-safe multipart handling; `/api/agent/onboarding/resume-suggestions` accepts optional LinkedIn URL context alongside CV/bio input.
+- Onboarding completion API: `/api/agent/onboarding/actions` mirrors the existing server-action validation for work-email send/confirm and final onboarding completion, keeping writes server-authorized while giving the client a token-authenticated fallback path.
 - Validation: `zod` at server boundaries
 - Service layer: `src/server/agent-profile/service.ts` for onboarding/CV/publish/directory/verification logic (slug stability, publish hardening, verification readiness checks)
 - Service layer: `src/server/marketplace/service.ts` for instruction/proposal persistence, bid-window domain guards, duplicate handling, and event emission
@@ -712,6 +713,7 @@ Phase 1 delivery focus:
 - API safety tests: `src/server/http/idempotency.test.ts`, `src/server/http/rate-limit.test.ts`
 - Gate 1 auth contract test: `src/lib/auth/preview-access.test.ts`
 - Auth UI tests: `src/components/auth/google-auth-button.test.tsx`, `src/lib/auth/password-auth.test.ts`
+- Agent onboarding input regression test: `src/app/(app)/agent/onboarding/agent-onboarding-stepper.test.tsx`
 - T004 decision guard tests: `src/server/marketplace/service.test.ts`
 - T005 persistence tests: `src/server/marketplace/service.persistence.test.ts`, `src/server/marketplace/messages.persistence.test.ts`
 - Support chat knowledge tests: `src/lib/knowledge/retrieve.test.ts`, `src/app/api/chat/route.test.ts`, `tests/e2e/support-chat-ai.spec.ts`

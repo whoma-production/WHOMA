@@ -2626,5 +2626,44 @@
       "Verify whether Railway auto-deploys from the pushed commit or run an approved production deploy.",
       "Run live health and targeted route checks after deployment."
     ]
+  },
+  {
+    "session_id": "2026-04-28-1256-agent-onboarding-continuity-input-stability",
+    "timestamp": "2026-04-28T12:56:00+02:00",
+    "summary": "Hardened agent onboarding continuity by moving JS submissions through token-authenticated API paths, fixing disappearing confirmation fields, and updating onboarding question wording/categories.",
+    "files_changed": [
+      "src/auth.ts",
+      "src/app/api/agent/onboarding/actions/route.ts",
+      "src/app/api/agent/onboarding/resume-suggestions/route.ts",
+      "src/app/(app)/agent/onboarding/agent-onboarding-stepper.tsx",
+      "src/app/(app)/agent/onboarding/agent-onboarding-stepper.test.tsx",
+      "src/app/(app)/agent/profile/edit/page.tsx",
+      "src/app/agents/[slug]/page.tsx",
+      "src/lib/validation/agent-profile.ts",
+      "docs/DEVLOG.md",
+      "docs/TASKS.md",
+      "docs/PLATFORM_MAP.md",
+      "docs/CHANGELOG.json"
+    ],
+    "decisions": [
+      "Use bearer-token fallback for authenticated onboarding API calls so POST steps can survive server-action cookie read issues without weakening server authorization.",
+      "Keep existing server actions as fallback while making the JavaScript path use route handlers that return structured errors instead of redirecting unexpectedly to sign-in.",
+      "Freeze the confirmation-field list per draft so fields stay visible and editable while typing.",
+      "Keep the existing transactionBand storage name for compatibility while presenting user-facing property category options.",
+      "Treat response time as self-reported for now and document the need for measured behaviour-derived metrics later."
+    ],
+    "verification": [
+      "npm run test -- 'src/app/(app)/agent/onboarding/agent-onboarding-stepper.test.tsx' 'src/app/api/agent/onboarding/resume-suggestions/route.test.ts' -> passed (7/7)",
+      "npm run typecheck -> passed",
+      "git diff --check -> passed",
+      "npm run test -> passed (97/97, 8 DB-backed tests skipped by existing env gating)",
+      "npm run build -> passed",
+      "npm run lint -> passed (next lint deprecation warning only)"
+    ],
+    "next_steps": [
+      "Deploy this bundle to Railway production.",
+      "Run live health and signed-in onboarding verification against production.",
+      "Add first-class response-time measurement once message/inquiry events can support behavioural metrics."
+    ]
   }
 ]
